@@ -1,0 +1,19 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: jukespotify-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: jukespotify
+      MYSQL_DATABASE: jukespotify
+    volumes:
+      - jukespotify_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pjukespotify"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  jukespotify_mysql_data:

@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+client/dist/
+server/server
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Go
+*.exe
+*.test
+*.out
+
+# Downloaded scripts
+get-docker.sh
+
+# Temp files
+commit_msg.txt
