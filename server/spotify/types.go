@@ -69,11 +69,29 @@ type PlaylistTracksResponse struct {
 }
 
 // PlaylistTrackItem wraps a track in a playlist
+// New /items endpoint uses "item"; deprecated /tracks used "track"
 type PlaylistTrackItem struct {
-	Track *Track `json:"track"`
+	Track *Track `json:"track"` // deprecated
+	Item  *Track `json:"item"`  // new endpoint
 }
 
 // RecommendationsResponse wraps the recommendations response
 type RecommendationsResponse struct {
 	Tracks []Track `json:"tracks"`
+}
+
+// Device represents a Spotify Connect device
+type Device struct {
+	ID               string `json:"id"`
+	IsActive         bool   `json:"is_active"`
+	IsRestricted     bool   `json:"is_restricted"`
+	Name             string `json:"name"`
+	Type             string `json:"type"`
+	VolumePercent    *int   `json:"volume_percent"`
+	SupportsVolume   bool   `json:"supports_volume"`
+}
+
+// DevicesResponse wraps the devices list response
+type DevicesResponse struct {
+	Devices []Device `json:"devices"`
 }

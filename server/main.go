@@ -40,11 +40,14 @@ func main() {
 	r.GET("/api/spotify/callback", handlers.SpotifyCallback(cfg))
 	r.POST("/api/spotify/disconnect", handlers.SpotifyDisconnect())
 	r.GET("/api/spotify/status", handlers.SpotifyStatus(spotifyClient))
+	r.GET("/api/spotify/devices", handlers.SpotifyDevices(spotifyClient))
+	r.POST("/api/spotify/device", handlers.SpotifySetDevice(spotifyClient))
 	r.GET("/api/spotify/me", handlers.SpotifyMe(spotifyClient))
 
 	// Player & Playlists
 	r.GET("/api/player/now-playing", handlers.PlayerNowPlaying(spotifyClient))
 	r.GET("/api/playlists", handlers.PlaylistsList(spotifyClient))
+	r.GET("/api/debug/playlist/:id", handlers.DebugPlaylistAccess(spotifyClient))
 
 	// Voting
 	votingManager := voting.NewManager(spotifyClient)

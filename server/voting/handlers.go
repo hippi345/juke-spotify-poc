@@ -45,10 +45,26 @@ func (h *Handlers) SessionEnd(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ended"})
 }
 
-// State returns the current voting state for polling
+// State returns the current voting state for polling.
+// Also triggers advance check (same logic as ticker) so rounds advance when client polls.
 func (h *Handlers) State(c *gin.Context) {
 	cp, _ := h.Svc.GetCurrentlyPlaying()
 	session, round, timeRemainingSec := h.Manager.GetState(cp)
+
+	// Run advance check when we have session+round (piggyback on polling - ensures advance happens)
+	if session != nil && session.Status == "active" && round != nil {
+		shouldAdvance := false
+		if cp == nil || cp.Item == nil {
+			shouldAdvance = h.Manager.ShouldAdvanceRound(nil)
+		} else {
+			shouldAdvance = h.Manager.ShouldAdvanceRound(cp)
+		}
+		if shouldAdvance {
+			_ = h.Manager.AdvanceRound()
+		}
+		// Re-fetch state after potential advance
+		session, round, timeRemainingSec = h.Manager.GetState(cp)
+	}
 
 	resp := gin.H{
 		"session":          nil,

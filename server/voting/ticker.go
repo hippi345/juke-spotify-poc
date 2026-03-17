@@ -12,7 +12,8 @@ const (
 	tickerInterval = 3 * time.Second
 )
 
-// Ticker polls Spotify and advances rounds when the current song has ~15s left
+// Ticker polls Spotify and advances rounds. Voting runs during the current song until ~15s left;
+// at that point we add the winner to the queue (plays after current song ends) and create the next round.
 type Ticker struct {
 	manager *Manager
 	svc     *spotify.Client
@@ -80,7 +81,15 @@ func (t *Ticker) run() {
 
 func (t *Ticker) tick() {
 	session, round, _ := t.manager.GetState(nil)
-	if session == nil || session.Status != "active" || round == nil {
+	if session == nil || session.Status != "active" {
+		return
+	}
+
+	// Recovery: session active but no round (e.g. fetch failed) - try to create one
+	if round == nil {
+		if err := t.manager.RecoverRound(); err != nil {
+			log.Printf("voting: recover round: %v", err)
+		}
 		return
 	}
 
@@ -88,12 +97,20 @@ func (t *Ticker) tick() {
 	if err != nil {
 		return
 	}
+
+	// Advance when: (1) song has ~15s left (queue winner, let current finish), or (2) nothing playing and round time expired
+	shouldAdvance := false
+	var remainingMs int64 = -1
 	if cp == nil || cp.Item == nil {
-		return
+		// Nothing playing: advance when round time expired (song finished; don't interrupt on API lag)
+		shouldAdvance = time.Now().After(round.RoundEndsAt)
+	} else {
+		remainingMs = int64(cp.Item.DurationMs) - cp.ProgressMs
+		shouldAdvance = remainingMs <= roundEndBufferMs
 	}
 
-	remainingMs := int64(cp.Item.DurationMs) - cp.ProgressMs
-	if remainingMs <= roundEndBufferMs {
+	if shouldAdvance {
+		log.Printf("voting: tick advancing (remainingMs=%d cp=%v)", remainingMs, cp != nil && cp.Item != nil)
 		if err := t.manager.AdvanceRound(); err != nil {
 			log.Printf("voting: advance round: %v", err)
 		}

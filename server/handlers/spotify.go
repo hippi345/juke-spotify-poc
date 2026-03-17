@@ -93,10 +93,51 @@ func SpotifyStatus(svc *spotify.Client) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{
-			"connected":    true,
-			"display_name": acc.DisplayName,
-			"spotify_id":   acc.SpotifyUserID,
+			"connected":         true,
+			"display_name":      acc.DisplayName,
+			"spotify_id":        acc.SpotifyUserID,
+			"active_device_id":  acc.ActiveDeviceID,
 		})
+	}
+}
+
+// SpotifyDevices lists available Spotify Connect devices
+func SpotifyDevices(svc *spotify.Client) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		devices, err := svc.GetPlayerDevices()
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"devices": devices})
+	}
+}
+
+// SpotifySetDevice sets the preferred playback device
+func SpotifySetDevice(svc *spotify.Client) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var body struct {
+			DeviceID string `json:"device_id"`
+		}
+		if err := c.ShouldBindJSON(&body); err != nil || body.DeviceID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "device_id required"})
+			return
+		}
+		acc, err := svc.GetDefaultAccount()
+		if err != nil || acc == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "no spotify account connected"})
+			return
+		}
+		acc.ActiveDeviceID = body.DeviceID
+		if err := db.DB.Save(acc).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		// Transfer playback to the selected device so it becomes active
+		if err := svc.TransferPlayback(body.DeviceID, true); err != nil {
+			log.Printf("spotify: transfer to device %s: %v", body.DeviceID, err)
+		}
+		c.JSON(http.StatusOK, gin.H{"active_device_id": acc.ActiveDeviceID})
 	}
 }
 

@@ -12,6 +12,7 @@ type SpotifyAccount struct {
 	RefreshToken    string    `gorm:"type:text;not null"`
 	AccessToken     string    `gorm:"type:text"`
 	TokenExpiresAt  time.Time `gorm:"not null"`
+	ActiveDeviceID  string    `gorm:"size:255"` // Preferred playback device
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }

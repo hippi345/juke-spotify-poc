@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	roundEndBufferMs = 15000 // End voting 15 seconds before song ends
-	refillBatchSize  = 20   // Tracks to add when refilling
+	roundEndBufferMs   = 15000 // End voting 15 seconds before song ends
+	refillBatchSize    = 20    // Tracks to add when refilling
+	advanceDebounceSec = 8     // Don't advance again within this many seconds
 )
 
 // RoundState holds the current voting round
@@ -28,10 +29,11 @@ type RoundState struct {
 type Manager struct {
 	mu sync.RWMutex
 
-	Session     *models.VotingSession
-	Round       *RoundState
-	UsedTrackIDs map[string]bool
-	svc         *spotify.Client
+	Session       *models.VotingSession
+	Round         *RoundState
+	UsedTrackIDs  map[string]bool
+	lastAdvanceAt time.Time
+	svc           *spotify.Client
 }
 
 // NewManager creates a new voting manager
@@ -65,7 +67,7 @@ func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold 
 	m.UsedTrackIDs = make(map[string]bool)
 	m.Round = nil
 
-	round, err := m.fetchCandidatesLocked()
+	round, err := m.fetchCandidatesLocked(nil)
 	if err != nil {
 		log.Printf("voting: start session failed (playlist %s): %v", m.Session.PlaylistID, err)
 		m.Session.Status = "ended"
@@ -73,12 +75,45 @@ func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold 
 		m.Session = nil
 		return err
 	}
-	m.Round = round
 
+	// Always kick off with a random song from the playlist; remove it from voting pool
+	if len(round.Candidates) > 0 {
+		idx := rand.Intn(len(round.Candidates))
+		kickoff := &round.Candidates[idx]
+		if err := m.svc.StartPlayback(kickoff.URI); err != nil {
+			log.Printf("voting: kickoff playback failed: %v", err)
+		} else {
+			m.UsedTrackIDs[kickoff.ID] = true
+			// Fetch new candidates for voting (excluding kickoff); round ends when kickoff has ~15s left
+			round, err = m.fetchCandidatesLocked(kickoff)
+			if err != nil {
+				log.Printf("voting: fetch candidates after kickoff: %v", err)
+				m.Round = nil
+				return err
+			}
+		}
+	}
+
+	m.Round = round
 	return nil
 }
 
-// EndSession ends the current session
+// RecoverRound creates a round when session is active but round is nil (e.g. after fetch failure)
+func (m *Manager) RecoverRound() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Session == nil || m.Session.Status != "active" || m.Round != nil {
+		return nil
+	}
+	round, err := m.fetchCandidatesLocked(nil)
+	if err != nil {
+		return err
+	}
+	m.Round = round
+	return nil
+}
+
+// EndSession ends the current session and stops playback
 func (m *Manager) EndSession() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -86,6 +121,9 @@ func (m *Manager) EndSession() {
 	if m.Session != nil && m.Session.Status == "active" {
 		m.Session.Status = "ended"
 		db.DB.Save(m.Session)
+		if err := m.svc.PausePlayback(); err != nil {
+			log.Printf("voting: pause playback on session end: %v", err)
+		}
 	}
 	m.Session = nil
 	m.Round = nil
@@ -138,6 +176,37 @@ func (m *Manager) GetState(nowPlaying *spotify.CurrentlyPlaying) (session *model
 	return session, round, timeRemainingSec
 }
 
+// ShouldAdvanceRound returns true if the round should advance (song has ~15s left, or nothing playing and round expired)
+func (m *Manager) ShouldAdvanceRound(cp *spotify.CurrentlyPlaying) bool {
+	m.mu.RLock()
+	session, round, _ := m.getStateLocked(cp)
+	m.mu.RUnlock()
+	if session == nil || session.Status != "active" || round == nil {
+		return false
+	}
+	if time.Since(m.lastAdvanceAt) < advanceDebounceSec*time.Second {
+		return false
+	}
+	if cp == nil || cp.Item == nil {
+		return time.Now().After(round.RoundEndsAt)
+	}
+	remainingMs := int64(cp.Item.DurationMs) - cp.ProgressMs
+	return remainingMs <= roundEndBufferMs
+}
+
+// getStateLocked returns state; caller must hold at least RLock
+func (m *Manager) getStateLocked(nowPlaying *spotify.CurrentlyPlaying) (session *models.VotingSession, round *RoundState, timeRemainingSec int) {
+	session = m.Session
+	round = m.Round
+	if round != nil && !round.RoundEndsAt.IsZero() {
+		remaining := time.Until(round.RoundEndsAt)
+		if remaining > 0 {
+			timeRemainingSec = int(remaining.Seconds())
+		}
+	}
+	return session, round, timeRemainingSec
+}
+
 // AdvanceRound ends the current round, picks winner, adds to queue, fetches new candidates
 func (m *Manager) AdvanceRound() error {
 	m.mu.Lock()
@@ -147,30 +216,50 @@ func (m *Manager) AdvanceRound() error {
 		return nil
 	}
 
+	// Debounce: don't advance again too soon (prevents double-advance when round just changed)
+	if time.Since(m.lastAdvanceAt) < advanceDebounceSec*time.Second {
+		return nil
+	}
+
 	// Pick winner
 	winner := pickWinner(m.Round)
 	if winner != nil {
-		if err := m.svc.AddToQueue(winner.URI); err != nil {
-			// Log but don't fail - we'll still advance
-			// Could return err to retry
+		cp, _ := m.svc.GetCurrentlyPlaying()
+		if cp == nil || cp.Item == nil {
+			// Nothing playing: start playback with winner directly
+			log.Printf("voting: advance - starting playback: %s", winner.Name)
+			if err := m.svc.StartPlayback(winner.URI); err != nil {
+				log.Printf("voting: start playback (winner): %v", err)
+			}
+		} else {
+			// Something playing: add winner to queue
+			log.Printf("voting: advance - adding to queue: %s (%s)", winner.Name, winner.URI)
+			if err := m.svc.AddToQueue(winner.URI); err != nil {
+				log.Printf("voting: add to queue FAILED: %v", err)
+			} else {
+				log.Printf("voting: add to queue OK")
+			}
 		}
 		m.UsedTrackIDs[winner.ID] = true
 	}
 
-	// Fetch new candidates
-	round, err := m.fetchCandidatesLocked()
+	// Fetch new candidates; use winner's duration for round end (when winner will have ~15s left)
+	round, err := m.fetchCandidatesLocked(winner)
 	if err != nil {
-		// Could not fetch - maybe playlist exhausted; keep round as-is or end session
+		log.Printf("voting: fetch candidates after advance FAILED: %v", err)
 		m.Round = nil
 		return err
 	}
+	log.Printf("voting: new round with %d candidates", len(round.Candidates))
 	m.Round = round
+	m.lastAdvanceAt = time.Now()
 
 	return nil
 }
 
 // fetchCandidatesLocked fetches 3 candidates, filtering used tracks. Caller must hold lock.
-func (m *Manager) fetchCandidatesLocked() (*RoundState, error) {
+// nextSong: when set (e.g. winner we just queued), round end is based on when that song has ~15s left.
+func (m *Manager) fetchCandidatesLocked(nextSong *spotify.Track) (*RoundState, error) {
 	if m.Session == nil {
 		return nil, fmt.Errorf("no session")
 	}
@@ -195,14 +284,18 @@ func (m *Manager) fetchCandidatesLocked() (*RoundState, error) {
 			return nil, err
 		}
 
-		for _, item := range resp.Items {
-			if item.Track == nil || item.Track.ID == "" {
+		for _, pitem := range resp.Items {
+			track := pitem.Track
+			if track == nil {
+				track = pitem.Item // new /items endpoint uses "item"
+			}
+			if track == nil || track.ID == "" {
 				continue
 			}
-			if m.UsedTrackIDs[item.Track.ID] {
+			if m.UsedTrackIDs[track.ID] {
 				continue
 			}
-			candidates = append(candidates, *item.Track)
+			candidates = append(candidates, *track)
 			if len(candidates) >= 3 {
 				break
 			}
@@ -218,13 +311,18 @@ func (m *Manager) fetchCandidatesLocked() (*RoundState, error) {
 		return nil, fmt.Errorf("no unused tracks in playlist")
 	}
 
-	// Compute round end time from currently playing
-	roundEndsAt := time.Now().Add(60 * time.Second) // Default 60s if no playback
-	cp, err := m.svc.GetCurrentlyPlaying()
-	if err == nil && cp != nil && cp.Item != nil {
-		remainingMs := int64(cp.Item.DurationMs) - cp.ProgressMs
-		if remainingMs > roundEndBufferMs {
-			roundEndsAt = time.Now().Add(time.Duration(remainingMs-roundEndBufferMs) * time.Millisecond)
+	// Compute round end time: prefer nextSong (winner we just queued), else currently playing
+	roundEndsAt := time.Now().Add(60 * time.Second)
+	if nextSong != nil && nextSong.DurationMs > 0 {
+		// Winner will play next; round ends when it has ~15s left
+		roundEndsAt = time.Now().Add(time.Duration(nextSong.DurationMs)*time.Millisecond - roundEndBufferMs*time.Millisecond)
+	} else {
+		cp, err := m.svc.GetCurrentlyPlaying()
+		if err == nil && cp != nil && cp.Item != nil {
+			remainingMs := int64(cp.Item.DurationMs) - cp.ProgressMs
+			if remainingMs > roundEndBufferMs {
+				roundEndsAt = time.Now().Add(time.Duration(remainingMs-roundEndBufferMs) * time.Millisecond)
+			}
 		}
 	}
 
@@ -252,9 +350,13 @@ func (m *Manager) refillPlaylistLocked() {
 		if err != nil {
 			return
 		}
-		for _, item := range resp.Items {
-			if item.Track != nil && item.Track.ID != "" {
-				seedIDs = append(seedIDs, item.Track.ID)
+		for _, pitem := range resp.Items {
+			track := pitem.Track
+			if track == nil {
+				track = pitem.Item
+			}
+			if track != nil && track.ID != "" {
+				seedIDs = append(seedIDs, track.ID)
 				if len(seedIDs) >= 3 {
 					break
 				}
@@ -282,9 +384,13 @@ func (m *Manager) refillPlaylistLocked() {
 		if err != nil {
 			break
 		}
-		for _, item := range resp.Items {
-			if item.Track != nil && item.Track.ID != "" {
-				playlistTrackIDs[item.Track.ID] = true
+		for _, pitem := range resp.Items {
+			track := pitem.Track
+			if track == nil {
+				track = pitem.Item
+			}
+			if track != nil && track.ID != "" {
+				playlistTrackIDs[track.ID] = true
 			}
 		}
 		if resp.Next == nil || *resp.Next == "" {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { DevicePicker } from './components/DevicePicker'
 import { NowPlaying } from './components/NowPlaying'
 import { SessionControls } from './components/SessionControls'
 import { VotingRound } from './components/VotingRound'
@@ -8,6 +9,7 @@ type SpotifyStatus = {
   connected: boolean
   display_name?: string
   spotify_id?: string
+  active_device_id?: string | null
 }
 
 function App() {
@@ -45,6 +47,19 @@ function App() {
       setSpotifyError(e instanceof Error ? e.message : 'Failed to connect')
     }
   }
+
+  const handleSetDevice = useCallback(async (deviceId: string) => {
+    const res = await fetch('/api/spotify/device', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_id: deviceId }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error((data as { error?: string }).error || 'Failed to set device')
+    }
+    await fetchSpotifyStatus()
+  }, [fetchSpotifyStatus])
 
   const handleDisconnectSpotify = async () => {
     setSpotifyError(null)
@@ -173,6 +188,14 @@ function App() {
             </p>
             {spotifyParam === 'connected' && (
               <p className="mt-2 text-sm text-green-400">Spotify connected successfully.</p>
+            )}
+            {spotify?.connected && (
+              <div className="mt-4">
+                <DevicePicker
+                  activeDeviceId={spotify.active_device_id ?? null}
+                  onDeviceSelect={handleSetDevice}
+                />
+              </div>
             )}
             {spotifyParam === 'error' && (
               <p className="mt-2 text-sm text-red-400">
