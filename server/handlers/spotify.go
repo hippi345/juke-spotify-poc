@@ -3,9 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
+	"strings"
 
 	"juke-spotify-poc/server/config"
+	"juke-spotify-poc/server/db"
 	"juke-spotify-poc/server/spotify"
 
 	"github.com/gin-gonic/gin"
@@ -52,11 +55,28 @@ func SpotifyCallback(cfg *config.Config) gin.HandlerFunc {
 
 		_, err := spotify.ExchangeCode(cfg, code)
 		if err != nil {
-			c.Redirect(http.StatusFound, cfg.AppBaseURL+"?spotify=error")
+			log.Printf("spotify callback: token exchange failed: %v", err)
+			// Pass error hint for common issues (URL-safe)
+			errHint := "error"
+			if strings.Contains(err.Error(), "redirect_uri") || strings.Contains(err.Error(), "400") {
+				errHint = "redirect_uri_mismatch"
+			}
+			c.Redirect(http.StatusFound, cfg.AppBaseURL+"?spotify=error&hint="+errHint)
 			return
 		}
 
 		c.Redirect(http.StatusFound, cfg.AppBaseURL+"?spotify=connected")
+	}
+}
+
+// SpotifyDisconnect removes the connected Spotify account so the user can reconnect with fresh permissions
+func SpotifyDisconnect() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := db.DB.Exec("DELETE FROM spotify_accounts").Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "disconnected"})
 	}
 }
 

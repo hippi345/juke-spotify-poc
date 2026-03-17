@@ -13,6 +13,7 @@ import (
 	"juke-spotify-poc/server/db"
 	"juke-spotify-poc/server/handlers"
 	"juke-spotify-poc/server/spotify"
+	"juke-spotify-poc/server/voting"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -37,8 +38,24 @@ func main() {
 	spotifyClient := spotify.NewClient(cfg)
 	r.GET("/api/spotify/login", handlers.SpotifyLogin(cfg))
 	r.GET("/api/spotify/callback", handlers.SpotifyCallback(cfg))
+	r.POST("/api/spotify/disconnect", handlers.SpotifyDisconnect())
 	r.GET("/api/spotify/status", handlers.SpotifyStatus(spotifyClient))
 	r.GET("/api/spotify/me", handlers.SpotifyMe(spotifyClient))
+
+	// Player & Playlists
+	r.GET("/api/player/now-playing", handlers.PlayerNowPlaying(spotifyClient))
+	r.GET("/api/playlists", handlers.PlaylistsList(spotifyClient))
+
+	// Voting
+	votingManager := voting.NewManager(spotifyClient)
+	votingHandlers := &voting.Handlers{Manager: votingManager, Svc: spotifyClient}
+	votingTicker := voting.NewTicker(votingManager, spotifyClient)
+	votingTicker.Start()
+
+	r.POST("/api/voting/session/start", votingHandlers.SessionStart)
+	r.POST("/api/voting/session/end", votingHandlers.SessionEnd)
+	r.GET("/api/voting/state", votingHandlers.State)
+	r.POST("/api/voting/vote", votingHandlers.Vote)
 
 	srv := &http.Server{
 		Addr:    "0.0.0.0:" + cfg.ServerPort,

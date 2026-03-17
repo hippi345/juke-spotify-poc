@@ -18,7 +18,8 @@ import (
 )
 
 // Scopes for playlist, queue, and playback management
-const scopes = "playlist-read-private playlist-modify-public playlist-modify-private user-modify-playback-state user-read-playback-state user-read-currently-playing user-read-private"
+// Note: playlist-read-public is not a valid Spotify scope; use playlist-read-private for owned playlists
+const scopes = "playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private user-modify-playback-state user-read-playback-state user-read-currently-playing user-read-private"
 
 var (
 	stateStore   = make(map[string]time.Time)

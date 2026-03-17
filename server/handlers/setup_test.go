@@ -21,7 +21,7 @@ func setupTestRouter(t *testing.T) *gin.Engine {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
 
-	if err := database.AutoMigrate(&models.SpotifyAccount{}); err != nil {
+	if err := database.AutoMigrate(&models.SpotifyAccount{}, &models.VotingSession{}); err != nil {
 		t.Fatalf("failed to migrate: %v", err)
 	}
 
@@ -58,7 +58,7 @@ func setupTestRouterNoSpotifyCreds(t *testing.T) *gin.Engine {
 		t.Fatalf("failed to open sqlite: %v", err)
 	}
 
-	if err := database.AutoMigrate(&models.SpotifyAccount{}); err != nil {
+	if err := database.AutoMigrate(&models.SpotifyAccount{}, &models.VotingSession{}); err != nil {
 		t.Fatalf("failed to migrate: %v", err)
 	}
 
