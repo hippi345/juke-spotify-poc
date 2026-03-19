@@ -95,3 +95,9 @@ type Device struct {
 type DevicesResponse struct {
 	Devices []Device `json:"devices"`
 }
+
+// QueueResponse wraps the Get Queue API response. Queue can contain tracks or episodes.
+type QueueResponse struct {
+	CurrentlyPlaying interface{}   `json:"currently_playing"`
+	Queue            []interface{} `json:"queue"`
+}

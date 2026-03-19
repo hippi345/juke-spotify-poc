@@ -1,4 +1,5 @@
 import type { Track } from '../hooks/useVotingState'
+import { useCountdown } from '../hooks/useCountdown'
 
 type VotingRoundProps = {
   candidates: Track[]
@@ -8,20 +9,22 @@ type VotingRoundProps = {
 }
 
 export function VotingRound({ candidates, votes, timeRemainingSec, onVote }: VotingRoundProps) {
+  const displayCountdown = useCountdown(timeRemainingSec)
+  const votingEnded = displayCountdown <= 0
   if (candidates.length === 0) {
     return (
-      <div className="rounded-xl border border-white/5 bg-black/30 p-6">
+      <div className="glass-panel p-6">
         <p className="text-zinc-500">Loading next round...</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-white/5 bg-black/30 p-6">
+    <div className="glass-panel p-6">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-medium text-white">Vote for next song</h3>
-        <span className="rounded-full bg-[#1DB954]/20 px-3 py-1 text-sm font-medium text-[#1DB954]">
-          {timeRemainingSec > 0 ? `Voting ends in ${timeRemainingSec}s` : 'Voting ended'}
+        <span className="rounded-full bg-[#1DB954]/15 px-3 py-1 text-sm font-medium text-[#1DB954] backdrop-blur-sm">
+          {votingEnded ? 'Voting ended' : `Voting ends in ${displayCountdown}s`}
         </span>
       </div>
 
@@ -31,7 +34,7 @@ export function VotingRound({ candidates, votes, timeRemainingSec, onVote }: Vot
           return (
             <div
               key={track.id}
-              className="rounded-lg border border-white/5 bg-white/[0.02] p-4 transition hover:border-[#1DB954]/30"
+              className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4 backdrop-blur-sm transition hover:border-[#1DB954]/40 hover:bg-white/[0.05]"
             >
               <div className="mb-3">
                 {track.album?.images?.[0]?.url && (
@@ -51,7 +54,8 @@ export function VotingRound({ candidates, votes, timeRemainingSec, onVote }: Vot
                 <button
                   type="button"
                   onClick={() => onVote(track.id)}
-                  className="rounded-lg bg-[#1DB954] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1ed760]"
+                  disabled={votingEnded}
+                  className="rounded-lg bg-[#1DB954] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1ed760] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Vote
                 </button>

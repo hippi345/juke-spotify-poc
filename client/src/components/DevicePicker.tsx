@@ -80,7 +80,7 @@ export function DevicePicker({ activeDeviceId, onDeviceSelect }: DevicePickerPro
           type="button"
           onClick={() => fetchDevices()}
           disabled={loading}
-          className="rounded border border-white/20 bg-white/5 px-3 py-1.5 text-sm text-zinc-300 hover:bg-white/10 hover:text-white disabled:opacity-50"
+          className="rounded-lg border border-white/15 bg-white/[0.06] px-3 py-1.5 text-sm text-zinc-300 backdrop-blur-sm hover:bg-white/10 hover:text-white disabled:opacity-50"
         >
           {loading ? 'Refreshing...' : 'Refresh'}
         </button>
@@ -112,8 +112,8 @@ export function DevicePicker({ activeDeviceId, onDeviceSelect }: DevicePickerPro
               disabled={saving}
               className={`rounded-lg border px-3 py-1.5 text-sm transition disabled:opacity-50 ${
                 d.id === activeDeviceId
-                  ? 'border-[#1DB954] bg-[#1DB954]/20 text-[#1DB954]'
-                  : 'border-white/20 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white'
+                  ? 'border-[#1DB954]/60 bg-[#1DB954]/15 text-[#1DB954] backdrop-blur-sm'
+                  : 'border-white/15 bg-white/[0.06] text-zinc-300 backdrop-blur-sm hover:bg-white/10 hover:text-white'
               }`}
             >
               {d.name}

@@ -58,6 +58,7 @@ func main() {
 	r.POST("/api/voting/session/start", votingHandlers.SessionStart)
 	r.POST("/api/voting/session/end", votingHandlers.SessionEnd)
 	r.GET("/api/voting/state", votingHandlers.State)
+	r.GET("/api/voting/playlist-overview", votingHandlers.PlaylistOverview)
 	r.POST("/api/voting/vote", votingHandlers.Vote)
 
 	srv := &http.Server{

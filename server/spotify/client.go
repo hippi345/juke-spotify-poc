@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -383,6 +384,70 @@ func (c *Client) PausePlayback() error {
 		return fmt.Errorf("pause playback: %s %s", resp.Status, string(respBody))
 	}
 	return nil
+}
+
+// GetQueue fetches the user's playback queue (currently playing + queue items)
+func (c *Client) GetQueue() (*QueueResponse, error) {
+	resp, err := c.Get("/me/player/queue")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("get queue: %s %s", resp.Status, string(body))
+	}
+	var qr QueueResponse
+	if err := json.NewDecoder(resp.Body).Decode(&qr); err != nil {
+		return nil, err
+	}
+	return &qr, nil
+}
+
+// SkipToNext skips to the next track in the queue
+func (c *Client) SkipToNext() error {
+	acc, _ := c.GetDefaultAccount()
+	var resp *http.Response
+	var err error
+	if acc != nil && acc.ActiveDeviceID != "" {
+		q := url.Values{}
+		q.Set("device_id", acc.ActiveDeviceID)
+		resp, err = c.DoWithQuery(http.MethodPost, "/me/player/next", q, nil)
+	} else {
+		resp, err = c.Do(http.MethodPost, "/me/player/next", nil)
+	}
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("skip to next: %s %s", resp.Status, string(respBody))
+	}
+	return nil
+}
+
+// ClearQueue clears the playback queue by skipping through all items. Spotify has no
+// "clear queue" API, so we skip to next repeatedly and pause after each skip to avoid
+// playing through the queue. Best-effort; errors are logged but not returned.
+func (c *Client) ClearQueue() {
+	qr, err := c.GetQueue()
+	if err != nil {
+		log.Printf("voting: clear queue (get queue): %v", err)
+		return
+	}
+	count := len(qr.Queue)
+	if count == 0 {
+		return
+	}
+	for i := 0; i < count; i++ {
+		if err := c.SkipToNext(); err != nil {
+			log.Printf("voting: clear queue (skip): %v", err)
+			return
+		}
+		_ = c.PausePlayback()
+		time.Sleep(200 * time.Millisecond) // brief pause to let skip complete
+	}
 }
 
 // AddToQueue adds a track to the user's playback queue

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { DevicePicker } from './components/DevicePicker'
 import { NowPlaying } from './components/NowPlaying'
+import { PlaylistOverview } from './components/PlaylistOverview'
 import { SessionControls } from './components/SessionControls'
 import { VotingRound } from './components/VotingRound'
 import { useVotingState } from './hooks/useVotingState'
@@ -134,20 +135,20 @@ function App() {
   const nowPlaying = state?.now_playing
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0b] via-[#0f0f12] to-[#141416]">
+    <div className="min-h-screen bg-gradient-to-br from-[#050506] via-[#0c0c0e] to-[#12121a]">
       <main className="mx-auto max-w-4xl px-6 py-12">
         <div className="mb-8">
-          <h1 className="mb-2 text-4xl font-semibold tracking-tight text-white">
+          <h1 className="mb-2 text-4xl font-semibold tracking-tight text-white/95">
             Juke Spotify POC
           </h1>
-          <p className="text-lg text-zinc-400">
+          <p className="text-lg text-zinc-400/90">
             Vote for the next song. Winner gets added to the queue.
           </p>
         </div>
 
         <div className="space-y-6">
           {/* Spotify connection */}
-          <div className="rounded-xl border border-white/5 bg-black/30 p-6">
+          <div className="glass-panel p-6">
             <p className="text-sm text-zinc-500">
               Spotify:{' '}
               {spotify?.connected ? (
@@ -163,7 +164,7 @@ function App() {
                       handleDisconnectSpotify()
                     }}
                     disabled={disconnecting}
-                    className="rounded border border-white/20 bg-white/5 px-3 py-1 text-sm text-zinc-300 hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-lg border border-white/15 bg-white/[0.06] px-3 py-1 text-sm text-zinc-300 backdrop-blur-sm hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {disconnecting ? 'Disconnecting...' : 'Disconnect'}
                   </button>
@@ -202,7 +203,7 @@ function App() {
                 {spotifyHint === 'redirect_uri_mismatch' ? (
                   <>
                     Connection failed (400). Check that your Spotify app redirect URI exactly matches:{' '}
-                    <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-xs">
+                    <code className="rounded bg-white/[0.08] px-1 py-0.5 font-mono text-xs backdrop-blur-sm">
                       http://127.0.0.1:5173/api/spotify/callback
                     </code>
                     . Add it in the Spotify Developer Dashboard under your app settings.
@@ -214,21 +215,21 @@ function App() {
             )}
           </div>
 
-          {/* Now Playing */}
-          {spotify?.connected && (
-            <NowPlaying
-              item={nowPlaying?.item ?? null}
-              progressMs={nowPlaying?.progress_ms ?? 0}
-              isPlaying={nowPlaying?.playing ?? false}
-            />
-          )}
-
           {/* Session controls (admin) */}
           {spotify?.connected && (
             <SessionControls
               sessionActive={!!sessionActive}
               onSessionStart={handleSessionStart}
               onSessionEnd={handleSessionEnd}
+            />
+          )}
+
+          {/* Now Playing */}
+          {spotify?.connected && sessionActive && (
+            <NowPlaying
+              item={nowPlaying?.item ?? null}
+              progressMs={nowPlaying?.progress_ms ?? 0}
+              isPlaying={nowPlaying?.playing ?? false}
             />
           )}
 
@@ -240,6 +241,11 @@ function App() {
               timeRemainingSec={state.time_remaining_sec}
               onVote={handleVote}
             />
+          )}
+
+          {/* Playlist overview */}
+          {spotify?.connected && sessionActive && (
+            <PlaylistOverview sessionActive={!!sessionActive} />
           )}
 
           {stateError && (

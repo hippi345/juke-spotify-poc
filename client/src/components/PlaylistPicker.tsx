@@ -61,7 +61,7 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
       <div className="mx-4 w-full max-w-md rounded-2xl border border-white/10 bg-[#141416] p-6 shadow-2xl">
         <h2 className="mb-4 text-xl font-semibold text-white">Start voting session</h2>
         <p className="mb-4 text-sm text-zinc-400">Select a playlist to pull tracks from for voting.</p>
@@ -97,8 +97,8 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
                 onClick={() => setSelectedPlaylist(p)}
                 className={`w-full rounded-lg border px-4 py-3 text-left transition ${
                   selectedPlaylist?.id === p.id
-                    ? 'border-[#1DB954] bg-[#1DB954]/20 text-white'
-                    : 'border-white/5 bg-black/30 text-white hover:border-[#1DB954]/50 hover:bg-white/5'
+                    ? 'border-[#1DB954]/60 bg-[#1DB954]/20 text-white'
+                    : 'border-white/10 bg-[#1a1a1e] text-white hover:border-[#1DB954]/50 hover:bg-[#222228]'
                 }`}
               >
                 <span className="font-medium">{p.name}</span>
@@ -117,7 +117,7 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
             value={refillInput}
             onChange={(e) => setRefillInput(e.target.value.replace(/\D/g, ''))}
             placeholder="0"
-            className="w-full rounded-lg border border-white/10 bg-black/30 px-4 py-2 text-white placeholder-zinc-500 focus:border-[#1DB954] focus:outline-none"
+            className="w-full rounded-lg border border-white/10 bg-[#1a1a1e] px-4 py-2 text-white placeholder-zinc-500 focus:border-[#1DB954] focus:outline-none"
           />
         </div>
 
@@ -125,7 +125,7 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-white/10 px-4 py-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
+            className="flex-1 rounded-lg border border-white/10 bg-[#1a1a1e] px-4 py-2 text-zinc-400 transition hover:bg-[#222228] hover:text-white"
           >
             Cancel
           </button>

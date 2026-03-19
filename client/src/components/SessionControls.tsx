@@ -41,7 +41,7 @@ export function SessionControls({
   }
 
   return (
-    <div className="rounded-xl border border-white/5 bg-black/30 p-6">
+    <div className="glass-panel p-6">
       <h3 className="mb-4 text-lg font-medium text-white">Session</h3>
       {sessionActive ? (
         <div>
@@ -50,7 +50,7 @@ export function SessionControls({
             type="button"
             onClick={handleEnd}
             disabled={loading}
-            className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+            className="rounded-lg border border-red-500/40 bg-red-500/[0.08] px-4 py-2 text-sm font-medium text-red-400 backdrop-blur-sm transition hover:bg-red-500/15 disabled:opacity-50"
           >
             {loading ? 'Ending...' : 'End session'}
           </button>

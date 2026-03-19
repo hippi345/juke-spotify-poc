@@ -80,7 +80,15 @@ func (t *Ticker) run() {
 }
 
 func (t *Ticker) tick() {
-	session, round, _ := t.manager.GetState(nil)
+	cp, err := t.svc.GetCurrentlyPlaying()
+	if err != nil {
+		return
+	}
+
+	// Start new round when winner (queued) has begun playing
+	t.manager.StartNewRoundIfWinnerPlaying(cp)
+
+	session, round, _ := t.manager.GetState(cp)
 	if session == nil || session.Status != "active" {
 		return
 	}
@@ -90,11 +98,6 @@ func (t *Ticker) tick() {
 		if err := t.manager.RecoverRound(); err != nil {
 			log.Printf("voting: recover round: %v", err)
 		}
-		return
-	}
-
-	cp, err := t.svc.GetCurrentlyPlaying()
-	if err != nil {
 		return
 	}
 

@@ -49,6 +49,10 @@ func (h *Handlers) SessionEnd(c *gin.Context) {
 // Also triggers advance check (same logic as ticker) so rounds advance when client polls.
 func (h *Handlers) State(c *gin.Context) {
 	cp, _ := h.Svc.GetCurrentlyPlaying()
+
+	// Start new round when winner (queued) has begun playing
+	h.Manager.StartNewRoundIfWinnerPlaying(cp)
+
 	session, round, timeRemainingSec := h.Manager.GetState(cp)
 
 	// Run advance check when we have session+round (piggyback on polling - ensures advance happens)
@@ -98,6 +102,16 @@ func (h *Handlers) State(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+// PlaylistOverview returns all playlist tracks with played/refilled status
+func (h *Handlers) PlaylistOverview(c *gin.Context) {
+	tracks, err := h.Manager.GetPlaylistOverview()
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"tracks": tracks})
 }
 
 // Vote records a vote for a track

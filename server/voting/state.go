@@ -25,22 +25,32 @@ type RoundState struct {
 	RoundEndsAt time.Time
 }
 
+// PlaylistTrackWithMeta extends a track with session metadata
+type PlaylistTrackWithMeta struct {
+	Track   spotify.Track `json:"track"`
+	Played  bool          `json:"played"`
+	Refilled bool         `json:"refilled"` // added via "similar vibe" refill
+}
+
 // Manager holds session and round state
 type Manager struct {
 	mu sync.RWMutex
 
-	Session       *models.VotingSession
-	Round         *RoundState
-	UsedTrackIDs  map[string]bool
-	lastAdvanceAt time.Time
-	svc           *spotify.Client
+	Session          *models.VotingSession
+	Round            *RoundState
+	UsedTrackIDs     map[string]bool
+	RefilledTrackIDs map[string]bool // tracks added via refill (similar vibe)
+	lastAdvanceAt    time.Time
+	pendingWinnerID  string // winner added to queue; new round starts when this track begins playing
+	svc              *spotify.Client
 }
 
 // NewManager creates a new voting manager
 func NewManager(svc *spotify.Client) *Manager {
 	return &Manager{
-		UsedTrackIDs: make(map[string]bool),
-		svc:          svc,
+		UsedTrackIDs:    make(map[string]bool),
+		RefilledTrackIDs: make(map[string]bool),
+		svc:             svc,
 	}
 }
 
@@ -65,6 +75,7 @@ func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold 
 
 	m.Session = session
 	m.UsedTrackIDs = make(map[string]bool)
+	m.RefilledTrackIDs = make(map[string]bool)
 	m.Round = nil
 
 	round, err := m.fetchCandidatesLocked(nil)
@@ -98,6 +109,58 @@ func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold 
 	return nil
 }
 
+// GetPlaylistOverview returns all playlist tracks with played and refilled flags
+func (m *Manager) GetPlaylistOverview() ([]PlaylistTrackWithMeta, error) {
+	m.mu.RLock()
+	session := m.Session
+	usedTrackIDs := make(map[string]bool)
+	for k, v := range m.UsedTrackIDs {
+		usedTrackIDs[k] = v
+	}
+	refilledTrackIDs := make(map[string]bool)
+	for k, v := range m.RefilledTrackIDs {
+		refilledTrackIDs[k] = v
+	}
+	m.mu.RUnlock()
+
+	if session == nil || session.Status != "active" {
+		return nil, fmt.Errorf("no active session")
+	}
+
+	var result []PlaylistTrackWithMeta
+	offset := 0
+	for {
+		resp, err := m.svc.GetPlaylistTracks(session.PlaylistID, offset)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, pitem := range resp.Items {
+			track := pitem.Track
+			if track == nil {
+				track = pitem.Item
+			}
+			if track == nil || track.ID == "" {
+				continue
+			}
+			played := usedTrackIDs[track.ID]
+			refilled := refilledTrackIDs[track.ID]
+			result = append(result, PlaylistTrackWithMeta{
+				Track:    *track,
+				Played:   played,
+				Refilled: refilled,
+			})
+		}
+
+		if resp.Next == nil || *resp.Next == "" {
+			break
+		}
+		offset += 50
+	}
+
+	return result, nil
+}
+
 // RecoverRound creates a round when session is active but round is nil (e.g. after fetch failure)
 func (m *Manager) RecoverRound() error {
 	m.mu.Lock()
@@ -124,10 +187,13 @@ func (m *Manager) EndSession() {
 		if err := m.svc.PausePlayback(); err != nil {
 			log.Printf("voting: pause playback on session end: %v", err)
 		}
+		m.svc.ClearQueue()
 	}
 	m.Session = nil
 	m.Round = nil
 	m.UsedTrackIDs = nil
+	m.RefilledTrackIDs = nil
+	m.pendingWinnerID = ""
 }
 
 // Vote records a vote for a track
@@ -166,10 +232,24 @@ func (m *Manager) GetState(nowPlaying *spotify.CurrentlyPlaying) (session *model
 	session = m.Session
 	round = m.Round
 
-	if round != nil && !round.RoundEndsAt.IsZero() {
-		remaining := time.Until(round.RoundEndsAt)
-		if remaining > 0 {
-			timeRemainingSec = int(remaining.Seconds())
+	// When waiting for winner to start: show "Voting ended", no countdown
+	if m.pendingWinnerID != "" {
+		return session, round, 0
+	}
+
+	// Countdown = time until we advance (add winner). We advance when current song has ~15s left.
+	if round != nil {
+		if nowPlaying != nil && nowPlaying.Item != nil {
+			remainingMs := int64(nowPlaying.Item.DurationMs) - nowPlaying.ProgressMs
+			secUntilAdvance := (remainingMs - int64(roundEndBufferMs)) / 1000
+			if secUntilAdvance > 0 {
+				timeRemainingSec = int(secUntilAdvance)
+			}
+		} else if !round.RoundEndsAt.IsZero() {
+			remaining := time.Until(round.RoundEndsAt)
+			if remaining > 0 {
+				timeRemainingSec = int(remaining.Seconds())
+			}
 		}
 	}
 
@@ -180,8 +260,13 @@ func (m *Manager) GetState(nowPlaying *spotify.CurrentlyPlaying) (session *model
 func (m *Manager) ShouldAdvanceRound(cp *spotify.CurrentlyPlaying) bool {
 	m.mu.RLock()
 	session, round, _ := m.getStateLocked(cp)
+	pending := m.pendingWinnerID
 	m.mu.RUnlock()
 	if session == nil || session.Status != "active" || round == nil {
+		return false
+	}
+	// Waiting for winner to start; don't advance
+	if pending != "" {
 		return false
 	}
 	if time.Since(m.lastAdvanceAt) < advanceDebounceSec*time.Second {
@@ -207,7 +292,8 @@ func (m *Manager) getStateLocked(nowPlaying *spotify.CurrentlyPlaying) (session 
 	return session, round, timeRemainingSec
 }
 
-// AdvanceRound ends the current round, picks winner, adds to queue, fetches new candidates
+// AdvanceRound ends the current round, picks winner, adds to queue. Does NOT create a new round;
+// the new round starts when StartNewRoundIfWinnerPlaying detects the winner is playing.
 func (m *Manager) AdvanceRound() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -221,7 +307,7 @@ func (m *Manager) AdvanceRound() error {
 		return nil
 	}
 
-	// Pick winner
+	// Pick winner (only one track goes to queue per round)
 	winner := pickWinner(m.Round)
 	if winner != nil {
 		cp, _ := m.svc.GetCurrentlyPlaying()
@@ -232,7 +318,7 @@ func (m *Manager) AdvanceRound() error {
 				log.Printf("voting: start playback (winner): %v", err)
 			}
 		} else {
-			// Something playing: add winner to queue
+			// Something playing: add winner to queue (winner only - no other candidates)
 			log.Printf("voting: advance - adding to queue: %s (%s)", winner.Name, winner.URI)
 			if err := m.svc.AddToQueue(winner.URI); err != nil {
 				log.Printf("voting: add to queue FAILED: %v", err)
@@ -241,20 +327,39 @@ func (m *Manager) AdvanceRound() error {
 			}
 		}
 		m.UsedTrackIDs[winner.ID] = true
+		m.pendingWinnerID = winner.ID
+		log.Printf("voting: voting ended, waiting for winner %s to start", winner.Name)
 	}
-
-	// Fetch new candidates; use winner's duration for round end (when winner will have ~15s left)
-	round, err := m.fetchCandidatesLocked(winner)
-	if err != nil {
-		log.Printf("voting: fetch candidates after advance FAILED: %v", err)
-		m.Round = nil
-		return err
-	}
-	log.Printf("voting: new round with %d candidates", len(round.Candidates))
-	m.Round = round
+	// Set debounce immediately after queueing so concurrent ticker/poll doesn't double-add
 	m.lastAdvanceAt = time.Now()
 
+	// Keep current round (show "Voting ended"); new round starts when winner begins playing
 	return nil
+}
+
+// StartNewRoundIfWinnerPlaying creates a new round when the queued winner has started playing.
+// Call this from the ticker and state handler when pendingWinnerID is set.
+func (m *Manager) StartNewRoundIfWinnerPlaying(cp *spotify.CurrentlyPlaying) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.pendingWinnerID == "" || m.Session == nil || m.Session.Status != "active" {
+		return
+	}
+	if cp == nil || cp.Item == nil || cp.Item.ID != m.pendingWinnerID {
+		return
+	}
+
+	// Winner is now playing; create new round
+	m.pendingWinnerID = ""
+	round, err := m.fetchCandidatesLocked(cp.Item)
+	if err != nil {
+		log.Printf("voting: start new round (winner playing): %v", err)
+		m.Round = nil
+		return
+	}
+	log.Printf("voting: new round started with %d candidates (winner now playing)", len(round.Candidates))
+	m.Round = round
 }
 
 // fetchCandidatesLocked fetches 3 candidates, filtering used tracks. Caller must hold lock.
@@ -275,10 +380,10 @@ func (m *Manager) fetchCandidatesLocked(nextSong *spotify.Track) (*RoundState, e
 		}
 	}
 
-	// Fetch tracks, filter used, take 3
-	var candidates []spotify.Track
+	// Fetch all unused tracks from playlist, then randomly pick 3
+	var unused []spotify.Track
 	offset := 0
-	for len(candidates) < 3 {
+	for {
 		resp, err := m.svc.GetPlaylistTracks(m.Session.PlaylistID, offset)
 		if err != nil {
 			return nil, err
@@ -295,10 +400,7 @@ func (m *Manager) fetchCandidatesLocked(nextSong *spotify.Track) (*RoundState, e
 			if m.UsedTrackIDs[track.ID] {
 				continue
 			}
-			candidates = append(candidates, *track)
-			if len(candidates) >= 3 {
-				break
-			}
+			unused = append(unused, *track)
 		}
 
 		if resp.Next == nil || *resp.Next == "" {
@@ -307,15 +409,25 @@ func (m *Manager) fetchCandidatesLocked(nextSong *spotify.Track) (*RoundState, e
 		offset += 50
 	}
 
-	if len(candidates) == 0 {
+	if len(unused) == 0 {
 		return nil, fmt.Errorf("no unused tracks in playlist")
 	}
+
+	// Randomly pick 3 from unused pool
+	candidates := pickRandomN(unused, 3)
 
 	// Compute round end time: prefer nextSong (winner we just queued), else currently playing
 	roundEndsAt := time.Now().Add(60 * time.Second)
 	if nextSong != nil && nextSong.DurationMs > 0 {
-		// Winner will play next; round ends when it has ~15s left
-		roundEndsAt = time.Now().Add(time.Duration(nextSong.DurationMs)*time.Millisecond - roundEndBufferMs*time.Millisecond)
+		// Winner is in queue, not yet playing. Add current song's remaining time before winner's duration.
+		delayUntilWinnerStarts := time.Duration(0)
+		if cp, err := m.svc.GetCurrentlyPlaying(); err == nil && cp != nil && cp.Item != nil {
+			remainingMs := int64(cp.Item.DurationMs) - cp.ProgressMs
+			if remainingMs > 0 {
+				delayUntilWinnerStarts = time.Duration(remainingMs) * time.Millisecond
+			}
+		}
+		roundEndsAt = time.Now().Add(delayUntilWinnerStarts).Add(time.Duration(nextSong.DurationMs)*time.Millisecond - roundEndBufferMs*time.Millisecond)
 	} else {
 		cp, err := m.svc.GetCurrentlyPlaying()
 		if err == nil && cp != nil && cp.Item != nil {
@@ -405,6 +517,7 @@ func (m *Manager) refillPlaylistLocked() {
 			continue
 		}
 		uris = append(uris, t.URI)
+		m.RefilledTrackIDs[t.ID] = true
 		if len(uris) >= refillBatchSize {
 			break
 		}
@@ -412,6 +525,27 @@ func (m *Manager) refillPlaylistLocked() {
 	if len(uris) > 0 {
 		_ = m.svc.AddTracksToPlaylist(m.Session.PlaylistID, uris)
 	}
+}
+
+// pickRandomN returns n randomly selected tracks from the slice (or all if fewer than n)
+func pickRandomN(tracks []spotify.Track, n int) []spotify.Track {
+	if len(tracks) <= n {
+		return tracks
+	}
+	// Fisher-Yates shuffle first n elements (partial shuffle)
+	perm := make([]int, len(tracks))
+	for i := range perm {
+		perm[i] = i
+	}
+	for i := 0; i < n; i++ {
+		j := i + rand.Intn(len(perm)-i)
+		perm[i], perm[j] = perm[j], perm[i]
+	}
+	result := make([]spotify.Track, n)
+	for i := 0; i < n; i++ {
+		result[i] = tracks[perm[i]]
+	}
+	return result
 }
 
 // pickWinner returns the track with most votes, or random among ties / all if no votes

@@ -1,4 +1,6 @@
 import type { Track } from '../hooks/useVotingState'
+import { useProgressTick } from '../hooks/useProgressTick'
+import { formatMs } from '../utils/formatTime'
 
 type NowPlayingProps = {
   item: Track | null
@@ -9,18 +11,22 @@ type NowPlayingProps = {
 export function NowPlaying({ item, progressMs = 0, isPlaying = false }: NowPlayingProps) {
   if (!item) {
     return (
-      <div className="rounded-xl border border-white/5 bg-black/30 p-6">
+      <div className="glass-panel p-6">
         <p className="text-zinc-500">Nothing playing</p>
       </div>
     )
   }
 
+  const displayProgress = useProgressTick(progressMs, item.duration_ms ?? 0, isPlaying)
   const imageUrl = item.album?.images?.[0]?.url ?? item.album?.images?.[1]?.url
   const artists = item.artists?.map((a) => a.name).join(', ') ?? ''
-  const progressPct = item.duration_ms > 0 ? (progressMs / item.duration_ms) * 100 : 0
+  const progressPct =
+    item.duration_ms > 0 ? (displayProgress / item.duration_ms) * 100 : 0
+  const remainingMs = Math.max(0, (item.duration_ms ?? 0) - displayProgress)
+  const spotifyUrl = `https://open.spotify.com/track/${item.id}`
 
   return (
-    <div className="rounded-xl border border-white/5 bg-black/30 p-6">
+    <div className="glass-panel p-6">
       <div className="flex items-center gap-4">
         {imageUrl && (
           <img
@@ -32,14 +38,28 @@ export function NowPlaying({ item, progressMs = 0, isPlaying = false }: NowPlayi
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-medium text-white">{item.name}</p>
           <p className="truncate text-sm text-zinc-400">{artists}</p>
-          {isPlaying && (
-            <p className="mt-1 text-xs text-green-400">Now playing</p>
-          )}
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {isPlaying && (
+              <span className="text-xs text-green-400">Now playing</span>
+            )}
+            <a
+              href={spotifyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-[#1DB954] hover:text-[#1ed760] hover:underline"
+            >
+              Open in Spotify
+            </a>
+          </div>
         </div>
       </div>
       {item.duration_ms > 0 && (
         <div className="mt-4">
-          <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="mb-1 flex justify-between text-xs text-zinc-500">
+            <span>{formatMs(displayProgress)}</span>
+            <span>{formatMs(remainingMs)} left</span>
+          </div>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-white/[0.12] backdrop-blur-sm">
             <div
               className="h-full rounded-full bg-[#1DB954] transition-all duration-1000"
               style={{ width: `${Math.min(100, progressPct)}%` }}
