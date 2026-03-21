@@ -135,6 +135,11 @@ func (h *Handlers) State(c *gin.Context) {
 		resp["votes"] = round.Votes
 	}
 
+	// When refill completes, client refreshes playlist view
+	if lastRefillAt := h.Manager.GetLastRefillAt(); !lastRefillAt.IsZero() {
+		resp["playlist_updated_at"] = lastRefillAt.Unix()
+	}
+
 	c.JSON(http.StatusOK, resp)
 }
 

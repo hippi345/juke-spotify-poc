@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 type Track = {
   id: string
@@ -19,13 +19,16 @@ type PlaylistOverviewProps = {
   sessionActive: boolean
   /** When this changes (e.g. new round), refetch playlist overview */
   roundKey: string
+  /** When refill completes, server sets this; we refetch playlist */
+  playlistUpdatedAt?: number
 }
 
-export function PlaylistOverview({ sessionActive, roundKey }: PlaylistOverviewProps) {
+export function PlaylistOverview({ sessionActive, roundKey, playlistUpdatedAt }: PlaylistOverviewProps) {
   const [tracks, setTracks] = useState<TrackWithMeta[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [refilling, setRefilling] = useState(false)
+  const refillTriggeredRef = useRef(false)
 
   const fetchTracks = useCallback(async () => {
     if (!sessionActive) return
@@ -54,24 +57,36 @@ export function PlaylistOverview({ sessionActive, roundKey }: PlaylistOverviewPr
       return
     }
     fetchTracks()
-  }, [sessionActive, roundKey, fetchTracks])
+  }, [sessionActive, roundKey, playlistUpdatedAt, fetchTracks])
 
   const handleTriggerRefill = async () => {
     setRefilling(true)
     setError(null)
+    refillTriggeredRef.current = true
     try {
       const res = await fetch('/api/voting/trigger-refill', { method: 'POST' })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         setError((data as { error?: string }).error || 'Refill failed')
+        refillTriggeredRef.current = false
+        setRefilling(false)
         return
       }
       setError(null)
-      await fetchTracks()
-    } finally {
+      // Refill runs in background; playlist_updated_at will trigger refetch when done
+    } catch {
+      refillTriggeredRef.current = false
       setRefilling(false)
     }
   }
+
+  // When refill completes, playlist_updated_at changes; clear refilling state
+  useEffect(() => {
+    if (playlistUpdatedAt != null && refillTriggeredRef.current) {
+      refillTriggeredRef.current = false
+      setRefilling(false)
+    }
+  }, [playlistUpdatedAt])
 
   if (!sessionActive) return null
 

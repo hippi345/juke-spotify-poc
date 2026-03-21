@@ -32,7 +32,7 @@ export function NowPlaying({ item, progressMs = 0, isPlaying = false }: NowPlayi
           <img
             src={imageUrl}
             alt={item.album?.name ?? ''}
-            className="h-20 w-20 rounded-lg object-cover shadow-lg"
+            className="aspect-square w-40 rounded-lg object-cover shadow-lg sm:w-52 md:w-64"
           />
         )}
         <div className="min-w-0 flex-1">

@@ -25,6 +25,8 @@ export type VotingState = {
   candidates: Track[]
   votes: Record<string, number>
   time_remaining_sec: number
+  /** Unix timestamp when refill last completed; client refreshes playlist when this changes */
+  playlist_updated_at?: number
 }
 
 const POLL_INTERVAL_MS = 2000
@@ -67,6 +69,7 @@ export function useVotingState(enabled: boolean) {
       candidates: (data.candidates ?? []) as Track[],
       votes: (data.votes ?? {}) as Record<string, number>,
       time_remaining_sec: (data.time_remaining_sec ?? 0) as number,
+      playlist_updated_at: data.playlist_updated_at as number | undefined,
     })
     setError(null)
   }, [])

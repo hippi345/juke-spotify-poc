@@ -256,6 +256,7 @@ function App() {
             <PlaylistOverview
               sessionActive={!!sessionActive}
               roundKey={state?.candidates?.map((c) => c.id).join(',') ?? ''}
+              playlistUpdatedAt={state?.playlist_updated_at}
             />
           )}
 

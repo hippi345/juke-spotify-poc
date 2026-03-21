@@ -56,6 +56,18 @@ type Manager struct {
 	// Kickoff override: Spotify lags when we start playback; use kickoff as now_playing for first few seconds
 	kickoffTrack   *spotify.Track
 	sessionStartAt time.Time
+
+	// Refill runs in background; this prevents overlapping refills
+	refillInProgress bool
+	// Set when refill completes so client can refresh playlist view
+	lastRefillAt time.Time
+}
+
+// GetLastRefillAt returns when refill last completed (for client to refresh playlist view)
+func (m *Manager) GetLastRefillAt() time.Time {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.lastRefillAt
 }
 
 // HasActiveSession returns true if there is an active voting session (avoids Spotify calls when idle)
@@ -139,12 +151,12 @@ func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold,
 	m.RefilledTrackURIs = nil
 	m.Round = nil
 
-	// Refill at session start if playlist is already below threshold
+	// Refill at session start if playlist is already below threshold (runs in background)
 	if refillThreshold > 0 && refillCount > 0 {
 		total, err := m.getPlaylistTotalTracks()
 		if err == nil {
 			if total < refillThreshold {
-				_ = m.refillPlaylistLocked()
+				m.triggerRefillAsync(false)
 			}
 		}
 	}
@@ -234,14 +246,22 @@ func (m *Manager) GetPlaylistOverview() ([]PlaylistTrackWithMeta, error) {
 	return result, nil
 }
 
-// TriggerRefill manually runs the vibe fill logic (adds similar tracks to playlist). For testing.
+// TriggerRefill manually triggers refill (runs in background). Returns immediately.
 func (m *Manager) TriggerRefill() error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
 	if m.Session == nil || m.Session.Status != "active" {
+		m.mu.RUnlock()
 		return fmt.Errorf("no active session")
 	}
-	return m.refillPlaylistLocked()
+	if m.refillInProgress {
+		m.mu.RUnlock()
+		log.Printf("voting: TriggerRefill called but refill already in progress")
+		return fmt.Errorf("refill already in progress")
+	}
+	m.mu.RUnlock()
+	log.Printf("voting: TriggerRefill called - starting refill")
+	m.triggerRefillAsync(true) // force=true: run even when threshold is 0
+	return nil
 }
 
 // RecoverRound creates a round when session is active but round is nil (e.g. after fetch failure)
@@ -470,15 +490,13 @@ func (m *Manager) AdvanceRound() error {
 		m.lastCp = nil
 		m.lastCpAt = time.Time{}
 
-		// Refill when unused tracks (total - played) falls below threshold. We only add; never remove original playlist tracks.
+		// Refill when unused tracks (total - played) falls below threshold (runs in background)
 		if m.Session.RefillThreshold > 0 && m.Session.RefillCount > 0 {
 			total, err := m.getPlaylistTotalTracks()
 			if err == nil {
 				unused := total - len(m.UsedTrackIDs)
 				if unused < m.Session.RefillThreshold {
-					if refillErr := m.refillPlaylistLocked(); refillErr != nil {
-						log.Printf("voting: refill at round end: %v", refillErr)
-					}
+					m.triggerRefillAsync(false)
 				}
 			}
 		}
@@ -597,7 +615,28 @@ func (m *Manager) getPlaylistTotalTracks() (int, error) {
 	return resp.Total, nil
 }
 
-func (m *Manager) refillPlaylistLocked() error {
+// triggerRefillAsync runs refill in a background goroutine so it doesn't block State, Vote, SessionEnd, etc.
+// When force=true (manual TriggerRefill), runs even if threshold is 0. When force=false, requires threshold > 0.
+// Caller must NOT hold m.mu.
+func (m *Manager) triggerRefillAsync(force bool) {
+	m.mu.Lock()
+	if m.refillInProgress {
+		log.Printf("voting: refill skipped - already in progress")
+		m.mu.Unlock()
+		return
+	}
+	if m.Session == nil || m.Session.Status != "active" {
+		log.Printf("voting: refill skipped - no active session")
+		m.mu.Unlock()
+		return
+	}
+	if !force && (m.Session.RefillThreshold <= 0 || m.Session.RefillCount <= 0) {
+		log.Printf("voting: refill skipped - threshold=%d count=%d (need both > 0 for auto refill)", m.Session.RefillThreshold, m.Session.RefillCount)
+		m.mu.Unlock()
+		return
+	}
+	// Snapshot state for background work
+	playlistID := m.Session.PlaylistID
 	refillCount := m.Session.RefillCount
 	if refillCount <= 0 {
 		refillCount = 10
@@ -605,18 +644,61 @@ func (m *Manager) refillPlaylistLocked() error {
 	if refillCount > refillCountMax {
 		refillCount = refillCountMax
 	}
+	usedTrackIDs := make(map[string]bool)
+	for k, v := range m.UsedTrackIDs {
+		usedTrackIDs[k] = v
+	}
+	m.refillInProgress = true
+	m.mu.Unlock()
+
+	log.Printf("voting: refill STARTED (playlist=%s count=%d)", playlistID, refillCount)
+
+	go func() {
+		defer func() {
+			m.mu.Lock()
+			m.refillInProgress = false
+			m.mu.Unlock()
+		}()
+
+		uris, trackIDs, err := m.doRefillWork(playlistID, refillCount, usedTrackIDs)
+		if err != nil {
+			log.Printf("voting: refill FAILED: %v", err)
+			return
+		}
+		if len(uris) == 0 {
+			log.Printf("voting: refill completed - no new tracks to add")
+			return
+		}
+
+		// Apply results; check session still active
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		if m.Session == nil || m.Session.Status != "active" {
+			log.Printf("voting: refill completed but session ended - %d tracks not applied", len(uris))
+			return
+		}
+		for _, id := range trackIDs {
+			m.RefilledTrackIDs[id] = true
+		}
+		m.RefilledTrackURIs = append(m.RefilledTrackURIs, uris...)
+		m.lastRefillAt = time.Now()
+		log.Printf("voting: refill added %d tracks to playlist", len(uris))
+	}()
+}
+
+// doRefillWork runs the refill API calls without holding the Manager lock.
+func (m *Manager) doRefillWork(playlistID string, refillCount int, usedTrackIDs map[string]bool) (uris []string, trackIDs []string, err error) {
 	delay := time.Duration(refillDelayMs) * time.Millisecond
 
-	// Single fetch: collect artist IDs and playlist track IDs for dedup
 	allArtistIDs := make(map[string]bool)
 	playlistTrackIDs := make(map[string]bool)
 	offset := 0
 	for {
 		time.Sleep(delay)
-		resp, err := m.svc.GetPlaylistTracks(m.Session.PlaylistID, offset)
+		resp, err := m.svc.GetPlaylistTracks(playlistID, offset)
 		if err != nil {
 			log.Printf("voting: refill get playlist failed: %v", err)
-			return fmt.Errorf("get playlist: %w", err)
+			return nil, nil, fmt.Errorf("get playlist: %w", err)
 		}
 		for _, pitem := range resp.Items {
 			track := pitem.Track
@@ -638,15 +720,15 @@ func (m *Manager) refillPlaylistLocked() error {
 		offset += 50
 	}
 	if len(allArtistIDs) == 0 {
-		return fmt.Errorf("no artists in playlist to use as seeds")
+		return nil, nil, fmt.Errorf("no artists in playlist to use as seeds")
 	}
+	log.Printf("voting: refill found %d artists, fetching similar tracks...", len(allArtistIDs))
 
-	// Use similar-artists method (works when Recommendations API returns 404 for new apps)
 	artistIDSlice := make([]string, 0, len(allArtistIDs))
 	for id := range allArtistIDs {
 		artistIDSlice = append(artistIDSlice, id)
 	}
-	seedArtistCount := refillCount + 8 // extra buffer for 403/404 on Top Tracks, Albums, Search
+	seedArtistCount := refillCount + 8
 	if seedArtistCount > len(artistIDSlice) {
 		seedArtistCount = len(artistIDSlice)
 	}
@@ -656,13 +738,14 @@ func (m *Manager) refillPlaylistLocked() error {
 	recs, err := m.svc.GetRefillTracksFromArtists(seedArtistIDs, refillCount*2)
 	if err != nil {
 		log.Printf("voting: refill GetRefillTracksFromArtists failed: %v", err)
-		return fmt.Errorf("get refill tracks: %w", err)
+		return nil, nil, fmt.Errorf("get refill tracks: %w", err)
 	}
 
-	var uris []string
-	tracksPerArtist := make(map[string]bool) // 1 track per artist: N refill = N unique artists
+	var resultURIs []string
+	var resultIDs []string
+	tracksPerArtist := make(map[string]bool)
 	for _, t := range recs {
-		if playlistTrackIDs[t.ID] || m.UsedTrackIDs[t.ID] {
+		if playlistTrackIDs[t.ID] || usedTrackIDs[t.ID] {
 			continue
 		}
 		artistID := ""
@@ -670,28 +753,27 @@ func (m *Manager) refillPlaylistLocked() error {
 			artistID = t.Artists[0].ID
 		}
 		if artistID != "" && tracksPerArtist[artistID] {
-			continue // already have a track from this artist
+			continue
 		}
-		uris = append(uris, t.URI)
-		m.RefilledTrackIDs[t.ID] = true
-		m.RefilledTrackURIs = append(m.RefilledTrackURIs, t.URI)
+		resultURIs = append(resultURIs, t.URI)
+		resultIDs = append(resultIDs, t.ID)
 		if artistID != "" {
 			tracksPerArtist[artistID] = true
 		}
-		if len(uris) >= refillCount {
+		if len(resultURIs) >= refillCount {
 			break
 		}
 	}
-	if len(uris) == 0 {
-		return fmt.Errorf("no new tracks to add (all refill candidates already in playlist)")
+	if len(resultURIs) == 0 {
+		return nil, nil, fmt.Errorf("no new tracks to add (all refill candidates already in playlist)")
 	}
 	time.Sleep(delay)
-	if err := m.svc.AddTracksToPlaylist(m.Session.PlaylistID, uris); err != nil {
+	if err := m.svc.AddTracksToPlaylist(playlistID, resultURIs); err != nil {
 		log.Printf("voting: refill AddTracksToPlaylist failed: %v", err)
-		return fmt.Errorf("add to playlist: %w", err)
+		return nil, nil, fmt.Errorf("add to playlist: %w", err)
 	}
-	log.Printf("voting: refill added %d tracks to playlist", len(uris))
-	return nil
+	log.Printf("voting: refill added %d tracks to playlist (API success)", len(resultURIs))
+	return resultURIs, resultIDs, nil
 }
 
 // pickRandomStrings returns n randomly selected strings from the slice (or all if fewer than n)
