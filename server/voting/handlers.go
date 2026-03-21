@@ -21,13 +21,15 @@ func (h *Handlers) SessionStart(c *gin.Context) {
 		PlaylistID      string `json:"playlist_id" binding:"required"`
 		PlaylistName    string `json:"playlist_name"`
 		RefillThreshold int    `json:"refill_threshold"`
+		RefillCount     int    `json:"refill_count"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "playlist_id required"})
 		return
 	}
 
-	if err := h.Manager.StartSession(body.PlaylistID, body.PlaylistName, body.RefillThreshold); err != nil {
+	kickoff, err := h.Manager.StartSession(body.PlaylistID, body.PlaylistName, body.RefillThreshold, body.RefillCount)
+	if err != nil {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "403") {
 			errMsg = "Cannot access this playlist (403). In Spotify Developer Dashboard: 1) Add your Spotify email under User Management if in Development Mode, 2) Ensure redirect URI is http://127.0.0.1:5173/api/spotify/callback, 3) Disconnect and reconnect to refresh permissions."
@@ -36,7 +38,31 @@ func (h *Handlers) SessionStart(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "started"})
+	resp := gin.H{"status": "started"}
+	if kickoff != nil {
+		resp["now_playing"] = gin.H{
+			"playing":     true,
+			"progress_ms": 0,
+			"item":        kickoff,
+		}
+		session, round, timeRemainingSec := h.Manager.GetState(nil)
+		if session != nil {
+			resp["session"] = gin.H{
+				"id":               session.ID,
+				"playlist_id":      session.PlaylistID,
+				"playlist_name":    session.PlaylistName,
+				"refill_threshold": session.RefillThreshold,
+				"refill_count":     session.RefillCount,
+				"status":           session.Status,
+			}
+		}
+		if round != nil {
+			resp["candidates"] = round.Candidates
+			resp["votes"] = round.Votes
+			resp["time_remaining_sec"] = timeRemainingSec
+		}
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // SessionEnd ends the current voting session
@@ -47,11 +73,16 @@ func (h *Handlers) SessionEnd(c *gin.Context) {
 
 // State returns the current voting state for polling.
 // Also triggers advance check (same logic as ticker) so rounds advance when client polls.
+// Skips Spotify calls when no active session to preserve quota for playlists/other requests.
+// Uses cached currently-playing when fresh to avoid duplicate calls with ticker.
 func (h *Handlers) State(c *gin.Context) {
-	cp, _ := h.Svc.GetCurrentlyPlaying()
+	var cp *spotify.CurrentlyPlaying
+	if h.Manager.HasActiveSession() {
+		cp, _ = h.Manager.GetOrFetchCurrentlyPlaying()
 
-	// Start new round when winner (queued) has begun playing
-	h.Manager.StartNewRoundIfWinnerPlaying(cp)
+		// Start new round when winner (queued) has begun playing
+		h.Manager.StartNewRoundIfWinnerPlaying(cp)
+	}
 
 	session, round, timeRemainingSec := h.Manager.GetState(cp)
 
@@ -78,11 +109,13 @@ func (h *Handlers) State(c *gin.Context) {
 		"time_remaining_sec": timeRemainingSec,
 	}
 
-	if cp != nil {
+	// Use kickoff as now_playing for first ~6s after session start (Spotify lags)
+	effectiveCp := h.Manager.GetEffectiveNowPlaying(cp)
+	if effectiveCp != nil {
 		resp["now_playing"] = gin.H{
-			"playing":      cp.IsPlaying,
-			"progress_ms":  cp.ProgressMs,
-			"item":         cp.Item,
+			"playing":      effectiveCp.IsPlaying,
+			"progress_ms":  effectiveCp.ProgressMs,
+			"item":         effectiveCp.Item,
 		}
 	}
 
@@ -92,6 +125,7 @@ func (h *Handlers) State(c *gin.Context) {
 			"playlist_id":      session.PlaylistID,
 			"playlist_name":    session.PlaylistName,
 			"refill_threshold": session.RefillThreshold,
+			"refill_count":     session.RefillCount,
 			"status":           session.Status,
 		}
 	}
@@ -102,6 +136,15 @@ func (h *Handlers) State(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+// TriggerRefill manually triggers vibe fill for testing
+func (h *Handlers) TriggerRefill(c *gin.Context) {
+	if err := h.Manager.TriggerRefill(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "refilled"})
 }
 
 // PlaylistOverview returns all playlist tracks with played/refilled status

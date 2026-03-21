@@ -3,24 +3,31 @@ import { PlaylistPicker } from './PlaylistPicker'
 
 type SessionControlsProps = {
   sessionActive: boolean
-  onSessionStart: (playlistId: string, playlistName: string, refillThreshold: number) => Promise<void>
+  onSessionStart: (playlistId: string, playlistName: string, refillThreshold: number, refillCount: number) => Promise<void>
   onSessionEnd: () => Promise<void>
+  onPickerOpenChange?: (open: boolean) => void
 }
 
 export function SessionControls({
   sessionActive,
   onSessionStart,
   onSessionEnd,
+  onPickerOpenChange,
 }: SessionControlsProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
+
+  const setPickerOpenWithCallback = (open: boolean) => {
+    setPickerOpen(open)
+    onPickerOpenChange?.(open)
+  }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSelect = async (playlistId: string, playlistName: string, refillThreshold: number) => {
+  const handleSelect = async (playlistId: string, playlistName: string, refillThreshold: number, refillCount: number) => {
     setLoading(true)
     setError(null)
     try {
-      await onSessionStart(playlistId, playlistName, refillThreshold)
+      await onSessionStart(playlistId, playlistName, refillThreshold, refillCount)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to start session')
     } finally {
@@ -59,7 +66,7 @@ export function SessionControls({
         <div>
           <button
             type="button"
-            onClick={() => setPickerOpen(true)}
+            onClick={() => setPickerOpenWithCallback(true)}
             disabled={loading}
             className="rounded-lg bg-[#1DB954] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#1ed760] disabled:opacity-50"
           >
@@ -69,7 +76,7 @@ export function SessionControls({
       )}
       <PlaylistPicker
         isOpen={pickerOpen}
-        onClose={() => setPickerOpen(false)}
+        onClose={() => setPickerOpenWithCallback(false)}
         onSelect={handleSelect}
       />
       {error && <p className="mt-4 text-sm text-red-400">{error}</p>}

@@ -41,8 +41,6 @@ export function DevicePicker({ activeDeviceId, onDeviceSelect }: DevicePickerPro
 
   useEffect(() => {
     fetchDevices()
-    const interval = setInterval(fetchDevices, 10000) // Refresh every 10s
-    return () => clearInterval(interval)
   }, [fetchDevices])
 
   const handleSelect = async (deviceId: string) => {

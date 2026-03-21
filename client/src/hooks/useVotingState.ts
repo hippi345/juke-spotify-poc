@@ -27,7 +27,7 @@ export type VotingState = {
   time_remaining_sec: number
 }
 
-const POLL_INTERVAL_MS = 2500
+const POLL_INTERVAL_MS = 2000
 
 export function useVotingState(enabled: boolean) {
   const [state, setState] = useState<VotingState | null>(null)
@@ -60,5 +60,27 @@ export function useVotingState(enabled: boolean) {
     return () => clearInterval(id)
   }, [enabled, fetchState])
 
-  return { state, error, refetch: fetchState }
+  const setStateFromSessionStart = useCallback((data: Record<string, unknown>) => {
+    setState({
+      session: data.session as VotingState['session'],
+      now_playing: data.now_playing as VotingState['now_playing'],
+      candidates: (data.candidates ?? []) as Track[],
+      votes: (data.votes ?? {}) as Record<string, number>,
+      time_remaining_sec: (data.time_remaining_sec ?? 0) as number,
+    })
+    setError(null)
+  }, [])
+
+  const clearState = useCallback(() => {
+    setState({
+      session: null,
+      now_playing: null,
+      candidates: [],
+      votes: {},
+      time_remaining_sec: 0,
+    })
+    setError(null)
+  }, [])
+
+  return { state, error, refetch: fetchState, setStateFromSessionStart, clearState }
 }

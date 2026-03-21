@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	tickerInterval = 3 * time.Second
+	tickerInterval = 4 * time.Second // Match client poll cadence for responsive round advances
 )
 
 // Ticker polls Spotify and advances rounds. Voting runs during the current song until ~15s left;
@@ -80,7 +80,12 @@ func (t *Ticker) run() {
 }
 
 func (t *Ticker) tick() {
-	cp, err := t.svc.GetCurrentlyPlaying()
+	// Skip Spotify calls when no active session to reduce rate-limit pressure (e.g. when user is fetching playlists)
+	if !t.manager.HasActiveSession() {
+		return
+	}
+
+	cp, err := t.manager.GetOrFetchCurrentlyPlaying()
 	if err != nil {
 		return
 	}
@@ -102,17 +107,14 @@ func (t *Ticker) tick() {
 	}
 
 	// Advance when: (1) song has ~15s left (queue winner, let current finish), or (2) nothing playing and round time expired
-	shouldAdvance := false
-	var remainingMs int64 = -1
-	if cp == nil || cp.Item == nil {
-		// Nothing playing: advance when round time expired (song finished; don't interrupt on API lag)
-		shouldAdvance = time.Now().After(round.RoundEndsAt)
-	} else {
-		remainingMs = int64(cp.Item.DurationMs) - cp.ProgressMs
-		shouldAdvance = remainingMs <= roundEndBufferMs
-	}
+	// Use ShouldAdvanceRound so kickoff override is applied (avoids advancing on stale cp during session start)
+	shouldAdvance := t.manager.ShouldAdvanceRound(cp)
 
 	if shouldAdvance {
+		remainingMs := int64(-1)
+		if cp != nil && cp.Item != nil {
+			remainingMs = int64(cp.Item.DurationMs) - cp.ProgressMs
+		}
 		log.Printf("voting: tick advancing (remainingMs=%d cp=%v)", remainingMs, cp != nil && cp.Item != nil)
 		if err := t.manager.AdvanceRound(); err != nil {
 			log.Printf("voting: advance round: %v", err)

@@ -28,7 +28,8 @@ function App() {
       .catch(() => setSpotify({ connected: false }))
   }, [])
 
-  const { state, error: stateError, refetch } = useVotingState(true)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const { state, error: stateError, refetch, setStateFromSessionStart, clearState } = useVotingState(!pickerOpen)
 
   const handleConnectSpotify = async () => {
     setSpotifyError(null)
@@ -81,7 +82,7 @@ function App() {
   }
 
   const handleSessionStart = useCallback(
-    async (playlistId: string, playlistName: string, refillThreshold: number) => {
+    async (playlistId: string, playlistName: string, refillThreshold: number, refillCount: number) => {
       const res = await fetch('/api/voting/session/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,15 +90,20 @@ function App() {
           playlist_id: playlistId,
           playlist_name: playlistName,
           refill_threshold: refillThreshold,
+          refill_count: refillCount,
         }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         throw new Error(data.error || `Error ${res.status}`)
       }
+      // Use initial state from response for instant UI update (avoids 3-4s lag)
+      if (data.session && data.now_playing) {
+        setStateFromSessionStart(data)
+      }
       refetch()
     },
-    [refetch]
+    [refetch, setStateFromSessionStart]
   )
 
   const handleSessionEnd = useCallback(async () => {
@@ -108,8 +114,9 @@ function App() {
     if (!res.ok) {
       throw new Error('Failed to end session')
     }
+    clearState()
     refetch()
-  }, [refetch])
+  }, [refetch, clearState])
 
   const handleVote = useCallback(
     async (trackId: string) => {
@@ -221,6 +228,7 @@ function App() {
               sessionActive={!!sessionActive}
               onSessionStart={handleSessionStart}
               onSessionEnd={handleSessionEnd}
+              onPickerOpenChange={setPickerOpen}
             />
           )}
 
@@ -245,7 +253,10 @@ function App() {
 
           {/* Playlist overview */}
           {spotify?.connected && sessionActive && (
-            <PlaylistOverview sessionActive={!!sessionActive} />
+            <PlaylistOverview
+              sessionActive={!!sessionActive}
+              roundKey={state?.candidates?.map((c) => c.id).join(',') ?? ''}
+            />
           )}
 
           {stateError && (
