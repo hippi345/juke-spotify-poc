@@ -48,6 +48,7 @@ export function useVotingState(enabled: boolean) {
         candidates: data.candidates ?? [],
         votes: data.votes ?? {},
         time_remaining_sec: data.time_remaining_sec ?? 0,
+        playlist_updated_at: data.playlist_updated_at as number | undefined,
       })
       setError(null)
     } catch (e) {

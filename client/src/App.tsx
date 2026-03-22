@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { AiPlaylistPanel, type AiPlaylistResult } from './components/AiPlaylistPanel'
+import { Toast, type ToastPayload } from './components/Toast'
 import { DevicePicker } from './components/DevicePicker'
 import { NowPlaying } from './components/NowPlaying'
 import { PlaylistOverview } from './components/PlaylistOverview'
@@ -30,6 +32,10 @@ function App() {
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const { state, error: stateError, refetch, setStateFromSessionStart, clearState } = useVotingState(!pickerOpen)
+
+  const [toast, setToast] = useState<ToastPayload | null>(null)
+  const toastSeq = useRef(0)
+  const dismissToast = useCallback(() => setToast(null), [])
 
   const handleConnectSpotify = async () => {
     setSpotifyError(null)
@@ -104,6 +110,47 @@ function App() {
       refetch()
     },
     [refetch, setStateFromSessionStart]
+  )
+
+  const onAiPlaylistFailed = useCallback((msg: string) => {
+    toastSeq.current += 1
+    setToast({
+      id: toastSeq.current,
+      variant: 'error',
+      title: "VibeSense couldn't create your playlist",
+      body: msg,
+    })
+  }, [])
+
+  const onAiPlaylistReady = useCallback(
+    (r: AiPlaylistResult) => {
+      toastSeq.current += 1
+      setToast({
+        id: toastSeq.current,
+        variant: 'success',
+        title: 'VibeSense playlist ready',
+        body: `${r.name} — ${r.tracks_added} track${r.tracks_added === 1 ? '' : 's'} added`,
+        href: r.playlist_url,
+        hrefLabel: 'Open in Spotify',
+        durationMs: 10_000,
+        actionLabel: 'Start session with this playlist',
+        onAction: async () => {
+          try {
+            await handleSessionStart(r.playlist_id, r.name, 0, 10)
+            dismissToast()
+          } catch (e) {
+            toastSeq.current += 1
+            setToast({
+              id: toastSeq.current,
+              variant: 'error',
+              title: 'Could not start session',
+              body: e instanceof Error ? e.message : 'Request failed',
+            })
+          }
+        },
+      })
+    },
+    [dismissToast, handleSessionStart]
   )
 
   const handleSessionEnd = useCallback(async () => {
@@ -222,6 +269,10 @@ function App() {
             )}
           </div>
 
+          {spotify?.connected && (
+            <AiPlaylistPanel onPlaylistReady={onAiPlaylistReady} onPlaylistFailed={onAiPlaylistFailed} />
+          )}
+
           {/* Session controls (admin) */}
           {spotify?.connected && (
             <SessionControls
@@ -265,6 +316,7 @@ function App() {
           )}
         </div>
       </main>
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   )
 }

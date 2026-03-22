@@ -1197,3 +1197,79 @@ func (c *Client) RemoveTracksFromPlaylist(playlistID string, trackURIs []string)
 	}
 	return nil
 }
+
+// CreatePlaylist creates a playlist for the current user (POST /v1/me/playlists).
+// Uses /me so the path does not depend on stored user id (avoids 403 from user id mismatch).
+func (c *Client) CreatePlaylist(name, description string, public bool) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("playlist name required")
+	}
+	body := map[string]interface{}{
+		"name":        name,
+		"description": description,
+		"public":      public,
+	}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return "", err
+	}
+	resp, err := c.Post("/me/playlists", bytes.NewReader(jsonBody))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		b, _ := io.ReadAll(resp.Body)
+		s := string(b)
+		if resp.StatusCode == http.StatusForbidden {
+			return "", fmt.Errorf("create playlist: %s %s — open the app, disconnect Spotify, and connect again so the token includes playlist-modify scopes", resp.Status, s)
+		}
+		return "", fmt.Errorf("create playlist: %s %s", resp.Status, s)
+	}
+	var out struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return "", err
+	}
+	if out.ID == "" {
+		return "", fmt.Errorf("create playlist: empty id in response")
+	}
+	return out.ID, nil
+}
+
+// SearchTracks runs a general track search (Spotify Web API search).
+func (c *Client) SearchTracks(query string, limit int) ([]Track, error) {
+	if strings.TrimSpace(query) == "" {
+		return nil, fmt.Errorf("search query required")
+	}
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+	q := url.Values{}
+	q.Set("q", query)
+	q.Set("type", "track")
+	q.Set("limit", strconv.Itoa(limit))
+	path := "/search?" + q.Encode()
+	resp, err := c.Get(path)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("search: %s %s", resp.Status, string(body))
+	}
+	var result struct {
+		Tracks *struct {
+			Items []Track `json:"items"`
+		} `json:"tracks"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+	if result.Tracks == nil {
+		return nil, nil
+	}
+	return result.Tracks.Items, nil
+}

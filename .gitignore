@@ -5,8 +5,9 @@ node_modules/
 client/dist/
 server/server
 
-# Environment
+# Environment (any .env file in the repo — e.g. server/.env — is not committed)
 .env
+**/.env
 .env.local
 .env.*.local
 

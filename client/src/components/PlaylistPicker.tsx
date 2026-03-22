@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 type Playlist = {
   id: string
@@ -40,18 +41,42 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null)
   const [refillThresholdInput, setRefillThresholdInput] = useState('0')
   const [refillCountInput, setRefillCountInput] = useState('10')
 
+  const filteredPlaylists = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return playlists
+    return playlists.filter((p) => p.name.toLowerCase().includes(q))
+  }, [playlists, searchQuery])
+
   useEffect(() => {
     if (isOpen) {
       setSelectedPlaylist(null)
+      setSearchQuery('')
       setRefillThresholdInput('0')
       setRefillCountInput('10')
       loadPlaylists(setPlaylists, setError, setLoading)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!selectedPlaylist) return
+    if (!filteredPlaylists.some((p) => p.id === selectedPlaylist.id)) {
+      setSelectedPlaylist(null)
+    }
+  }, [filteredPlaylists, selectedPlaylist])
 
   const handleConfirm = () => {
     if (!selectedPlaylist) return
@@ -63,11 +88,39 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
 
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="mx-4 w-full max-w-md rounded-2xl border border-white/10 bg-[#141416] p-6 shadow-2xl">
-        <h2 className="mb-4 text-xl font-semibold text-white">Start voting session</h2>
+  const modal = (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/70 p-4 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="playlist-picker-title"
+      onClick={onClose}
+    >
+      <div
+        className="my-auto w-full max-w-md shrink-0 rounded-2xl border border-white/10 bg-[#141416] p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="playlist-picker-title" className="mb-4 text-xl font-semibold text-white">
+          Start voting session
+        </h2>
         <p className="mb-4 text-sm text-zinc-400">Select a playlist to pull tracks from for voting.</p>
+
+        <div className="mb-3">
+          <label htmlFor="playlist-picker-search" className="mb-1 block text-xs font-medium text-zinc-500">
+            Search playlists
+          </label>
+          <input
+            id="playlist-picker-search"
+            type="search"
+            autoComplete="off"
+            autoFocus
+            placeholder="Type to filter by name…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            disabled={loading || !!error}
+            className="w-full rounded-lg border border-white/10 bg-[#1a1a1e] px-4 py-2 text-white placeholder:text-zinc-600 focus:border-[#1DB954] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          />
+        </div>
 
         {loading && <p className="mb-4 text-sm text-zinc-500">Loading playlists...</p>}
         {error && (
@@ -92,8 +145,11 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
               No playlists found. Only playlists you created are shown. Create one in Spotify first.
             </p>
           )}
+          {!loading && playlists.length > 0 && filteredPlaylists.length === 0 && (
+            <p className="py-4 text-center text-sm text-zinc-500">No playlists match your search.</p>
+          )}
           {!loading &&
-            playlists.map((p) => (
+            filteredPlaylists.map((p) => (
               <button
                 key={p.id}
                 type="button"
@@ -166,4 +222,6 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
       </div>
     </div>
   )
+
+  return createPortal(modal, document.body)
 }

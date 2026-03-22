@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -20,7 +21,19 @@ import (
 )
 
 func main() {
+	loadDotEnv()
+	// If .env had GEMINI_API_KEY= (empty), godotenv sets the var to "". Unset so our
+	// fallback parser can still read a non-empty assignment from the same file.
+	if strings.TrimSpace(os.Getenv("GEMINI_API_KEY")) == "" {
+		_ = os.Unsetenv("GEMINI_API_KEY")
+	}
+
 	cfg := config.Load()
+	if cfg.GeminiAPIKey == "" {
+		log.Printf("VibeSense: GEMINI_API_KEY is empty — export it in your shell, add it to the IDE run env, or set it in server/.env (see server/.env.example)")
+		log.Printf("VibeSense: if you already export GEMINI_API_KEY, IDEs often start Go without your shell profile — set the variable in the launch configuration")
+		config.LogGeminiEnvHints()
+	}
 
 	if err := db.Connect(cfg); err != nil {
 		log.Fatalf("Database connection failed: %v", err)
@@ -31,7 +44,10 @@ func main() {
 	r.Use(cors.Default()) // Allow all origins for local dev
 
 	// Routes
+	r.GET("/", handlers.Root)
 	r.GET("/health", handlers.Health)
+	r.GET("/health/vibesense", handlers.VibeSenseHealth(cfg))
+	r.GET("/api/health/vibesense", handlers.VibeSenseHealth(cfg))
 	r.GET("/api/placeholder", handlers.Placeholder)
 
 	// Spotify OAuth
@@ -48,6 +64,9 @@ func main() {
 	r.GET("/api/player/now-playing", handlers.PlayerNowPlaying(spotifyClient))
 	r.GET("/api/playlists", handlers.PlaylistsList(spotifyClient))
 	r.GET("/api/debug/playlist/:id", handlers.DebugPlaylistAccess(spotifyClient))
+
+	r.POST("/api/ai-playlist/create", handlers.StartAIPlaylistJob(cfg, spotifyClient))
+	r.GET("/api/ai-playlist/jobs/:id", handlers.AIPlaylistJobStatus())
 
 	// Voting
 	votingManager := voting.NewManager(spotifyClient)
@@ -68,7 +87,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("Server starting on http://0.0.0.0:%s (also http://127.0.0.1:%s)", cfg.ServerPort, cfg.ServerPort)
+		log.Printf("Server starting on http://0.0.0.0:%s (also http://127.0.0.1:%s) — PORT env=%q", cfg.ServerPort, cfg.ServerPort, os.Getenv("PORT"))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server failed: %v", err)
 		}

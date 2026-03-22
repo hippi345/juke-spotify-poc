@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 )
 
 // Config holds application configuration from environment
@@ -17,6 +18,10 @@ type Config struct {
 	SpotifyClientSecret string
 	SpotifyRedirectURI  string
 	AppBaseURL          string
+
+	// Google AI (Gemini) — used for AI-generated playlists (server-side only)
+	GeminiAPIKey  string
+	GeminiModel   string
 }
 
 // Load reads config from environment with sensible defaults for local Docker MySQL
@@ -34,6 +39,9 @@ func Load() *Config {
 		SpotifyClientSecret: getEnv("SPOTIFY_CLIENT_SECRET", ""),
 		SpotifyRedirectURI:  getEnv("SPOTIFY_REDIRECT_URI", "http://127.0.0.1:5173/api/spotify/callback"),
 		AppBaseURL:          getEnv("APP_BASE_URL", "http://localhost:5173"),
+
+		GeminiAPIKey: loadGeminiAPIKey(),
+		GeminiModel:  getEnv("GEMINI_MODEL", "gemini-2.5-flash"),
 	}
 }
 
@@ -42,4 +50,15 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// loadGeminiAPIKey prefers the process environment (GEMINI_API_KEY) so you can export
+// the key in your shell or IDE without putting it in .env. godotenv.Load does not override
+// an existing env var. File fallback is only used when the variable is unset/empty.
+func loadGeminiAPIKey() string {
+	k := strings.TrimSpace(getEnv("GEMINI_API_KEY", ""))
+	if k != "" {
+		return k
+	}
+	return strings.TrimSpace(geminiKeyFromEnvFiles())
 }

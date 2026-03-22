@@ -41,6 +41,7 @@ func setupTestRouter(t *testing.T) *gin.Engine {
 	spotifyClient := spotify.NewClient(cfg)
 
 	r.GET("/health", Health)
+	r.GET("/api/health/vibesense", VibeSenseHealth(cfg))
 	r.GET("/api/placeholder", Placeholder)
 	r.GET("/api/spotify/login", SpotifyLogin(cfg))
 	r.GET("/api/spotify/callback", SpotifyCallback(cfg))
