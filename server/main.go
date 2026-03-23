@@ -81,6 +81,8 @@ func main() {
 	r.POST("/api/voting/trigger-refill", votingHandlers.TriggerRefill)
 	r.POST("/api/voting/vote", votingHandlers.Vote)
 
+	r.NoRoute(handlers.NotFound)
+
 	srv := &http.Server{
 		Addr:    "0.0.0.0:" + cfg.ServerPort,
 		Handler: r,

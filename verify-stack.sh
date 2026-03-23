@@ -20,8 +20,8 @@ else
 fi
 
 # 2. API health
-echo -n "API (localhost:8080): "
-if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+echo -n "API (localhost:8081): "
+if curl -sf http://localhost:8081/health > /dev/null 2>&1; then
   echo -e "${GREEN}ok${NC}"
 else
   echo -e "${RED}not responding${NC} - run: cd server && go run ."

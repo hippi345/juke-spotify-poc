@@ -26,7 +26,8 @@ type Config struct {
 
 // Load reads config from environment with sensible defaults for local Docker MySQL
 func Load() *Config {
-	port := getEnv("PORT", "8080")
+	// Default 8081: on Windows, 8080 is often bound by PostgreSQL/EnterpriseDB (not this API).
+	port := getEnv("PORT", "8081")
 	return &Config{
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "3306"),

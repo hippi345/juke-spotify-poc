@@ -1,28 +1,30 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const backend = 'http://127.0.0.1:8080'
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), 'VITE_')
+  const backend = env.VITE_API_URL ?? 'http://127.0.0.1:8081'
 
-const proxy = {
-  '/api': {
-    target: backend,
-    changeOrigin: true,
-  },
-  '/health': {
-    target: backend,
-    changeOrigin: true,
-  },
-} as const
+  const proxy = {
+    '/api': {
+      target: backend,
+      changeOrigin: true,
+    },
+    '/health': {
+      target: backend,
+      changeOrigin: true,
+    },
+  } as const
 
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 5173,
-    proxy,
-  },
-  // `vite preview` does not inherit `server.proxy` — without this, /api/* returns 404.
-  preview: {
-    port: 5173,
-    proxy,
-  },
+  return {
+    plugins: [react()],
+    server: {
+      port: 5173,
+      proxy,
+    },
+    preview: {
+      port: 5173,
+      proxy,
+    },
+  }
 })

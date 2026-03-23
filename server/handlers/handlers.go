@@ -16,6 +16,9 @@ func Root(c *gin.Context) {
 			"GET /health",
 			"GET /health/vibesense",
 			"GET /api/health/vibesense",
+			"GET /api/voting/state",
+			"POST /api/voting/vote",
+			"GET /api/voting/playlist-overview",
 		},
 	})
 }

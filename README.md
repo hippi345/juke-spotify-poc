@@ -46,7 +46,7 @@ go mod tidy
 go run .
 ```
 
-Server runs at **http://localhost:8080**.
+Server runs at **http://localhost:8081** by default (port **8080** is easy to clash on Windows with PostgreSQL/EnterpriseDB).
 
 **Environment variables** (optional, defaults work with Docker Compose):
 
@@ -57,7 +57,7 @@ Server runs at **http://localhost:8080**.
 | DB_USER               | root                                 | MySQL user                     |
 | DB_PASSWORD           | jukespotify                          | MySQL password                 |
 | DB_NAME               | jukespotify                          | Database name                  |
-| PORT                  | 8080                                 | API server port                |
+| PORT                  | 8081                                 | API server port                |
 | SPOTIFY_CLIENT_ID     | (required for Spotify)               | From [Spotify Dashboard](https://developer.spotify.com/dashboard) |
 | SPOTIFY_CLIENT_SECRET | (required for Spotify)               | From Spotify Dashboard         |
 | SPOTIFY_REDIRECT_URI  | http://127.0.0.1:5173/api/spotify/callback | OAuth callback URL        |
@@ -73,7 +73,7 @@ npm run dev
 
 Client runs at **http://localhost:5173**.
 
-Optional: copy `.env.example` to `.env` and set `VITE_API_URL` if the API is not at `http://localhost:8080`.
+Optional: copy `client/.env.example` to `client/.env` and set `VITE_API_URL` if the API is not at `http://127.0.0.1:8081`.
 
 ## Project Structure
 
