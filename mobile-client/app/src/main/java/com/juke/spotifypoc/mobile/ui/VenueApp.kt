@@ -1,5 +1,6 @@
 package com.juke.spotifypoc.mobile.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,13 +8,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -22,13 +23,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -44,13 +42,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.juke.spotifypoc.mobile.BuildConfig
 import com.juke.spotifypoc.mobile.VenueViewModel
 import com.juke.spotifypoc.mobile.api.NowPlayingBlock
 import com.juke.spotifypoc.mobile.api.Track
 import com.juke.spotifypoc.mobile.api.TrackWithMeta
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val ScreenGradient = Brush.verticalGradient(
+    colors = listOf(
+        Color(0xFF050506),
+        Color(0xFF0C0C0E),
+        Color(0xFF12121A),
+    ),
+)
+
 @Composable
 fun VenueApp(vm: VenueViewModel = viewModel()) {
     val ui by vm.ui.collectAsState()
@@ -62,129 +66,107 @@ fun VenueApp(vm: VenueViewModel = viewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF050506)),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .background(ScreenGradient)
+            .statusBarsPadding()
+            .navigationBarsPadding(),
     ) {
-        SurfacePhoneFrame {
-            Scaffold(
-                containerColor = MaterialTheme.colorScheme.background,
-                topBar = {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                "Juke Venue",
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                    )
-                },
-            ) { innerPadding ->
-                Column(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "Vote for the next song",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.95f),
+            )
+            Text(
+                text = "Winner gets added to the queue.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            )
+
+            if (ui.loading && ui.votingState == null) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
                 ) {
-                    Text(
-                        text = "Patron view · ${BuildConfig.API_BASE_URL}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                    )
-
-                    if (ui.loading && ui.votingState == null) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                        ) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    ui.pollError?.let { err ->
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f),
-                            ),
-                        ) {
-                            Text(
-                                "Cannot load voting state: $err",
-                                modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-
-                    val session = ui.votingState?.session
-                    if (session == null || session.status != "active") {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                            ),
-                        ) {
-                            Text(
-                                "No active voting session.\nStart a session from the web app (host).",
-                                modifier = Modifier.padding(16.dp),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                            )
-                        }
-                    } else {
-                        NowPlayingSection(nowPlaying = ui.votingState?.nowPlaying)
-                        VotingSection(
-                            candidates = ui.votingState?.candidates.orEmpty(),
-                            votes = ui.votingState?.votes,
-                            timeRemainingSec = ui.votingState?.timeRemainingSec ?: 0,
-                            voteError = ui.voteError,
-                            votingTrackId = ui.votingTrackId,
-                            onVote = { vm.vote(it) },
-                        )
-                        PlaylistSection(
-                            tracks = ui.playlistTracks,
-                            error = ui.playlistError,
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
+
+            ui.pollError?.let { err ->
+                GlassPanel(Modifier.fillMaxWidth()) {
+                    Text(
+                        "Cannot load voting state: $err",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+
+            val session = ui.votingState?.session
+            val sessionActive = session != null && session.status == "active"
+            when {
+                ui.loading && ui.votingState == null -> { /* spinner above */ }
+                !sessionActive -> {
+                    GlassPanel(Modifier.fillMaxWidth()) {
+                        Text(
+                            "No active voting session.\nStart a session from the web app (host).",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                        )
+                    }
+                }
+                else -> {
+                    NowPlayingSection(nowPlaying = ui.votingState?.nowPlaying)
+                    VotingSection(
+                        candidates = ui.votingState?.candidates.orEmpty(),
+                        votes = ui.votingState?.votes,
+                        timeRemainingSec = ui.votingState?.timeRemainingSec ?: 0,
+                        voteError = ui.voteError,
+                        votingTrackId = ui.votingTrackId,
+                        hasVotedThisRound = ui.hasVotedThisRound,
+                        onVote = { vm.vote(it) },
+                    )
+                    PlaylistSection(
+                        tracks = ui.playlistTracks,
+                        error = ui.playlistError,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-private fun SurfacePhoneFrame(content: @Composable () -> Unit) {
+private fun GlassPanel(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
     Card(
-        modifier = Modifier
-            .widthIn(max = 420.dp)
-            .fillMaxHeight()
-            .padding(12.dp),
-        shape = RoundedCornerShape(28.dp),
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = Color.White.copy(alpha = 0.06f),
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Box(Modifier.fillMaxSize()) {
-            content()
-        }
+        content()
     }
 }
 
 @Composable
 private fun NowPlayingSection(nowPlaying: NowPlayingBlock?) {
     val item = nowPlaying?.item
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
+    GlassPanel(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(
                 "Now playing",
@@ -207,7 +189,7 @@ private fun NowPlayingSection(nowPlaying: NowPlayingBlock?) {
                     if (!img.isNullOrBlank()) {
                         AsyncImage(
                             model = img,
-                            contentDescription = item.album.name,
+                            contentDescription = item.album?.name,
                             modifier = Modifier
                                 .height(100.dp)
                                 .aspectRatio(1f)
@@ -279,12 +261,13 @@ private fun VotingSection(
     timeRemainingSec: Int,
     voteError: String?,
     votingTrackId: String?,
+    hasVotedThisRound: Boolean,
     onVote: (String) -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
+    val votingEnded = timeRemainingSec <= 0
+    val canVote = !votingEnded && votingTrackId == null && !hasVotedThisRound
+
+    GlassPanel(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
@@ -295,15 +278,34 @@ private fun VotingSection(
                     "Vote for next song",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
+                    color = Color.White.copy(alpha = 0.95f),
                 )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(
+                            if (votingEnded) Color.White.copy(alpha = 0.08f)
+                            else Color(0xFF1DB954).copy(alpha = 0.15f),
+                        )
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        if (votingEnded) "Voting ended" else "${timeRemainingSec}s",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (votingEnded) {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                    )
+                }
+            }
+            if (hasVotedThisRound && !votingEnded) {
+                Spacer(Modifier.height(8.dp))
                 Text(
-                    if (timeRemainingSec <= 0) "Voting ended" else "${timeRemainingSec}s",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (timeRemainingSec <= 0) {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    },
+                    "You voted this round",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
             voteError?.let {
@@ -327,7 +329,7 @@ private fun VotingSection(
                         VoteCandidateRow(
                             track = track,
                             voteCount = votes?.get(track.id)?.toInt() ?: 0,
-                            enabled = timeRemainingSec > 0 && votingTrackId == null,
+                            enabled = canVote,
                             busy = votingTrackId == track.id,
                             onVote = { onVote(track.id) },
                         )
@@ -409,10 +411,7 @@ private fun PlaylistSection(
     tracks: List<TrackWithMeta>,
     error: String?,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
+    GlassPanel(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(
                 "Playlist",
@@ -485,7 +484,7 @@ private fun PlaylistTile(row: TrackWithMeta) {
             if (row.played) {
                 Box(
                     Modifier
-                        .matchParentSize()
+                        .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(8.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -495,7 +494,7 @@ private fun PlaylistTile(row: TrackWithMeta) {
             if (row.refilled && !row.played) {
                 Box(
                     Modifier
-                        .matchParentSize()
+                        .fillMaxSize()
                         .padding(4.dp),
                     contentAlignment = Alignment.BottomEnd,
                 ) {

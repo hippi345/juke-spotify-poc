@@ -20,11 +20,23 @@ data class VenueUiState(
     val loading: Boolean = true,
     val pollError: String? = null,
     val votingState: VotingStateResponse? = null,
+    /** Stable id for the current voting round (session + candidate set). Used only on mobile to cap one vote per round. */
+    val roundKey: String = "",
+    /** Mobile-only: after a successful vote, stay disabled until the round changes. */
+    val hasVotedThisRound: Boolean = false,
     val playlistTracks: List<TrackWithMeta> = emptyList(),
     val playlistError: String? = null,
     val voteError: String? = null,
     val votingTrackId: String? = null,
 )
+
+private fun computeVotingRoundKey(s: VotingStateResponse): String {
+    val sess = s.session
+    if (sess == null || sess.status != "active") return ""
+    val sessionPart = listOfNotNull(sess.id?.toString(), sess.playlistId).firstOrNull() ?: "active"
+    val ids = s.candidates.orEmpty().map { it.id }.sorted().joinToString("|")
+    return "$sessionPart|$ids"
+}
 
 class VenueViewModel : ViewModel() {
 
@@ -41,9 +53,19 @@ class VenueViewModel : ViewModel() {
             while (isActive) {
                 try {
                     val s = api.getState()
-                    _ui.update {
-                        it.copy(
+                    val rk = computeVotingRoundKey(s)
+                    _ui.update { prev ->
+                        val sessionActive = s.session != null && s.session.status == "active"
+                        val roundChanged = rk != prev.roundKey
+                        val newHasVoted = when {
+                            !sessionActive -> false
+                            roundChanged -> false
+                            else -> prev.hasVotedThisRound
+                        }
+                        prev.copy(
                             votingState = s,
+                            roundKey = rk,
+                            hasVotedThisRound = newHasVoted,
                             pollError = null,
                             loading = false,
                         )
@@ -78,13 +100,13 @@ class VenueViewModel : ViewModel() {
 
     fun vote(trackId: String) {
         viewModelScope.launch {
+            if (_ui.value.hasVotedThisRound) return@launch
             _ui.update { it.copy(votingTrackId = trackId, voteError = null) }
             try {
                 api.vote(VoteRequest(trackId))
+                _ui.update { it.copy(hasVotedThisRound = true, votingTrackId = null) }
             } catch (e: Exception) {
-                _ui.update { it.copy(voteError = e.message ?: "Vote failed") }
-            } finally {
-                _ui.update { it.copy(votingTrackId = null) }
+                _ui.update { it.copy(voteError = e.message ?: "Vote failed", votingTrackId = null) }
             }
         }
     }
