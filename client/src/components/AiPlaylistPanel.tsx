@@ -109,6 +109,11 @@ export function AiPlaylistPanel({ onPlaylistReady, onPlaylistFailed }: AiPlaylis
     [onPlaylistFailed, onPlaylistReady, resetVibeSenseForm, stopPoll]
   )
 
+  const closeForm = useCallback(() => {
+    setOpen(false)
+    setError(null)
+  }, [])
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -188,16 +193,28 @@ export function AiPlaylistPanel({ onPlaylistReady, onPlaylistFailed }: AiPlaylis
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setOpen((o) => !o)
-            setError(null)
-          }}
-          className="shrink-0 rounded-lg border border-violet-500/40 bg-violet-500/15 px-4 py-2 text-sm font-medium text-violet-200 transition hover:bg-violet-500/25"
-        >
-          {open ? 'Close' : 'Create playlist with AI VibeSense'}
-        </button>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {open ? (
+            <button
+              type="button"
+              onClick={closeForm}
+              className="rounded-lg border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(true)
+                setError(null)
+              }}
+              className="rounded-lg border border-violet-500/40 bg-violet-500/15 px-4 py-2 text-sm font-medium text-violet-200 transition hover:bg-violet-500/25"
+            >
+              Create playlist with AI VibeSense
+            </button>
+          )}
+        </div>
       </div>
 
       {open && (
@@ -312,7 +329,15 @@ export function AiPlaylistPanel({ onPlaylistReady, onPlaylistFailed }: AiPlaylis
             >
               {submitting ? 'Starting…' : jobRunning ? 'Working in background…' : 'Generate with VibeSense'}
             </button>
-            <p className="text-xs text-zinc-500">
+            <button
+              type="button"
+              onClick={closeForm}
+              disabled={submitting}
+              className="rounded-lg border border-white/15 bg-white/[0.06] px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <p className="min-w-[12rem] flex-1 text-xs text-zinc-500">
               VibeSense needs a Gemini API key on the server and a connected Spotify account.
             </p>
           </div>
