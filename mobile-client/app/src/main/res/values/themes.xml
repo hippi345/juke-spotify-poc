@@ -1,7 +1,16 @@
 <resources>
     <style name="Theme.JukeVenue" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/venue_screen_gradient</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@color/juke_splash_background</item>
         <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.JukeVenue.Splash" parent="Theme.SplashScreen">
+        <item name="android:windowBackground">@drawable/venue_screen_gradient</item>
+        <item name="windowSplashScreenBackground">@color/juke_splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="windowSplashScreenAnimationDuration">200</item>
+        <item name="postSplashScreenTheme">@style/Theme.JukeVenue</item>
     </style>
 </resources>

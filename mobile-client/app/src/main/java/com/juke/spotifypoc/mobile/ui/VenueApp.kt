@@ -1,7 +1,9 @@
 package com.juke.spotifypoc.mobile.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,15 +35,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.juke.spotifypoc.mobile.R
 import com.juke.spotifypoc.mobile.VenueViewModel
 import com.juke.spotifypoc.mobile.api.NowPlayingBlock
 import com.juke.spotifypoc.mobile.api.Track
@@ -63,41 +68,25 @@ fun VenueApp(vm: VenueViewModel = viewModel()) {
         vm.startPolling()
     }
 
-    Column(
+    val initialLoading = ui.loading && ui.votingState == null && ui.pollError == null
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(ScreenGradient)
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                text = "Vote for the next song",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White.copy(alpha = 0.95f),
-            )
-            Text(
-                text = "Winner gets added to the queue.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-            )
-
-            if (ui.loading && ui.votingState == null) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
-            }
-
+        if (initialLoading) {
+            BrandedLaunchLoading(Modifier.fillMaxSize())
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
             ui.pollError?.let { err ->
                 GlassPanel(Modifier.fillMaxWidth()) {
                     Text(
@@ -112,7 +101,6 @@ fun VenueApp(vm: VenueViewModel = viewModel()) {
             val session = ui.votingState?.session
             val sessionActive = session != null && session.status == "active"
             when {
-                ui.loading && ui.votingState == null -> { /* spinner above */ }
                 !sessionActive -> {
                     GlassPanel(Modifier.fillMaxWidth()) {
                         Text(
@@ -141,6 +129,37 @@ fun VenueApp(vm: VenueViewModel = viewModel()) {
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrandedLaunchLoading(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        GlassPanel(Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.juke_logo),
+                    contentDescription = "juke",
+                    modifier = Modifier.size(128.dp),
+                )
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
@@ -166,12 +185,14 @@ private fun GlassPanel(
 @Composable
 private fun NowPlayingSection(nowPlaying: NowPlayingBlock?) {
     val item = nowPlaying?.item
+    val uriHandler = LocalUriHandler.current
     GlassPanel(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(
                 "Now playing",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.95f),
             )
             Spacer(Modifier.height(12.dp))
             if (item == null) {
@@ -204,6 +225,7 @@ private fun NowPlayingSection(nowPlaying: NowPlayingBlock?) {
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Medium,
+                            color = Color.White.copy(alpha = 0.95f),
                         )
                         Text(
                             item.artists?.joinToString { it.name }.orEmpty(),
@@ -212,18 +234,34 @@ private fun NowPlayingSection(nowPlaying: NowPlayingBlock?) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                         )
-                        if (nowPlaying.playing) {
-                            Text(
-                                "Playing",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
+                        Row(
+                            modifier = Modifier.padding(top = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (nowPlaying?.playing == true) {
+                                Text(
+                                    "Playing",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                            if (item.id.isNotBlank()) {
+                                val spotifyUrl = "https://open.spotify.com/track/${item.id}"
+                                Text(
+                                    "Open in Spotify",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF1DB954),
+                                    modifier = Modifier.clickable {
+                                        uriHandler.openUri(spotifyUrl)
+                                    },
+                                )
+                            }
                         }
                     }
                 }
                 if (item.durationMs > 0) {
-                    val progress = nowPlaying.progressMs.coerceIn(0, item.durationMs)
+                    val progress = (nowPlaying?.progressMs ?: 0L).coerceIn(0, item.durationMs)
                     val pct = (progress.toFloat() / item.durationMs.toFloat()).coerceIn(0f, 1f)
                     Spacer(Modifier.height(12.dp))
                     Row(
@@ -271,15 +309,9 @@ private fun VotingSection(
         Column(Modifier.padding(16.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    "Vote for next song",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = 0.95f),
-                )
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
@@ -365,19 +397,21 @@ private fun VoteCandidateRow(
                 contentScale = ContentScale.Crop,
             )
         }
+        val trackMetaColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
         Column(Modifier.weight(1f)) {
             Text(
                 track.name,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium,
+                color = trackMetaColor,
             )
             Text(
                 track.artists?.joinToString { it.name }.orEmpty(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = trackMetaColor,
             )
         }
         Text(
@@ -417,6 +451,7 @@ private fun PlaylistSection(
                 "Playlist",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.95f),
             )
             Spacer(Modifier.height(8.dp))
             error?.let {

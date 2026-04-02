@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Solid scrim: end-stop of venue gradient (splash API requires a color behind the icon) -->
+    <color name="juke_splash_background">#12121A</color>
+    <color name="juke_mint">#B7F5D0</color>
+    <color name="juke_emerald">#1DB954</color>
+</resources>
