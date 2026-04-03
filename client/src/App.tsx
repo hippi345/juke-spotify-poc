@@ -88,7 +88,13 @@ function App() {
   }
 
   const handleSessionStart = useCallback(
-    async (playlistId: string, playlistName: string, refillThreshold: number, refillCount: number) => {
+    async (
+      playlistId: string,
+      playlistName: string,
+      refillThreshold: number,
+      refillCount: number,
+      keepRefillTracks = false
+    ) => {
       const res = await fetch('/api/voting/session/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,6 +103,7 @@ function App() {
           playlist_name: playlistName,
           refill_threshold: refillThreshold,
           refill_count: refillCount,
+          keep_refill_tracks: keepRefillTracks,
         }),
       })
       const data = await res.json().catch(() => ({}))

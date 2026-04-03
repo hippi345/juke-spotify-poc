@@ -116,7 +116,7 @@ func NewManager(svc *spotify.Client) *Manager {
 
 // StartSession creates a new voting session and fetches initial candidates.
 // Returns the kickoff track (now playing) so the client can update UI immediately.
-func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold, refillCount int) (*spotify.Track, error) {
+func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold, refillCount int, keepRefillTracks bool) (*spotify.Track, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -135,11 +135,12 @@ func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold,
 		refillCount = refillCountMax
 	}
 	session := &models.VotingSession{
-		PlaylistID:      playlistID,
-		PlaylistName:    playlistName,
-		RefillThreshold: refillThreshold,
-		RefillCount:     refillCount,
-		Status:          "active",
+		PlaylistID:       playlistID,
+		PlaylistName:     playlistName,
+		RefillThreshold:  refillThreshold,
+		RefillCount:      refillCount,
+		KeepRefillTracks: keepRefillTracks,
+		Status:           "active",
 	}
 	if err := db.DB.Create(session).Error; err != nil {
 		return nil, err
@@ -281,12 +282,14 @@ func (m *Manager) RecoverRound() error {
 
 // EndSession ends the current session and stops playback.
 // We never remove original playlist tracks during the session—only add refill tracks.
-// Before closing, we remove the refilled tracks from the playlist so it returns to its original state.
+// Unless KeepRefillTracks was set at session start, we remove refilled tracks so the playlist returns to its original state.
 func (m *Manager) EndSession() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if m.Session != nil && m.Session.Status == "active" {
+		keepRefill := m.Session.KeepRefillTracks
+		playlistID := m.Session.PlaylistID
 		m.Session.Status = "ended"
 		db.DB.Save(m.Session)
 
@@ -294,20 +297,21 @@ func (m *Manager) EndSession() {
 		_ = m.svc.PausePlayback()
 		time.Sleep(300 * time.Millisecond) // let pause propagate
 
-		// Remove refilled tracks from the playlist so it returns to its original state
-		if len(m.RefilledTrackURIs) > 0 {
+		if !keepRefill && len(m.RefilledTrackURIs) > 0 {
 			for i := 0; i < len(m.RefilledTrackURIs); i += 100 {
 				end := i + 100
 				if end > len(m.RefilledTrackURIs) {
 					end = len(m.RefilledTrackURIs)
 				}
 				batch := m.RefilledTrackURIs[i:end]
-				if err := m.svc.RemoveTracksFromPlaylist(m.Session.PlaylistID, batch); err != nil {
+				if err := m.svc.RemoveTracksFromPlaylist(playlistID, batch); err != nil {
 					log.Printf("voting: remove refilled tracks on session end: %v", err)
 				} else {
 					log.Printf("voting: removed %d refilled tracks from playlist", len(batch))
 				}
 			}
+		} else if keepRefill && len(m.RefilledTrackURIs) > 0 {
+			log.Printf("voting: session end — keeping %d refill tracks in playlist (per session option)", len(m.RefilledTrackURIs))
 		}
 	}
 	m.Session = nil

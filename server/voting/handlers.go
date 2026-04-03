@@ -18,17 +18,18 @@ type Handlers struct {
 // SessionStart starts a new voting session
 func (h *Handlers) SessionStart(c *gin.Context) {
 	var body struct {
-		PlaylistID      string `json:"playlist_id" binding:"required"`
-		PlaylistName    string `json:"playlist_name"`
-		RefillThreshold int    `json:"refill_threshold"`
-		RefillCount     int    `json:"refill_count"`
+		PlaylistID       string `json:"playlist_id" binding:"required"`
+		PlaylistName     string `json:"playlist_name"`
+		RefillThreshold  int    `json:"refill_threshold"`
+		RefillCount      int    `json:"refill_count"`
+		KeepRefillTracks bool   `json:"keep_refill_tracks"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "playlist_id required"})
 		return
 	}
 
-	kickoff, err := h.Manager.StartSession(body.PlaylistID, body.PlaylistName, body.RefillThreshold, body.RefillCount)
+	kickoff, err := h.Manager.StartSession(body.PlaylistID, body.PlaylistName, body.RefillThreshold, body.RefillCount, body.KeepRefillTracks)
 	if err != nil {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "403") {
@@ -48,12 +49,13 @@ func (h *Handlers) SessionStart(c *gin.Context) {
 		session, round, timeRemainingSec := h.Manager.GetState(nil)
 		if session != nil {
 			resp["session"] = gin.H{
-				"id":               session.ID,
-				"playlist_id":      session.PlaylistID,
-				"playlist_name":    session.PlaylistName,
-				"refill_threshold": session.RefillThreshold,
-				"refill_count":     session.RefillCount,
-				"status":           session.Status,
+				"id":                  session.ID,
+				"playlist_id":         session.PlaylistID,
+				"playlist_name":       session.PlaylistName,
+				"refill_threshold":    session.RefillThreshold,
+				"refill_count":        session.RefillCount,
+				"keep_refill_tracks":  session.KeepRefillTracks,
+				"status":              session.Status,
 			}
 		}
 		if round != nil {
@@ -121,12 +123,13 @@ func (h *Handlers) State(c *gin.Context) {
 
 	if session != nil {
 		resp["session"] = gin.H{
-			"id":               session.ID,
-			"playlist_id":      session.PlaylistID,
-			"playlist_name":    session.PlaylistName,
-			"refill_threshold": session.RefillThreshold,
-			"refill_count":     session.RefillCount,
-			"status":           session.Status,
+			"id":                 session.ID,
+			"playlist_id":        session.PlaylistID,
+			"playlist_name":      session.PlaylistName,
+			"refill_threshold":   session.RefillThreshold,
+			"refill_count":       session.RefillCount,
+			"keep_refill_tracks": session.KeepRefillTracks,
+			"status":             session.Status,
 		}
 	}
 

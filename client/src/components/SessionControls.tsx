@@ -3,7 +3,13 @@ import { PlaylistPicker } from './PlaylistPicker'
 
 type SessionControlsProps = {
   sessionActive: boolean
-  onSessionStart: (playlistId: string, playlistName: string, refillThreshold: number, refillCount: number) => Promise<void>
+  onSessionStart: (
+    playlistId: string,
+    playlistName: string,
+    refillThreshold: number,
+    refillCount: number,
+    keepRefillTracks: boolean
+  ) => Promise<void>
   onSessionEnd: () => Promise<void>
   onPickerOpenChange?: (open: boolean) => void
 }
@@ -23,11 +29,17 @@ export function SessionControls({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSelect = async (playlistId: string, playlistName: string, refillThreshold: number, refillCount: number) => {
+  const handleSelect = async (
+    playlistId: string,
+    playlistName: string,
+    refillThreshold: number,
+    refillCount: number,
+    keepRefillTracks: boolean
+  ) => {
     setLoading(true)
     setError(null)
     try {
-      await onSessionStart(playlistId, playlistName, refillThreshold, refillCount)
+      await onSessionStart(playlistId, playlistName, refillThreshold, refillCount, keepRefillTracks)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to start session')
     } finally {

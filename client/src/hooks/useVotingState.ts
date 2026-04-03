@@ -15,6 +15,8 @@ export type VotingState = {
     playlist_id: string
     playlist_name: string
     refill_threshold: number
+    refill_count?: number
+    keep_refill_tracks?: boolean
     status: string
   } | null
   now_playing: {

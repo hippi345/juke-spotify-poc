@@ -10,7 +10,13 @@ type Playlist = {
 type PlaylistPickerProps = {
   isOpen: boolean
   onClose: () => void
-  onSelect: (playlistId: string, playlistName: string, refillThreshold: number, refillCount: number) => void
+  onSelect: (
+    playlistId: string,
+    playlistName: string,
+    refillThreshold: number,
+    refillCount: number,
+    keepRefillTracks: boolean
+  ) => void
 }
 
 function loadPlaylists(
@@ -45,6 +51,7 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null)
   const [refillThresholdInput, setRefillThresholdInput] = useState('0')
   const [refillCountInput, setRefillCountInput] = useState('10')
+  const [keepRefillTracks, setKeepRefillTracks] = useState(false)
 
   const filteredPlaylists = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -58,6 +65,7 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
       setSearchQuery('')
       setRefillThresholdInput('0')
       setRefillCountInput('10')
+      setKeepRefillTracks(false)
       loadPlaylists(setPlaylists, setError, setLoading)
     }
   }, [isOpen])
@@ -82,7 +90,7 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
     if (!selectedPlaylist) return
     const threshold = Math.max(0, parseInt(refillThresholdInput, 10) || 0)
     const count = Math.max(1, Math.min(10, parseInt(refillCountInput, 10) || 10))
-    onSelect(selectedPlaylist.id, selectedPlaylist.name, threshold, count)
+    onSelect(selectedPlaylist.id, selectedPlaylist.name, threshold, count, keepRefillTracks)
     onClose()
   }
 
@@ -188,7 +196,7 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
               Tracks to add when refilling: <span className="text-zinc-500">(max 10)</span>
             </label>
             <p className="mb-1 text-xs text-zinc-500">
-              Number of similar-vibe tracks added (removed when session ends)
+              Number of similar-vibe tracks added when refilling runs (see option below for after session ends)
             </p>
             <input
               type="text"
@@ -200,6 +208,21 @@ export function PlaylistPicker({ isOpen, onClose, onSelect }: PlaylistPickerProp
               className="w-full rounded-lg border border-white/10 bg-[#1a1a1e] px-4 py-2 text-white placeholder-zinc-500 focus:border-[#1DB954] focus:outline-none"
             />
           </div>
+          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-[#1a1a1e] p-4">
+            <input
+              type="checkbox"
+              checked={keepRefillTracks}
+              onChange={(e) => setKeepRefillTracks(e.target.checked)}
+              className="mt-1 h-4 w-4 shrink-0 rounded border-white/20 bg-[#141416] text-[#1DB954] focus:ring-[#1DB954]/40"
+            />
+            <span className="text-sm text-zinc-300">
+              <span className="font-medium text-white">Keep fill tracks after session ends</span>
+              <span className="mt-1 block text-xs text-zinc-500">
+                By default, vibe-fill tracks are removed from the playlist when you end the session. Enable this to leave
+                them in the playlist.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="flex gap-3">

@@ -33,6 +33,8 @@ data class SessionInfo(
     @SerializedName("playlist_id") val playlistId: String? = null,
     @SerializedName("playlist_name") val playlistName: String? = null,
     @SerializedName("refill_threshold") val refillThreshold: Int = 0,
+    @SerializedName("refill_count") val refillCount: Int = 0,
+    @SerializedName("keep_refill_tracks") val keepRefillTracks: Boolean = false,
     val status: String? = null,
 )
 
