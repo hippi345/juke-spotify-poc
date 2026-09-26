@@ -10,9 +10,6 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-
-issues:
-  exclude-rules:
-    - path: vendor/
-      linters:
-        - all
+  exclusions:
+    paths:
+      - vendor
