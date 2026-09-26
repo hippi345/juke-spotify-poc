@@ -100,7 +100,7 @@ Rules:
 			return nil, err
 		}
 		respBody, err = io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			return nil, err
 		}
@@ -154,14 +154,14 @@ func friendlyGeminiError(status int, body []byte) error {
 	s := string(body)
 	if status == http.StatusNotFound {
 		if strings.Contains(s, "NOT_FOUND") || strings.Contains(s, "not found") {
-			return fmt.Errorf("Gemini model not found (HTTP 404). Set GEMINI_MODEL to a current model id (default: gemini-2.5-flash). See https://ai.google.dev/gemini-api/docs/models")
+			return fmt.Errorf("gemini model not found (HTTP 404). Set GEMINI_MODEL to a current model id (default: gemini-2.5-flash). See https://ai.google.dev/gemini-api/docs/models")
 		}
 	}
 	if status == http.StatusTooManyRequests {
 		if strings.Contains(s, "quota") || strings.Contains(s, "RESOURCE_EXHAUSTED") || strings.Contains(s, "Quota exceeded") {
-			return fmt.Errorf("Gemini quota or rate limit (HTTP 429). Wait and retry, or try GEMINI_MODEL=gemini-2.5-flash-lite, and check usage: https://ai.google.dev/gemini-api/docs/rate-limits")
+			return fmt.Errorf("gemini quota or rate limit (HTTP 429). Wait and retry, or try GEMINI_MODEL=gemini-2.5-flash-lite, and check usage: https://ai.google.dev/gemini-api/docs/rate-limits")
 		}
-		return fmt.Errorf("Gemini rate limited (HTTP 429). Retry shortly or change GEMINI_MODEL. Details: %s", truncateErrBody(s))
+		return fmt.Errorf("gemini rate limited (HTTP 429). Retry shortly or change GEMINI_MODEL. Details: %s", truncateErrBody(s))
 	}
 	return fmt.Errorf("gemini: HTTP %d %s", status, truncateErrBody(s))
 }

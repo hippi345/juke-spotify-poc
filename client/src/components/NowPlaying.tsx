@@ -9,6 +9,9 @@ type NowPlayingProps = {
 }
 
 export function NowPlaying({ item, progressMs = 0, isPlaying = false }: NowPlayingProps) {
+  const durationMs = item?.duration_ms ?? 0
+  const displayProgress = useProgressTick(progressMs, durationMs, isPlaying && item != null)
+
   if (!item) {
     return (
       <div className="glass-panel p-6">
@@ -16,8 +19,6 @@ export function NowPlaying({ item, progressMs = 0, isPlaying = false }: NowPlayi
       </div>
     )
   }
-
-  const displayProgress = useProgressTick(progressMs, item.duration_ms ?? 0, isPlaying)
   const imageUrl = item.album?.images?.[0]?.url ?? item.album?.images?.[1]?.url
   const artists = item.artists?.map((a) => a.name).join(', ') ?? ''
   const progressPct =

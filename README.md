@@ -1,114 +1,148 @@
 # Juke Spotify POC
 
-A proof-of-concept monorepo with a Go/Gin API server, React client, and MySQL for local development.
+[![CI](https://github.com/hippi345/juke-spotify-poc/actions/workflows/ci.yml/badge.svg)](https://github.com/hippi345/juke-spotify-poc/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## Prerequisites
+A proof-of-concept **collaborative jukebox**: a Go API connects to Spotify, runs voting rounds on playlist tracks, refills playlists with AI-assisted suggestions (VibeSense / Gemini), and exposes a React web UI plus an optional Android venue client.
 
-- **Go** 1.21+ (for server)
-- **Node.js** 18+ (for client; Vite 5 requires it). Use `nvm use` in `client/` if you have nvm, or install from [nodejs.org](https://nodejs.org/)
-- **Docker** (for MySQL)
+## Features
 
-### Docker in WSL
+- **Spotify OAuth** — connect an account, pick a device, and control playback
+- **Voting sessions** — guests vote on the next track from a curated candidate set
+- **Playlist refill** — optional “similar vibe” track suggestions via Google Gemini
+- **AI playlist jobs** — background jobs to build playlists from a text prompt
+- **Web client** — React + Vite + Tailwind for the host UI
+- **Android client** — Compose app for venue displays (`mobile-client/`)
 
-If `sudo service docker start` gives "unrecognized service":
+## Requirements
 
-**Option A – Start daemon manually:**
-```bash
-sudo dockerd &
-```
-Wait a few seconds, then run `docker ps` to verify.
+| Component | Version |
+|-----------|---------|
+| Go | 1.22+ (see `server/go.mod`) |
+| Node.js | 22 LTS (see `client/.nvmrc`) |
+| Docker | For local MySQL via Compose |
+| Spotify app | [Developer Dashboard](https://developer.spotify.com/dashboard) credentials |
+| Google AI (optional) | `GEMINI_API_KEY` for VibeSense / AI playlists |
 
-**Option B – Use Docker Desktop (Windows):** Install [Docker Desktop](https://www.docker.com/products/docker-desktop/), enable WSL 2 integration, and start Docker Desktop. WSL will use it automatically.
+## Quick start
 
-**Option C – Enable systemd** (WSL 11.0+): Add `systemd=true` under `[boot]` in `/etc/wsl.conf`, run `wsl --shutdown`, reopen WSL, then `sudo systemctl start docker`.
+### 1. MySQL
 
-## Quick Start
-
-### 1. Start MySQL
-
-**Option A – Docker Compose** (if `docker compose` is available):
 ```bash
 docker compose up -d
+# or: bash scripts/start-mysql.sh
 ```
 
-**Option B – Plain Docker** (no Compose plugin):
-```bash
-bash scripts/start-mysql.sh
-```
-
-Wait for MySQL to be healthy (about 10–15 seconds). The database `jukespotify` is created automatically.
-
-### 2. Run the Server
+### 2. API server
 
 ```bash
 cd server
-go mod tidy
+cp .env.example .env   # edit Spotify (and optional Gemini) values
 go run .
 ```
 
-Server runs at **http://localhost:8081** by default (port **8080** is easy to clash on Windows with PostgreSQL/EnterpriseDB).
+Default API: **http://127.0.0.1:8081** (`PORT` overrides; avoid `8080` on Windows if another service uses it).
 
-**Environment variables** (optional, defaults work with Docker Compose):
-
-| Variable              | Default                              | Description                    |
-|-----------------------|--------------------------------------|--------------------------------|
-| DB_HOST               | localhost                            | MySQL host                     |
-| DB_PORT               | 3306                                 | MySQL port                     |
-| DB_USER               | root                                 | MySQL user                     |
-| DB_PASSWORD           | jukespotify                          | MySQL password                 |
-| DB_NAME               | jukespotify                          | Database name                  |
-| PORT                  | 8081                                 | API server port                |
-| SPOTIFY_CLIENT_ID     | (required for Spotify)               | From [Spotify Dashboard](https://developer.spotify.com/dashboard) |
-| SPOTIFY_CLIENT_SECRET | (required for Spotify)               | From Spotify Dashboard         |
-| SPOTIFY_REDIRECT_URI  | http://127.0.0.1:5173/api/spotify/callback | OAuth callback URL        |
-| APP_BASE_URL          | http://localhost:5173                | Client URL for post-auth redirect |
-
-### 3. Run the Client
+### 3. Web client
 
 ```bash
 cd client
-npm install
+npm ci
 npm run dev
 ```
 
-Client runs at **http://localhost:5173**.
+Open **http://localhost:5173**. Copy `client/.env.example` to `client/.env` if the API is not at `http://127.0.0.1:8081`.
 
-Optional: copy `client/.env.example` to `client/.env` and set `VITE_API_URL` if the API is not at `http://127.0.0.1:8081`.
+### 4. Android (optional)
 
-## Project Structure
+See [mobile-client/README.md](mobile-client/README.md). Set `JUKE_API_BASE` in `gradle.properties` to your machine’s API URL (emulator default: `http://10.0.2.2:8081/`).
 
-```
-juke-spotify-poc/
-├── server/           # Go + Gin API
-├── client/           # React + Vite + Tailwind
-├── docker-compose.yml
-└── README.md
-```
+## Configuration
 
-## Spotify Setup
+Secrets are **never** committed. Use environment variables or gitignored `.env` files.
 
-1. Create an app at [Spotify Dashboard](https://developer.spotify.com/dashboard)
-2. Add redirect URI: `http://127.0.0.1:5173/api/spotify/callback` (goes through Vite proxy to server)
-3. Set `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` when running the server
-4. Click "Connect Spotify" in the client to authorize
+### Server (`server/.env` or env)
 
-## API Endpoints
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_HOST` | `localhost` | MySQL host |
+| `DB_PORT` | `3306` | MySQL port |
+| `DB_USER` | `root` | MySQL user |
+| `DB_PASSWORD` | `jukespotify` | MySQL password (local Docker only) |
+| `DB_NAME` | `jukespotify` | Database name |
+| `PORT` | `8081` | HTTP listen port |
+| `SPOTIFY_CLIENT_ID` | — | Spotify app client ID |
+| `SPOTIFY_CLIENT_SECRET` | — | Spotify app client secret |
+| `SPOTIFY_REDIRECT_URI` | `http://127.0.0.1:5173/api/spotify/callback` | Must match Spotify app settings |
+| `APP_BASE_URL` | `http://localhost:5173` | Post-auth redirect base |
+| `GEMINI_API_KEY` | — | Google AI key for VibeSense / AI playlists |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Optional model override |
 
-- `GET /health` – Health check
-- `GET /api/placeholder` – Placeholder route for future implementation
-- `GET /api/spotify/login` – Redirects to Spotify OAuth
-- `GET /api/spotify/callback` – OAuth callback (handles token exchange)
-- `GET /api/spotify/status` – Returns whether a Spotify account is connected
-- `GET /api/spotify/me` – Fetches current user profile from Spotify (test endpoint)
+### Client
 
-## Testing
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_API_URL` | `http://127.0.0.1:8081` | API base URL |
 
-Run the API tests (no MySQL or Spotify credentials needed; uses SQLite in-memory):
+## Usage
+
+1. Configure Spotify redirect URI: `http://127.0.0.1:5173/api/spotify/callback`
+2. Start MySQL, server, and client as above
+3. In the UI, **Connect Spotify**, choose a device and playlist, then start a voting session
+
+### API highlights
+
+- `GET /health` — liveness
+- `GET /api/spotify/login` — start OAuth
+- `GET /api/spotify/status` — connection state
+- `POST /api/voting/session/start` — begin voting
+- `GET /api/voting/state` — poll session / round state
+- `POST /api/ai-playlist/create` — start AI playlist job (requires Gemini)
+
+## Development
+
+### Tests
+
+**Server** (SQLite in-memory; no Spotify or MySQL):
 
 ```bash
 cd server
-go mod tidy
 go test ./...
 ```
 
-Tests cover health, placeholder, Spotify login (with/without credentials), callback (error, invalid state, no code), status (with/without account), and me (no account).
+**Client**:
+
+```bash
+cd client
+npm test
+```
+
+### Lint
+
+```bash
+cd client && npm run lint
+cd server && golangci-lint run   # install: https://golangci-lint.run/welcome/install/
+```
+
+### Stack check (all services running)
+
+```bash
+./verify-stack.sh
+```
+
+## Project structure
+
+```
+juke-spotify-poc/
+├── client/              # React + Vite web UI
+├── server/              # Go + Gin API (vendored deps in vendor/)
+├── mobile-client/       # Kotlin / Jetpack Compose Android app
+├── scripts/             # MySQL / Docker helpers
+├── docker-compose.yml   # Local MySQL
+├── .github/workflows/   # CI
+└── SECURITY.md          # Vulnerability reporting
+```
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Joel Shearon

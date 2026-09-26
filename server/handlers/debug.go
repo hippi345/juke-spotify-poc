@@ -31,7 +31,7 @@ func DebugPlaylistAccess(svc *spotify.Client) gin.HandlerFunc {
 			result["playlist_metadata"] = gin.H{"error": err.Error()}
 		} else {
 			body1, _ := io.ReadAll(resp1.Body)
-			resp1.Body.Close()
+			_ = resp1.Body.Close()
 			if resp1.StatusCode != http.StatusOK {
 				result["playlist_metadata"] = gin.H{"status": resp1.StatusCode, "body": string(body1)}
 				log.Printf("debug: GET /playlists/%s -> %d %s", playlistID, resp1.StatusCode, string(body1))
@@ -46,7 +46,7 @@ func DebugPlaylistAccess(svc *spotify.Client) gin.HandlerFunc {
 			result["playlist_tracks"] = gin.H{"error": err.Error()}
 		} else {
 			body2, _ := io.ReadAll(resp2.Body)
-			resp2.Body.Close()
+			_ = resp2.Body.Close()
 			if resp2.StatusCode != http.StatusOK {
 				result["playlist_tracks"] = gin.H{"status": resp2.StatusCode, "body": string(body2)}
 				log.Printf("debug: GET /playlists/%s/tracks -> %d %s", playlistID, resp2.StatusCode, string(body2))
