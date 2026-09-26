@@ -3,6 +3,7 @@ node_modules/
 
 # Build outputs
 client/dist/
+client/tsconfig.tsbuildinfo
 server/server
 server/juke-server
 *.exe
