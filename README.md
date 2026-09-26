@@ -117,6 +117,16 @@ cd client
 npm test
 ```
 
+### CI
+
+On push and pull requests to `main`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs:
+
+| Job | What it does |
+|-----|----------------|
+| Go server | `go mod verify`, vet, golangci-lint, `go test -race` |
+| React client | `npm ci`, lint, test, production build |
+| Android mobile client | `./gradlew testDebugUnitTest assembleDebug` in `mobile-client/` (JDK 21, Android SDK via Actions) |
+
 ### Lint
 
 ```bash
