@@ -108,7 +108,7 @@ func ExchangeCode(cfg *config.Config, code string) (*models.SpotifyAccount, erro
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -127,7 +127,7 @@ func ExchangeCode(cfg *config.Config, code string) (*models.SpotifyAccount, erro
 	if err != nil {
 		return nil, err
 	}
-	defer profileResp.Body.Close()
+	defer func() { _ = profileResp.Body.Close() }()
 
 	if profileResp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(profileResp.Body)

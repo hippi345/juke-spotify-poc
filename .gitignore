@@ -4,6 +4,11 @@ node_modules/
 # Build outputs
 client/dist/
 server/server
+server/juke-server
+*.exe
+mobile-client/.gradle/
+mobile-client/**/build/
+mobile-client/local.properties
 
 # Environment (any .env file in the repo — e.g. server/.env — is not committed)
 .env
@@ -26,7 +31,6 @@ Thumbs.db
 npm-debug.log*
 
 # Go
-*.exe
 *.test
 *.out
 

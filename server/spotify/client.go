@@ -116,7 +116,7 @@ func (c *Client) EnsureValidToken(acc *models.SpotifyAccount) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -197,7 +197,7 @@ func (c *Client) DoWithRetry(method, path string, body io.Reader, maxRetries int
 
 		// Log 429 details for debugging (Spotify may include error info in body)
 		body429, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		log.Printf("spotify: 429 on %s %s - Retry-After: %s - body: %s", method, fullURL, resp.Header.Get("Retry-After"), string(body429))
 
 		retryAfter := 5
@@ -257,7 +257,7 @@ func (c *Client) GetCurrentlyPlaying() (*CurrentlyPlaying, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNoContent {
 		return nil, nil
@@ -306,30 +306,30 @@ func (c *Client) GetPlaylists() ([]PlaylistItem, error) {
 					log.Printf("spotify: playlists 429, returning %d cached items (may be stale)", len(stale))
 					return stale, nil
 				}
-				return nil, fmt.Errorf("Spotify rate limited - wait 30 seconds and try again")
+				return nil, fmt.Errorf("spotify rate limited - wait 30 seconds and try again")
 			}
 			return nil, err
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode == 429 {
 				if stale := getPlaylistsCacheStale(acc.SpotifyUserID); len(stale) > 0 {
 					log.Printf("spotify: playlists 429, returning %d cached items (may be stale)", len(stale))
 					return stale, nil
 				}
-				return nil, fmt.Errorf("Spotify rate limited - wait 30 seconds and try again")
+				return nil, fmt.Errorf("spotify rate limited - wait 30 seconds and try again")
 			}
 			return nil, fmt.Errorf("playlists: %s %s", resp.Status, string(body))
 		}
 
 		var pr PlaylistsResponse
 		if err := json.NewDecoder(resp.Body).Decode(&pr); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		for _, item := range pr.Items {
 			if item.Owner.ID == acc.SpotifyUserID {
@@ -369,7 +369,7 @@ func (c *Client) GetPlaylistTracks(playlistID string, offset int) (*PlaylistTrac
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -389,7 +389,7 @@ func (c *Client) GetPlayerDevices() ([]Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("devices: %s %s", resp.Status, string(body))
@@ -411,7 +411,7 @@ func (c *Client) TransferPlayback(deviceID string, play bool) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("transfer playback: %s %s", resp.Status, string(respBody))
@@ -483,7 +483,7 @@ func (c *Client) startPlaybackWithDevice(trackURI, deviceID string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("start playback: %s %s", resp.Status, string(respBody))
@@ -506,7 +506,7 @@ func (c *Client) PausePlayback() error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("pause playback: %s %s", resp.Status, string(respBody))
@@ -520,7 +520,7 @@ func (c *Client) GetQueue() (*QueueResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("get queue: %s %s", resp.Status, string(body))
@@ -547,7 +547,7 @@ func (c *Client) SkipToNext() error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("skip to next: %s %s", resp.Status, string(respBody))
@@ -636,7 +636,7 @@ func (c *Client) addToQueueWithDevice(trackURI, deviceID string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK {
 		return nil
 	}
@@ -654,7 +654,7 @@ func (c *Client) GetRelatedArtists(artistID string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("related artists: %s %s", resp.Status, string(body))
@@ -689,7 +689,7 @@ func (c *Client) GetArtistTopTracks(artistID, market string) ([]Track, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("artist top tracks: %s %s", resp.Status, string(body))
@@ -713,7 +713,7 @@ func (c *Client) GetArtist(artistID string) (name string, err error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("artist: %s %s", resp.Status, string(body))
@@ -745,7 +745,7 @@ func (c *Client) SearchTracksByArtist(artistName string, limit int) ([]Track, er
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("search: %s %s", resp.Status, string(body))
@@ -780,7 +780,7 @@ func (c *Client) GetArtistAlbums(artistID, market string, limit int) ([]string, 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("artist albums: %s %s", resp.Status, string(body))
@@ -815,7 +815,7 @@ func (c *Client) GetAlbumTracks(albumID string, limit int) ([]Track, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("album tracks: %s %s", resp.Status, string(body))
@@ -911,7 +911,7 @@ func (c *Client) GetArtistIDsFromPlaylist(playlistID string, maxTracks int) ([]s
 		}
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, fmt.Errorf("playlist items: %s %s", resp.Status, string(body))
 		}
 		var data struct {
@@ -930,10 +930,10 @@ func (c *Client) GetArtistIDsFromPlaylist(playlistID string, maxTracks int) ([]s
 			Next *string `json:"next"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, err
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		for _, pitem := range data.Items {
 			track := pitem.Track
 			if track == nil {
@@ -1126,7 +1126,7 @@ func (c *Client) GetRecommendations(seedTrackIDs []string, limit int) ([]Track, 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -1161,7 +1161,7 @@ func (c *Client) AddTracksToPlaylist(playlistID string, trackURIs []string) erro
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -1190,7 +1190,7 @@ func (c *Client) RemoveTracksFromPlaylist(playlistID string, trackURIs []string)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("remove tracks from playlist: %s %s", resp.Status, string(bodyBytes))
@@ -1217,7 +1217,7 @@ func (c *Client) CreatePlaylist(name, description string, public bool) (string, 
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		b, _ := io.ReadAll(resp.Body)
 		s := string(b)
@@ -1255,7 +1255,7 @@ func (c *Client) SearchTracks(query string, limit int) ([]Track, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("search: %s %s", resp.Status, string(body))
