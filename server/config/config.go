@@ -48,8 +48,17 @@ func Load() *Config {
 		GeminiAPIKey: loadGeminiAPIKey(),
 		GeminiModel:  getEnv("GEMINI_MODEL", "gemini-2.5-flash"),
 
-		AuthSecret: getEnv("AUTH_SECRET", ""),
+		AuthSecret: loadAuthSecret(),
 	}
+}
+
+func loadAuthSecret() string {
+	s := getEnv("AUTH_SECRET", "")
+	if s != "" {
+		return s
+	}
+	log.Printf("AUTH_SECRET is empty — using insecure local-dev default; set AUTH_SECRET in production")
+	return "local-dev-only-not-for-production"
 }
 
 func getEnv(key, fallback string) string {
