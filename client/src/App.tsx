@@ -5,7 +5,9 @@ import { DevicePicker } from './components/DevicePicker'
 import { NowPlaying } from './components/NowPlaying'
 import { PlaylistOverview } from './components/PlaylistOverview'
 import { SessionControls } from './components/SessionControls'
+import { StaffHostPanel } from './components/StaffHostPanel'
 import { VotingRound } from './components/VotingRound'
+import { useStaffAuth } from './hooks/useStaffAuth'
 import { useVotingState } from './hooks/useVotingState'
 
 type SpotifyStatus = {
@@ -31,6 +33,7 @@ function App() {
   }, [])
 
   const [pickerOpen, setPickerOpen] = useState(false)
+  const staffAuth = useStaffAuth()
   const { state, error: stateError, refetch, setStateFromSessionStart, clearState } = useVotingState(!pickerOpen)
 
   const [toast, setToast] = useState<ToastPayload | null>(null)
@@ -95,16 +98,23 @@ function App() {
       refillCount: number,
       keepRefillTracks = false
     ) => {
+      const body: Record<string, unknown> = {
+        playlist_id: playlistId,
+        playlist_name: playlistName,
+        refill_threshold: refillThreshold,
+        refill_count: refillCount,
+        keep_refill_tracks: keepRefillTracks,
+      }
+      if (staffAuth.selectedVenueId) {
+        body.venue_id = staffAuth.selectedVenueId
+      }
+      if (staffAuth.joinPassword.trim()) {
+        body.join_password = staffAuth.joinPassword.trim()
+      }
       const res = await fetch('/api/voting/session/start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          playlist_id: playlistId,
-          playlist_name: playlistName,
-          refill_threshold: refillThreshold,
-          refill_count: refillCount,
-          keep_refill_tracks: keepRefillTracks,
-        }),
+        headers: staffAuth.authHeaders(),
+        body: JSON.stringify(body),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -116,7 +126,7 @@ function App() {
       }
       refetch()
     },
-    [refetch, setStateFromSessionStart]
+    [refetch, setStateFromSessionStart, staffAuth]
   )
 
   const onAiPlaylistFailed = useCallback((msg: string) => {
@@ -279,6 +289,8 @@ function App() {
           {spotify?.connected && (
             <AiPlaylistPanel onPlaylistReady={onAiPlaylistReady} onPlaylistFailed={onAiPlaylistFailed} />
           )}
+
+          {spotify?.connected && <StaffHostPanel auth={staffAuth} />}
 
           {/* Session controls (admin) */}
           {spotify?.connected && (

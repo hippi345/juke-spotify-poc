@@ -116,7 +116,7 @@ func NewManager(svc *spotify.Client) *Manager {
 
 // StartSession creates a new voting session and fetches initial candidates.
 // Returns the kickoff track (now playing) so the client can update UI immediately.
-func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold, refillCount int, keepRefillTracks bool) (*spotify.Track, error) {
+func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold, refillCount int, keepRefillTracks bool, venueID *uint, joinPasswordHash string) (*spotify.Track, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -135,6 +135,8 @@ func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold,
 		refillCount = refillCountMax
 	}
 	session := &models.VotingSession{
+		VenueID:          venueID,
+		JoinPasswordHash: joinPasswordHash,
 		PlaylistID:       playlistID,
 		PlaylistName:     playlistName,
 		RefillThreshold:  refillThreshold,
@@ -290,8 +292,11 @@ func (m *Manager) EndSession() {
 	if m.Session != nil && m.Session.Status == "active" {
 		keepRefill := m.Session.KeepRefillTracks
 		playlistID := m.Session.PlaylistID
+		endedSessionID := m.Session.ID
 		m.Session.Status = "ended"
 		db.DB.Save(m.Session)
+		_ = db.DB.Model(&models.User{}).Where("joined_voting_session_id = ?", endedSessionID).
+			Update("joined_voting_session_id", nil).Error
 
 		// Pause immediately to stop playback (no ClearQueue - skipping causes brief audio bursts)
 		_ = m.svc.PausePlayback()

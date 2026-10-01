@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strings"
 )
@@ -22,6 +23,9 @@ type Config struct {
 	// Google AI (Gemini) — used for AI-generated playlists (server-side only)
 	GeminiAPIKey  string
 	GeminiModel   string
+
+	// HMAC secret for email login tokens (set AUTH_SECRET in production).
+	AuthSecret string
 }
 
 // Load reads config from environment with sensible defaults for local Docker MySQL
@@ -43,6 +47,8 @@ func Load() *Config {
 
 		GeminiAPIKey: loadGeminiAPIKey(),
 		GeminiModel:  getEnv("GEMINI_MODEL", "gemini-2.5-flash"),
+
+		AuthSecret: getEnv("AUTH_SECRET", ""),
 	}
 }
 

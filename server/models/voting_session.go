@@ -7,6 +7,8 @@ import (
 // VotingSession stores a voting session
 type VotingSession struct {
 	ID              uint      `gorm:"primaryKey"`
+	VenueID         *uint     `gorm:"index"`
+	JoinPasswordHash string   `gorm:"size:255"` // empty = open join (no password)
 	PlaylistID      string    `gorm:"size:255;not null"`
 	PlaylistName    string    `gorm:"size:255"`
 	RefillThreshold int       `gorm:"not null;default:0"` // Refill when (total - played) < this

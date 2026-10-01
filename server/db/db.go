@@ -37,7 +37,12 @@ func Connect(cfg *config.Config) error {
 
 	log.Println("Connected to MySQL successfully")
 
-	if err := DB.AutoMigrate(&models.SpotifyAccount{}, &models.VotingSession{}); err != nil {
+	if err := DB.AutoMigrate(
+		&models.SpotifyAccount{},
+		&models.User{},
+		&models.Venue{},
+		&models.VotingSession{},
+	); err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
 	}
 

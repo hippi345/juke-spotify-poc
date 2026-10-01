@@ -1,6 +1,6 @@
 # Juke Venue (Android) — mobile patron UI
 
-Emulates what a **venue guest** sees: **now playing**, **vote for next song**, and **playlist grid** (played / vibe-fill markers). It talks to the same Go API as the web app.
+Patron flow: **email sign-in**, **find nearby active sessions** (geolocation), **join** (password when the host set one), then **now playing**, **vote**, and **playlist grid**. It talks to the same Go API as the web app (no Spotify login on the phone).
 
 ## Prerequisites
 

@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,6 +49,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.juke.spotifypoc.mobile.R
 import com.juke.spotifypoc.mobile.VenueViewModel
+import com.juke.spotifypoc.mobile.api.NearbySession
 import com.juke.spotifypoc.mobile.api.NowPlayingBlock
 import com.juke.spotifypoc.mobile.api.Track
 import com.juke.spotifypoc.mobile.api.TrackWithMeta
@@ -61,14 +63,19 @@ private val ScreenGradient = Brush.verticalGradient(
 )
 
 @Composable
-fun VenueApp(vm: VenueViewModel = viewModel()) {
+fun VenueApp(
+    vm: VenueViewModel = viewModel(),
+    onRequestLocationPermission: () -> Unit = {},
+) {
     val ui by vm.ui.collectAsState()
 
-    LaunchedEffect(Unit) {
-        vm.startPolling()
+    LaunchedEffect(ui.hasJoinedSession) {
+        if (ui.hasJoinedSession) {
+            vm.startPolling()
+        }
     }
 
-    val initialLoading = ui.loading && ui.votingState == null && ui.pollError == null
+    val initialLoading = ui.loading && ui.patronEmail == null && ui.pollError == null
 
     Box(
         modifier = Modifier
@@ -87,6 +94,31 @@ fun VenueApp(vm: VenueViewModel = viewModel()) {
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+            when {
+                ui.patronEmail == null -> {
+                    PatronAuthSection(
+                        authError = ui.authError,
+                        authLoading = ui.authLoading,
+                        onLogin = vm::login,
+                        onRegister = vm::register,
+                    )
+                }
+                !ui.hasJoinedSession -> {
+                    PatronDiscoverSection(
+                        ui = ui,
+                        onRequestLocationPermission = onRequestLocationPermission,
+                        onUseLocation = vm::useDeviceLocation,
+                        onLoadNearby = vm::loadNearby,
+                        onJoin = vm::prepareJoin,
+                        onConfirmJoin = vm::confirmJoin,
+                        onCancelJoin = vm::cancelJoin,
+                        onJoinPasswordChange = vm::setJoinPassword,
+                        onLatChange = vm::setManualLat,
+                        onLngChange = vm::setManualLng,
+                        onLogout = vm::logout,
+                    )
+                }
+                else -> {
             ui.pollError?.let { err ->
                 GlassPanel(Modifier.fillMaxWidth()) {
                     Text(
@@ -104,7 +136,7 @@ fun VenueApp(vm: VenueViewModel = viewModel()) {
                 !sessionActive -> {
                     GlassPanel(Modifier.fillMaxWidth()) {
                         Text(
-                            "No active voting session.\nStart a session from the web app (host).",
+                            "Joined ${ui.joinedVenueName ?: "venue"} — waiting for host to start playback.",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
@@ -128,8 +160,141 @@ fun VenueApp(vm: VenueViewModel = viewModel()) {
                     )
                 }
             }
+                }
+            }
             Spacer(modifier = Modifier.height(24.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun PatronAuthSection(
+    authError: String?,
+    authLoading: Boolean,
+    onLogin: (String, String) -> Unit,
+    onRegister: (String, String) -> Unit,
+) {
+    var email by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var password by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    GlassPanel(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Patron sign in", style = MaterialTheme.typography.titleMedium, color = Color.White)
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { onLogin(email, password) },
+                    enabled = !authLoading,
+                ) { Text("Sign in") }
+                Button(
+                    onClick = { onRegister(email, password) },
+                    enabled = !authLoading,
+                ) { Text("Register") }
+            }
+            authError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PatronDiscoverSection(
+    ui: com.juke.spotifypoc.mobile.VenueUiState,
+    onRequestLocationPermission: () -> Unit,
+    onUseLocation: () -> Unit,
+    onLoadNearby: () -> Unit,
+    onJoin: (Long) -> Unit,
+    onConfirmJoin: () -> Unit,
+    onCancelJoin: () -> Unit,
+    onJoinPasswordChange: (String) -> Unit,
+    onLatChange: (String) -> Unit,
+    onLngChange: (String) -> Unit,
+    onLogout: () -> Unit,
+) {
+    GlassPanel(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Find a session", style = MaterialTheme.typography.titleMedium, color = Color.White)
+                Text(
+                    "Sign out",
+                    modifier = Modifier.clickable { onLogout() },
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+            OutlinedTextField(
+                value = ui.manualLat,
+                onValueChange = onLatChange,
+                label = { Text("Latitude") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = ui.manualLng,
+                onValueChange = onLngChange,
+                label = { Text("Longitude") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = {
+                    onRequestLocationPermission()
+                    onUseLocation()
+                }) { Text("Use location") }
+                Button(onClick = onLoadNearby, enabled = !ui.discoverLoading) {
+                    Text(if (ui.discoverLoading) "Loading…" else "Search nearby")
+                }
+            }
+            ui.discoverError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            ui.nearbySessions.forEach { row -> NearbyRow(row, onJoin) }
+            if (ui.joinVenueId != null) {
+                val needsPwd = ui.nearbySessions.firstOrNull { it.venue?.id == ui.joinVenueId }?.requiresPassword == true
+                if (needsPwd) {
+                    OutlinedTextField(
+                        value = ui.joinPassword,
+                        onValueChange = onJoinPasswordChange,
+                        label = { Text("Join password") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onConfirmJoin) { Text("Join session") }
+                    Button(onClick = onCancelJoin) { Text("Cancel") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NearbyRow(row: NearbySession, onJoin: (Long) -> Unit) {
+    val venue = row.venue
+    if (venue == null) return
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onJoin(venue.id) },
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.06f)),
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text(venue.name, fontWeight = FontWeight.SemiBold, color = Color.White)
+            Text(
+                "${row.distanceM} m · ${row.playlistName ?: "Playlist"}${if (row.requiresPassword) " · password" else ""}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.75f),
+            )
         }
     }
 }
