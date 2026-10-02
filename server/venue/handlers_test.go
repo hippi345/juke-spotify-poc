@@ -83,8 +83,7 @@ func setupVenueTest(t *testing.T) (*gin.Engine, string) {
 	// patron
 	body3 := map[string]string{"email": "patron@example.com", "password": "password123", "role": "patron"}
 	b3, _ := json.Marshal(body3)
-	req3 := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(b))
-	req3 = httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(b3))
+	req3 := httptest.NewRequest(http.MethodPost, "/api/auth/register", bytes.NewReader(b3))
 	w3 := httptest.NewRecorder()
 	r.ServeHTTP(w3, req3)
 	patronToken := jsonUnmarshalToken(w3.Body.Bytes())
