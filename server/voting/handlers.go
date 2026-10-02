@@ -7,10 +7,15 @@ import (
 
 	"juke-spotify-poc/server/auth"
 	"juke-spotify-poc/server/db"
+	"juke-spotify-poc/server/events"
 	"juke-spotify-poc/server/models"
 	"juke-spotify-poc/server/spotify"
+	"juke-spotify-poc/server/tracing"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Handlers holds dependencies for voting HTTP handlers
@@ -98,12 +103,28 @@ func (h *Handlers) SessionStart(c *gin.Context) {
 			resp["time_remaining_sec"] = timeRemainingSec
 		}
 	}
+	session, _, _ := h.Manager.GetState(nil)
+	if session != nil {
+		_ = events.Default.PublishSession(c.Request.Context(), events.SessionPayload{
+			Action:    "started",
+			SessionID: session.ID,
+			VenueID:   session.VenueID,
+		})
+	}
 	c.JSON(http.StatusOK, resp)
 }
 
 // SessionEnd ends the current voting session
 func (h *Handlers) SessionEnd(c *gin.Context) {
+	session, _, _ := h.Manager.GetState(nil)
 	h.Manager.EndSession()
+	if session != nil {
+		_ = events.Default.PublishSession(c.Request.Context(), events.SessionPayload{
+			Action:    "ended",
+			SessionID: session.ID,
+			VenueID:   session.VenueID,
+		})
+	}
 	c.JSON(http.StatusOK, gin.H{"status": "ended"})
 }
 
@@ -238,5 +259,18 @@ func (h *Handlers) Vote(c *gin.Context) {
 		return
 	}
 
+	voteCtx, span := otel.Tracer(tracing.InstrumentationName).Start(c.Request.Context(), "vote.publish",
+		trace.WithAttributes(
+			attribute.Int64("voting.session_id", int64(session.ID)),
+			attribute.Int64("patron.id", int64(patronID)),
+			attribute.String("track.id", body.TrackID),
+		),
+	)
+	defer span.End()
+	_ = events.Default.PublishVote(voteCtx, events.VotePayload{
+		SessionID: session.ID,
+		PatronID:  patronID,
+		TrackID:   body.TrackID,
+	})
 	c.JSON(http.StatusOK, gin.H{"status": "voted"})
 }

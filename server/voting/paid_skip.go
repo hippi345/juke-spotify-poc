@@ -30,6 +30,18 @@ func (m *Manager) PlaylistTrackURI(trackID string) (string, error) {
 	return m.trackURIOnPlaylist(session.PlaylistID, trackID)
 }
 
+// TrackURIForVotingSession validates trackID against a session playlist (works across API replicas).
+func (m *Manager) TrackURIForVotingSession(votingSessionID uint, trackID string) (string, error) {
+	var session models.VotingSession
+	if err := db.DB.First(&session, votingSessionID).Error; err != nil {
+		return "", fmt.Errorf("session not found")
+	}
+	if session.Status != "active" {
+		return "", fmt.Errorf("session not active")
+	}
+	return m.trackURIOnPlaylist(session.PlaylistID, trackID)
+}
+
 func (m *Manager) trackURIOnPlaylist(playlistID, trackID string) (string, error) {
 	offset := 0
 	for {

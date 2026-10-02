@@ -30,6 +30,15 @@ type Config struct {
 	// Stripe test-mode secret for paid-skip demo (read from STRIPE_TEST_SECRET_KEY only).
 	StripeTestSecretKey string
 	StripeWebhookSecret string
+
+	RedisAddr       string
+	OpenSearchURL   string
+	KafkaBrokers    string
+	MetricsEnabled  bool
+	InstanceID      string
+
+	// OTLP gRPC endpoint for Tempo (e.g. tempo:4317). Empty disables export.
+	OTLPEndpoint string
 }
 
 // Load reads config from environment with sensible defaults for local Docker MySQL
@@ -56,6 +65,13 @@ func Load() *Config {
 
 		StripeTestSecretKey: strings.TrimSpace(getEnv("STRIPE_TEST_SECRET_KEY", "")),
 		StripeWebhookSecret: strings.TrimSpace(getEnv("STRIPE_WEBHOOK_SECRET", "")),
+
+		RedisAddr:      strings.TrimSpace(getEnv("REDIS_ADDR", "")),
+		OpenSearchURL:  strings.TrimSpace(getEnv("OPENSEARCH_URL", "")),
+		KafkaBrokers:   strings.TrimSpace(getEnv("KAFKA_BROKERS", "")),
+		MetricsEnabled: getEnv("METRICS_ENABLED", "") == "1" || strings.EqualFold(getEnv("METRICS_ENABLED", ""), "true"),
+		InstanceID:     getEnv("INSTANCE_ID", "api"),
+		OTLPEndpoint:   strings.TrimSpace(getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "")),
 	}
 }
 
