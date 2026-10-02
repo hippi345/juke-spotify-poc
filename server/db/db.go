@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"juke-spotify-poc/server/config"
 	"juke-spotify-poc/server/models"
@@ -29,10 +30,23 @@ func Connect(cfg *config.Config) error {
 		cfg.DBName,
 	)
 
-	var err error
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		return fmt.Errorf("failed to connect to MySQL: %w", err)
+	const attempts = 30
+	var lastErr error
+	for i := 1; i <= attempts; i++ {
+		var err error
+		DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err == nil {
+			lastErr = nil
+			break
+		}
+		lastErr = err
+		if i < attempts {
+			log.Printf("MySQL not ready (attempt %d/%d): %v", i, attempts, err)
+			time.Sleep(2 * time.Second)
+		}
+	}
+	if lastErr != nil {
+		return fmt.Errorf("failed to connect to MySQL: %w", lastErr)
 	}
 
 	log.Println("Connected to MySQL successfully")
