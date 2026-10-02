@@ -108,3 +108,17 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose down -v
+
+  compose-session-walk:
+    name: Compose session walk
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: End-to-end session walk
+        run: ./scripts/compose-session-walk.sh
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
