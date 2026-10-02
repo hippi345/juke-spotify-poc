@@ -31,15 +31,7 @@ function PaidSkipReturnPage({ kind }: { kind: 'success' | 'cancel' }) {
   )
 }
 
-function App() {
-  const path = window.location.pathname
-  if (path === '/paid-skip/success') {
-    return <PaidSkipReturnPage kind="success" />
-  }
-  if (path === '/paid-skip/cancel') {
-    return <PaidSkipReturnPage kind="cancel" />
-  }
-
+function HostApp() {
   const [spotify, setSpotify] = useState<SpotifyStatus | null>(null)
   const [spotifyError, setSpotifyError] = useState<string | null>(null)
   const [disconnecting, setDisconnecting] = useState(false)
@@ -360,6 +352,17 @@ function App() {
       <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   )
+}
+
+function App() {
+  const path = window.location.pathname
+  if (path === '/paid-skip/success') {
+    return <PaidSkipReturnPage kind="success" />
+  }
+  if (path === '/paid-skip/cancel') {
+    return <PaidSkipReturnPage kind="cancel" />
+  }
+  return <HostApp />
 }
 
 export default App
