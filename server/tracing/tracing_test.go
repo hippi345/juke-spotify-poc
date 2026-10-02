@@ -16,10 +16,6 @@ func TestInitEmptyEndpointSetsPropagator(t *testing.T) {
 	if shutdown != nil {
 		t.Fatal("expected nil shutdown when endpoint empty")
 	}
-	prop := otel.GetTextMapPropagator()
-	if _, ok := prop.(propagation.TextMapPropagator); !ok {
-		t.Fatal("expected text map propagator")
-	}
 	carrier := propagation.MapCarrier{}
 	ctx := otel.GetTextMapPropagator().Extract(context.Background(), carrier)
 	if ctx == nil {

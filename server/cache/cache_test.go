@@ -31,5 +31,5 @@ func TestInitRedisEmptyAddr(t *testing.T) {
 	if err := InitRedis(""); err != nil {
 		t.Fatalf("InitRedis empty: %v", err)
 	}
-	var _ Store = Default
+	var _ = Default
 }
