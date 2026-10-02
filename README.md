@@ -34,11 +34,12 @@ A proof-of-concept **collaborative jukebox**: a Go API connects to Spotify, runs
 ### 1. Full stack (API + MySQL + web)
 
 ```bash
-cp docker-compose.env.example docker-compose.env   # optional Spotify / AUTH_SECRET overrides
 docker compose up -d --build
 ```
 
-This starts MySQL, the Go API on **http://127.0.0.1:8081**, and the Vite dev host on **http://localhost:5173**.
+This starts MySQL, the Go API on **http://127.0.0.1:8081**, and the Vite dev host on **http://localhost:5173**. Compose loads **`docker-compose.env.example`** for placeholder env vars; copy it to **`docker-compose.env`** (gitignored) only when you want to override Spotify, Gemini, or Stripe settings locally.
+
+**Spotify use:** Personal demo only — not for commercial use, shared venues, or multi-tenant deployment (see intro above).
 
 MySQL only:
 
