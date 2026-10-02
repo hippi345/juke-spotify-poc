@@ -78,6 +78,15 @@ fun VenueApp(
         }
     }
 
+    val uriHandler = LocalUriHandler.current
+    LaunchedEffect(ui.paidSkipCheckoutUrl) {
+        val url = ui.paidSkipCheckoutUrl
+        if (!url.isNullOrBlank()) {
+            uriHandler.openUri(url)
+            vm.clearPaidSkipCheckoutUrl()
+        }
+    }
+
     val initialLoading = ui.loading && ui.patronEmail == null && ui.pollError == null
 
     Box(
@@ -157,9 +166,21 @@ fun VenueApp(
                         hasVotedThisRound = ui.hasVotedThisRound,
                         onVote = { vm.vote(it) },
                     )
+                    ui.paidSkipError?.let { err ->
+                        Text(
+                            err,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
+                    }
                     PlaylistSection(
                         tracks = ui.playlistTracks,
                         error = ui.playlistError,
+                        paidSkipEnabled = ui.paidSkipEnabled,
+                        paidSkipPriceUsd = ui.paidSkipPriceUsd,
+                        paidSkipLoadingTrackId = ui.paidSkipTrackId,
+                        onPaidSkip = { vm.startPaidSkip(it) },
                     )
                 }
             }
@@ -612,6 +633,10 @@ private fun VoteCandidateRow(
 private fun PlaylistSection(
     tracks: List<TrackWithMeta>,
     error: String?,
+    paidSkipEnabled: Boolean,
+    paidSkipPriceUsd: String,
+    paidSkipLoadingTrackId: String?,
+    onPaidSkip: (String) -> Unit,
 ) {
     GlassPanel(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
@@ -621,6 +646,14 @@ private fun PlaylistSection(
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White.copy(alpha = 0.95f),
             )
+            if (paidSkipEnabled) {
+                Text(
+                    "Pay $paidSkipPriceUsd (Stripe test) to play a track next — must be on this playlist.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             Spacer(Modifier.height(8.dp))
             error?.let {
                 Text(
@@ -645,7 +678,13 @@ private fun PlaylistSection(
                         ) {
                             rowTracks.forEach { cell ->
                                 Box(Modifier.weight(1f)) {
-                                    PlaylistTile(cell)
+                                    PlaylistTile(
+                                        cell,
+                                        paidSkipEnabled = paidSkipEnabled && !cell.played,
+                                        paidSkipLoading = paidSkipLoadingTrackId == cell.track.id,
+                                        paidSkipPriceUsd = paidSkipPriceUsd,
+                                        onPaidSkip = { onPaidSkip(cell.track.id) },
+                                    )
                                 }
                             }
                             repeat(3 - rowTracks.size) {
@@ -660,7 +699,13 @@ private fun PlaylistSection(
 }
 
 @Composable
-private fun PlaylistTile(row: TrackWithMeta) {
+private fun PlaylistTile(
+    row: TrackWithMeta,
+    paidSkipEnabled: Boolean,
+    paidSkipLoading: Boolean,
+    paidSkipPriceUsd: String,
+    onPaidSkip: () -> Unit,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -722,5 +767,24 @@ private fun PlaylistTile(row: TrackWithMeta) {
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
             modifier = Modifier.padding(top = 4.dp),
         )
+        if (paidSkipEnabled) {
+            Button(
+                onClick = onPaidSkip,
+                enabled = !paidSkipLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+            ) {
+                if (paidSkipLoading) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(14.dp),
+                    )
+                } else {
+                    Text("Skip $paidSkipPriceUsd", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
     }
 }

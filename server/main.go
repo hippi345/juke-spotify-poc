@@ -15,6 +15,7 @@ import (
 	"juke-spotify-poc/server/db"
 	"juke-spotify-poc/server/handlers"
 	"juke-spotify-poc/server/spotify"
+	"juke-spotify-poc/server/paidskip"
 	"juke-spotify-poc/server/venue"
 	"juke-spotify-poc/server/voting"
 
@@ -97,6 +98,11 @@ func main() {
 	r.GET("/api/voting/playlist-overview", votingHandlers.PlaylistOverview)
 	r.POST("/api/voting/trigger-refill", votingHandlers.TriggerRefill)
 	r.POST("/api/voting/vote", votingHandlers.Vote)
+
+	paidSkipHandlers := &paidskip.Handlers{Manager: votingManager, Config: cfg}
+	r.GET("/api/paid-skip/config", paidSkipHandlers.ConfigInfo)
+	r.POST("/api/paid-skip/checkout", paidSkipHandlers.CreateCheckout)
+	r.POST("/api/stripe/webhook", paidSkipHandlers.StripeWebhook)
 
 	r.NoRoute(handlers.NotFound)
 

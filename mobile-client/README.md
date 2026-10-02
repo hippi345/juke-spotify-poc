@@ -1,6 +1,6 @@
 # Juke Venue (Android) — mobile patron UI
 
-Patron flow: **email sign-in**, **find nearby active sessions** (geolocation), **join** (password when the host set one), then **now playing**, **vote**, and **playlist grid**. It talks to the same Go API as the web app (no Spotify login on the phone).
+Patron flow: **email sign-in**, **find nearby active sessions** (geolocation), **join** (password when the host set one), then **now playing**, **vote**, **paid skip** ($1 Stripe test checkout on playlist tracks), and **playlist grid**. It talks to the same Go API as the web app (no Spotify login on the phone).
 
 ## Prerequisites
 

@@ -42,6 +42,7 @@ func Connect(cfg *config.Config) error {
 		&models.User{},
 		&models.Venue{},
 		&models.VotingSession{},
+		&models.PaidSkip{},
 	); err != nil {
 		return fmt.Errorf("failed to migrate: %w", err)
 	}

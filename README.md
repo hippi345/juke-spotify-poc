@@ -16,7 +16,8 @@ A proof-of-concept **collaborative jukebox**: a Go API connects to Spotify, runs
 - **Web client** — React + Vite + Tailwind for the host UI
 - **Email accounts** — staff (web host) and patrons (Android) register with email/password on the same API
 - **Venue sessions** — staff set a venue location; sessions can be open or protected with a join password; patrons discover nearby active sessions and join before voting
-- **Android client** — Compose patron app: sign in, find nearby sessions, join, vote (`mobile-client/`)
+- **Paid skip (demo)** — joined patrons pay **$1.00 USD** (Stripe **test mode**) to queue a playlist track next, ahead of the vote winner; only tracks already on the venue playlist are accepted
+- **Android client** — Compose patron app: sign in, find nearby sessions, join, vote, paid skip (`mobile-client/`)
 
 ## Requirements
 
@@ -91,6 +92,8 @@ Secrets are **never** committed. Use environment variables or gitignored `.env` 
 | `GEMINI_API_KEY` | — | Google AI key for VibeSense / AI playlists |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Optional model override |
 | `AUTH_SECRET` | — | HMAC secret for staff/patron login tokens (required for email auth) |
+| `STRIPE_SECRET_KEY` | — | Stripe **test** secret key (`sk_test_…`) for paid-skip checkout |
+| `STRIPE_WEBHOOK_SECRET` | — | Stripe webhook signing secret (`whsec_…`) for `POST /api/stripe/webhook` |
 
 ### Client
 
@@ -103,7 +106,7 @@ Secrets are **never** committed. Use environment variables or gitignored `.env` 
 1. Configure Spotify redirect URI: `http://127.0.0.1:5173/api/spotify/callback`
 2. Start MySQL, server, and client as above
 3. Register a **staff** account, create a **venue** (location), **Connect Spotify**, choose a device and playlist, then start a voting session (optional join password)
-4. On Android, register a **patron** account, search **nearby** sessions, **join**, then vote
+4. On Android, register a **patron** account, search **nearby** sessions, **join**, then vote or use **paid skip** on a playlist track (requires Stripe test keys on the API)
 
 ### API highlights
 
@@ -116,6 +119,9 @@ Secrets are **never** committed. Use environment variables or gitignored `.env` 
 - `POST /api/venues/:id/join` — patron joins (optional `join_password`)
 - `POST /api/voting/session/start` — begin voting (staff: include `venue_id`, optional `join_password`)
 - `GET /api/voting/state` — poll session / round state
+- `GET /api/paid-skip/config` — paid-skip price and whether Stripe is configured
+- `POST /api/paid-skip/checkout` — patron starts Stripe Checkout for a playlist `track_id` (must have joined the session)
+- `POST /api/stripe/webhook` — Stripe webhook (forward test events with the Stripe CLI)
 - `POST /api/ai-playlist/create` — start AI playlist job (requires Gemini)
 
 ## Development

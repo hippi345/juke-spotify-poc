@@ -26,6 +26,10 @@ type Config struct {
 
 	// HMAC secret for email login tokens (set AUTH_SECRET in production).
 	AuthSecret string
+
+	// Stripe (test mode) — paid skip demo; never commit live keys.
+	StripeSecretKey       string
+	StripeWebhookSecret   string
 }
 
 // Load reads config from environment with sensible defaults for local Docker MySQL
@@ -49,6 +53,9 @@ func Load() *Config {
 		GeminiModel:  getEnv("GEMINI_MODEL", "gemini-2.5-flash"),
 
 		AuthSecret: loadAuthSecret(),
+
+		StripeSecretKey:     strings.TrimSpace(getEnv("STRIPE_SECRET_KEY", "")),
+		StripeWebhookSecret: strings.TrimSpace(getEnv("STRIPE_WEBHOOK_SECRET", "")),
 	}
 }
 

@@ -4,4 +4,5 @@ data class JukeApis(
     val voting: VotingApi,
     val auth: AuthApi,
     val venue: VenueApi,
+    val paidSkip: PaidSkipApi,
 )

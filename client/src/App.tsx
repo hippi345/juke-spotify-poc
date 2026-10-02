@@ -17,7 +17,29 @@ type SpotifyStatus = {
   active_device_id?: string | null
 }
 
+function PaidSkipReturnPage({ kind }: { kind: 'success' | 'cancel' }) {
+  const isSuccess = kind === 'success'
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#050506] via-[#0c0c0e] to-[#12121a] px-6 py-16 text-center text-white">
+      <h1 className="mb-4 text-2xl font-semibold">{isSuccess ? 'Payment received' : 'Checkout canceled'}</h1>
+      <p className="text-zinc-400">
+        {isSuccess
+          ? 'Your paid skip will queue on the venue Spotify account after Stripe confirms payment (test mode). Return to the patron app.'
+          : 'No charge was made. You can try again from the playlist in the patron app.'}
+      </p>
+    </div>
+  )
+}
+
 function App() {
+  const path = window.location.pathname
+  if (path === '/paid-skip/success') {
+    return <PaidSkipReturnPage kind="success" />
+  }
+  if (path === '/paid-skip/cancel') {
+    return <PaidSkipReturnPage kind="cancel" />
+  }
+
   const [spotify, setSpotify] = useState<SpotifyStatus | null>(null)
   const [spotifyError, setSpotifyError] = useState<string | null>(null)
   const [disconnecting, setDisconnecting] = useState(false)
