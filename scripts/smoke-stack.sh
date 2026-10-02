@@ -170,10 +170,17 @@ ok "loki" "docker job logs queryable"
 
 # --- tempo ---
 curl -sf --max-time 5 http://localhost:8081/health >/dev/null
-sleep 8
-api_traces=$(curl -sf "http://localhost:3200/api/search?limit=50" | jq '[.traces[] | select(.rootServiceName=="juke-api")] | length' 2>/dev/null || echo 0)
+api_traces=0
+kafka_traces=0
+for _ in $(seq 1 25); do
+  api_traces=$(curl -sf "http://localhost:3200/api/search?limit=100" | jq '[.traces[] | select(.rootServiceName=="juke-api" and .rootTraceName != "kafka.consume")] | length' 2>/dev/null || echo 0)
+  kafka_traces=$(curl -sf "http://localhost:3200/api/search?limit=100" | jq '[.traces[] | select(.rootTraceName=="kafka.consume")] | length' 2>/dev/null || echo 0)
+  if [ "${api_traces:-0}" -ge 1 ] && [ "${kafka_traces:-0}" -ge 1 ]; then
+    break
+  fi
+  sleep 3
+done
 [[ "${api_traces:-0}" -ge 1 ]] || fail "tempo" "no juke-api HTTP traces found"
-kafka_traces=$(curl -sf "http://localhost:3200/api/search?limit=50" | jq '[.traces[] | select(.rootTraceName=="kafka.consume")] | length' 2>/dev/null || echo 0)
 [[ "${kafka_traces:-0}" -ge 1 ]] || fail "tempo" "no kafka.consume traces from API consumer"
 ok "tempo" "juke-api HTTP traces and kafka.consume spans"
 

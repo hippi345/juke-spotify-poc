@@ -283,7 +283,7 @@ services:
       - loki
       - tempo
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health | grep -q '\"database\":\"ok\"'"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health | grep -q '\"database\": \"ok\"'"]
       interval: 10s
       timeout: 5s
       retries: 10
