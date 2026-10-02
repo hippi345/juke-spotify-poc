@@ -14,6 +14,7 @@ mobile-client/local.properties
 # Environment (any .env file in the repo — e.g. server/.env — is not committed)
 .env
 **/.env
+docker-compose.env
 .env.local
 .env.*.local
 

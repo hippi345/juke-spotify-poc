@@ -3,7 +3,9 @@
 [![CI](https://github.com/hippi345/juke-spotify-poc/actions/workflows/ci.yml/badge.svg)](https://github.com/hippi345/juke-spotify-poc/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A proof-of-concept **collaborative jukebox**: a Go API connects to Spotify, runs voting rounds on playlist tracks, refills playlists with AI-assisted suggestions (VibeSense / Gemini), and exposes a React web UI plus an optional Android venue client.
+A proof-of-concept **collaborative jukebox**: a Go API connects to Spotify, runs voting rounds on playlist tracks, refills playlists with AI-assisted suggestions (VibeSense / Gemini), and exposes a React web UI plus an optional Android patron client.
+
+**Spotify use:** This project is for **personal, non-commercial demonstration only**. It is not licensed for commercial use, public performance, or shared venue playback beyond your own Spotify account terms. Do not deploy it as a product or multi-tenant service.
 
 ## Features
 
@@ -12,7 +14,9 @@ A proof-of-concept **collaborative jukebox**: a Go API connects to Spotify, runs
 - **Playlist refill** — optional “similar vibe” track suggestions via Google Gemini
 - **AI playlist jobs** — background jobs to build playlists from a text prompt
 - **Web client** — React + Vite + Tailwind for the host UI
-- **Android client** — Compose app for venue displays (`mobile-client/`)
+- **Email accounts** — staff (web host) and patrons (Android) register with email/password on the same API
+- **Venue sessions** — staff set a venue location; sessions can be open or protected with a join password; patrons discover nearby active sessions and join before voting
+- **Android client** — Compose patron app: sign in, find nearby sessions, join, vote (`mobile-client/`)
 
 ## Requirements
 
@@ -26,10 +30,19 @@ A proof-of-concept **collaborative jukebox**: a Go API connects to Spotify, runs
 
 ## Quick start
 
-### 1. MySQL
+### 1. Full stack (API + MySQL + web)
 
 ```bash
-docker compose up -d
+cp docker-compose.env.example docker-compose.env   # optional Spotify / AUTH_SECRET overrides
+docker compose up -d --build
+```
+
+This starts MySQL, the Go API on **http://127.0.0.1:8081**, and the Vite dev host on **http://localhost:5173**.
+
+MySQL only:
+
+```bash
+docker compose up -d mysql
 # or: bash scripts/start-mysql.sh
 ```
 
@@ -77,6 +90,7 @@ Secrets are **never** committed. Use environment variables or gitignored `.env` 
 | `APP_BASE_URL` | `http://localhost:5173` | Post-auth redirect base |
 | `GEMINI_API_KEY` | — | Google AI key for VibeSense / AI playlists |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Optional model override |
+| `AUTH_SECRET` | — | HMAC secret for staff/patron login tokens (required for email auth) |
 
 ### Client
 
@@ -88,14 +102,19 @@ Secrets are **never** committed. Use environment variables or gitignored `.env` 
 
 1. Configure Spotify redirect URI: `http://127.0.0.1:5173/api/spotify/callback`
 2. Start MySQL, server, and client as above
-3. In the UI, **Connect Spotify**, choose a device and playlist, then start a voting session
+3. Register a **staff** account, create a **venue** (location), **Connect Spotify**, choose a device and playlist, then start a voting session (optional join password)
+4. On Android, register a **patron** account, search **nearby** sessions, **join**, then vote
 
 ### API highlights
 
 - `GET /health` — liveness
 - `GET /api/spotify/login` — start OAuth
 - `GET /api/spotify/status` — connection state
-- `POST /api/voting/session/start` — begin voting
+- `POST /api/auth/register` / `POST /api/auth/login` — email accounts (`role`: `staff` or `patron`)
+- `POST /api/venues` — staff creates a venue with lat/lng
+- `GET /api/venues/nearby?lat=&lng=` — patron discovers active sessions
+- `POST /api/venues/:id/join` — patron joins (optional `join_password`)
+- `POST /api/voting/session/start` — begin voting (staff: include `venue_id`, optional `join_password`)
 - `GET /api/voting/state` — poll session / round state
 - `POST /api/ai-playlist/create` — start AI playlist job (requires Gemini)
 
@@ -148,7 +167,7 @@ juke-spotify-poc/
 ├── server/              # Go + Gin API (vendored deps in vendor/)
 ├── mobile-client/       # Kotlin / Jetpack Compose Android app
 ├── scripts/             # MySQL / Docker helpers
-├── docker-compose.yml   # Local MySQL
+├── docker-compose.yml   # MySQL + API + web (Vite)
 ├── .github/workflows/   # CI
 └── SECURITY.md          # Vulnerability reporting
 ```

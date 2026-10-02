@@ -67,3 +67,54 @@ data class TrackWithMeta(
 data class PlaylistOverviewResponse(
     val tracks: List<TrackWithMeta>? = null,
 )
+
+data class RegisterRequest(
+    val email: String,
+    val password: String,
+    val role: String = "patron",
+)
+
+data class LoginRequest(
+    val email: String,
+    val password: String,
+)
+
+data class AuthUser(
+    val id: Long = 0,
+    val email: String = "",
+    val role: String = "",
+)
+
+data class AuthResponse(
+    val token: String = "",
+    val user: AuthUser? = null,
+)
+
+data class VenueInfo(
+    val id: Long = 0,
+    val name: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+)
+
+data class NearbySession(
+    val venue: VenueInfo? = null,
+    @SerializedName("session_id") val sessionId: Long = 0,
+    @SerializedName("playlist_name") val playlistName: String? = null,
+    @SerializedName("distance_m") val distanceM: Int = 0,
+    @SerializedName("requires_password") val requiresPassword: Boolean = false,
+)
+
+data class NearbyResponse(
+    val sessions: List<NearbySession>? = null,
+)
+
+data class JoinRequest(
+    @SerializedName("join_password") val joinPassword: String? = null,
+)
+
+data class JoinResponse(
+    val status: String = "",
+    val venue: VenueInfo? = null,
+    @SerializedName("session_id") val sessionId: Long = 0,
+)

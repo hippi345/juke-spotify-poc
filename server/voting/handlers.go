@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"strings"
 
+	"juke-spotify-poc/server/auth"
+	"juke-spotify-poc/server/db"
+	"juke-spotify-poc/server/models"
 	"juke-spotify-poc/server/spotify"
 
 	"github.com/gin-gonic/gin"
@@ -23,13 +26,43 @@ func (h *Handlers) SessionStart(c *gin.Context) {
 		RefillThreshold  int    `json:"refill_threshold"`
 		RefillCount      int    `json:"refill_count"`
 		KeepRefillTracks bool   `json:"keep_refill_tracks"`
+		VenueID          uint   `json:"venue_id"`
+		JoinPassword     string `json:"join_password"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "playlist_id required"})
 		return
 	}
 
-	kickoff, err := h.Manager.StartSession(body.PlaylistID, body.PlaylistName, body.RefillThreshold, body.RefillCount, body.KeepRefillTracks)
+	if auth.RoleFromContext(c) == "staff" {
+		if body.VenueID == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "venue_id required for staff session start"})
+			return
+		}
+		staffID := auth.UserIDFromContext(c)
+		var venue models.Venue
+		if err := db.DB.Where("id = ? AND staff_user_id = ?", body.VenueID, staffID).First(&venue).Error; err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "venue not found or not owned by you"})
+			return
+		}
+	}
+
+	var joinHash string
+	if strings.TrimSpace(body.JoinPassword) != "" {
+		h, err := auth.HashPassword(strings.TrimSpace(body.JoinPassword))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not set join password"})
+			return
+		}
+		joinHash = h
+	}
+
+	var venueID *uint
+	if body.VenueID > 0 {
+		venueID = &body.VenueID
+	}
+
+	kickoff, err := h.Manager.StartSession(body.PlaylistID, body.PlaylistName, body.RefillThreshold, body.RefillCount, body.KeepRefillTracks, venueID, joinHash)
 	if err != nil {
 		errMsg := err.Error()
 		if strings.Contains(errMsg, "403") {
@@ -173,6 +206,28 @@ func (h *Handlers) Vote(c *gin.Context) {
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "track_id required"})
 		return
+	}
+
+	if auth.RoleFromContext(c) == "patron" {
+		patronID := auth.UserIDFromContext(c)
+		if patronID == 0 {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "patron login required to vote"})
+			return
+		}
+		var user models.User
+		if err := db.DB.First(&user, patronID).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+			return
+		}
+		session, _, _ := h.Manager.GetState(nil)
+		if session == nil || session.Status != "active" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "no active session"})
+			return
+		}
+		if user.JoinedVotingSessionID == nil || *user.JoinedVotingSessionID != session.ID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "join the venue session before voting"})
+			return
+		}
 	}
 
 	if err := h.Manager.Vote(body.TrackID); err != nil {

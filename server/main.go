@@ -10,10 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"juke-spotify-poc/server/auth"
 	"juke-spotify-poc/server/config"
 	"juke-spotify-poc/server/db"
 	"juke-spotify-poc/server/handlers"
 	"juke-spotify-poc/server/spotify"
+	"juke-spotify-poc/server/venue"
 	"juke-spotify-poc/server/voting"
 
 	"github.com/gin-contrib/cors"
@@ -42,6 +44,10 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.Use(cors.Default()) // Allow all origins for local dev
+	r.Use(auth.Middleware(cfg.AuthSecret))
+
+	authHandlers := &auth.Handlers{Secret: cfg.AuthSecret}
+	venueHandlers := &venue.Handlers{}
 
 	// Routes
 	r.GET("/", handlers.Root)
@@ -49,6 +55,17 @@ func main() {
 	r.GET("/health/vibesense", handlers.VibeSenseHealth(cfg))
 	r.GET("/api/health/vibesense", handlers.VibeSenseHealth(cfg))
 	r.GET("/api/placeholder", handlers.Placeholder)
+
+	// Email accounts (staff + patron)
+	r.POST("/api/auth/register", authHandlers.Register)
+	r.POST("/api/auth/login", authHandlers.Login)
+	r.GET("/api/auth/me", authHandlers.Me)
+
+	// Venues & patron join
+	r.POST("/api/venues", venueHandlers.Create)
+	r.GET("/api/venues/mine", venueHandlers.Mine)
+	r.GET("/api/venues/nearby", venueHandlers.Nearby)
+	r.POST("/api/venues/:id/join", venueHandlers.Join)
 
 	// Spotify OAuth
 	spotifyClient := spotify.NewClient(cfg)
