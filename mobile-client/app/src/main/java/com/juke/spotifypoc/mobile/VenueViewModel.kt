@@ -45,6 +45,11 @@ data class VenueUiState(
     val hasJoinedSession: Boolean = false,
     val manualLat: String = "",
     val manualLng: String = "",
+    val paidSkipPriceUsd: String = "1.00",
+    val paidSkipEnabled: Boolean = false,
+    val paidSkipTrackId: String? = null,
+    val paidSkipCheckoutUrl: String? = null,
+    val paidSkipError: String? = null,
 )
 
 private fun computeVotingRoundKey(s: VotingStateResponse): String {
@@ -211,6 +216,7 @@ class VenueViewModel(application: Application) : AndroidViewModel(application) {
     fun startPolling() {
         pollJob?.cancel()
         pollJob = viewModelScope.launch {
+            loadPaidSkipConfig()
             while (isActive) {
                 try {
                     val s = api.voting.getState()
@@ -257,6 +263,47 @@ class VenueViewModel(application: Application) : AndroidViewModel(application) {
                 delay(2000)
             }
         }
+    }
+
+    private suspend fun loadPaidSkipConfig() {
+        try {
+            val cfg = api.paidSkip.config()
+            _ui.update {
+                it.copy(
+                    paidSkipPriceUsd = cfg.priceUsd.ifBlank { "1.00" },
+                    paidSkipEnabled = cfg.stripeEnabled,
+                )
+            }
+        } catch (_: Exception) {
+            // optional demo feature
+        }
+    }
+
+    fun startPaidSkip(trackId: String) {
+        viewModelScope.launch {
+            _ui.update { it.copy(paidSkipTrackId = trackId, paidSkipError = null) }
+            try {
+                val res = api.paidSkip.checkout(
+                    com.juke.spotifypoc.mobile.api.PaidSkipCheckoutRequest(trackId),
+                )
+                if (res.checkoutUrl.isBlank()) {
+                    _ui.update { it.copy(paidSkipTrackId = null, paidSkipError = "No checkout URL") }
+                } else {
+                    _ui.update { it.copy(paidSkipCheckoutUrl = res.checkoutUrl) }
+                }
+            } catch (e: Exception) {
+                _ui.update {
+                    it.copy(
+                        paidSkipTrackId = null,
+                        paidSkipError = e.message ?: "Paid skip failed",
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearPaidSkipCheckoutUrl() {
+        _ui.update { it.copy(paidSkipCheckoutUrl = null, paidSkipTrackId = null) }
     }
 
     fun vote(trackId: String) {

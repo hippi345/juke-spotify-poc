@@ -19,6 +19,8 @@ services:
       SPOTIFY_REDIRECT_URI: http://127.0.0.1:5173/api/spotify/callback
       APP_BASE_URL: http://localhost:5173
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      STRIPE_TEST_SECRET_KEY: ${STRIPE_TEST_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     depends_on:
       mysql:
         condition: service_healthy

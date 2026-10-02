@@ -44,6 +44,7 @@ object ApiClient {
             voting = retrofit.create(VotingApi::class.java),
             auth = retrofit.create(AuthApi::class.java),
             venue = retrofit.create(VenueApi::class.java),
+            paidSkip = retrofit.create(PaidSkipApi::class.java),
         )
     }
 }

@@ -477,21 +477,30 @@ func (m *Manager) AdvanceRound() error {
 	if winner != nil {
 		cp, _ := m.svc.GetCurrentlyPlaying()
 		if cp == nil || cp.Item == nil {
-			// Nothing playing: start playback with winner directly
+			// Nothing playing: queue any paid skips, then start with winner (or first paid skip).
+			skips := m.listPaidSkipsPendingQueue()
+			for _, skip := range skips {
+				if err := m.svc.AddToQueue(skip.TrackURI); err != nil {
+					log.Printf("voting: paid skip queue (no cp): %v", err)
+					continue
+				}
+				now := time.Now()
+				skip.QueuedAt = &now
+				db.DB.Save(&skip)
+				m.UsedTrackIDs[skip.TrackID] = true
+			}
 			log.Printf("voting: advance - starting playback: %s", winner.Name)
 			if err := m.svc.StartPlayback(winner.URI); err != nil {
 				log.Printf("voting: start playback (winner): %v", err)
 			}
 		} else {
-			// Something playing: add winner to queue (winner only - no other candidates)
-			log.Printf("voting: advance - adding to queue: %s (%s)", winner.Name, winner.URI)
-			if err := m.svc.AddToQueue(winner.URI); err != nil {
-				log.Printf("voting: add to queue FAILED: %v", err)
-			} else {
-				log.Printf("voting: add to queue OK")
-			}
+			// Something playing: paid skips (FIFO) then vote winner on the Spotify queue.
+			log.Printf("voting: advance - queueing paid skips then winner: %s (%s)", winner.Name, winner.URI)
+			m.queuePaidSkipsBeforeWinner(winner.URI, winner.ID)
 		}
-		m.UsedTrackIDs[winner.ID] = true
+		if cp == nil || cp.Item == nil {
+			m.UsedTrackIDs[winner.ID] = true
+		}
 		m.pendingWinnerID = winner.ID
 		log.Printf("voting: voting ended, waiting for winner %s to start", winner.Name)
 

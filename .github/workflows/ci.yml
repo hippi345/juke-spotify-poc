@@ -13,6 +13,8 @@ jobs:
   server:
     name: Go server
     runs-on: ubuntu-latest
+    env:
+      GOFLAGS: -mod=mod
     defaults:
       run:
         working-directory: server
