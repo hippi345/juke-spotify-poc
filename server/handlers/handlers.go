@@ -41,9 +41,11 @@ func NotFound(c *gin.Context) {
 
 // Health returns a simple health check response
 func Health(c *gin.Context) {
+	instanceID, _ := c.Get("instance_id")
 	c.JSON(http.StatusOK, gin.H{
-		"status":  "ok",
-		"service": "juke-spotify-poc-api",
+		"status":      "ok",
+		"service":     "juke-spotify-poc-api",
+		"instance_id": instanceID,
 	})
 }
 

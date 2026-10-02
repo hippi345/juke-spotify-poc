@@ -1,6 +1,7 @@
 package paidskip
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,10 +14,15 @@ import (
 	"juke-spotify-poc/server/auth"
 	"juke-spotify-poc/server/config"
 	"juke-spotify-poc/server/db"
+	"juke-spotify-poc/server/events"
 	"juke-spotify-poc/server/models"
+	"juke-spotify-poc/server/tracing"
 	"juke-spotify-poc/server/voting"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"github.com/stripe/stripe-go/v81"
 	"github.com/stripe/stripe-go/v81/checkout/session"
 	"github.com/stripe/stripe-go/v81/webhook"
@@ -67,23 +73,18 @@ func (h *Handlers) CreateCheckout(c *gin.Context) {
 		return
 	}
 
-	sessionID := h.Manager.ActiveSessionID()
-	if sessionID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "no active session"})
-		return
-	}
-
 	var user models.User
 	if err := db.DB.First(&user, patronID).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
 		return
 	}
-	if user.JoinedVotingSessionID == nil || *user.JoinedVotingSessionID != sessionID {
+	if user.JoinedVotingSessionID == nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "join the venue session before paying to skip"})
 		return
 	}
+	sessionID := *user.JoinedVotingSessionID
 
-	trackURI, err := h.Manager.PlaylistTrackURI(trackID)
+	trackURI, err := h.Manager.TrackURIForVotingSession(sessionID, trackID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "track not on venue playlist"})
 		return
@@ -170,7 +171,7 @@ func (h *Handlers) StripeWebhook(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "parse session"})
 			return
 		}
-		if err := h.fulfillCheckoutSession(&cs); err != nil {
+		if err := h.fulfillCheckoutSession(c.Request.Context(), &cs); err != nil {
 			log.Printf("paidskip: fulfill failed: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -182,7 +183,7 @@ func (h *Handlers) StripeWebhook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"received": true})
 }
 
-func (h *Handlers) fulfillCheckoutSession(cs *stripe.CheckoutSession) error {
+func (h *Handlers) fulfillCheckoutSession(ctx context.Context, cs *stripe.CheckoutSession) error {
 	if cs.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
 		return nil
 	}
@@ -201,8 +202,7 @@ func (h *Handlers) fulfillCheckoutSession(cs *stripe.CheckoutSession) error {
 		return fmt.Errorf("missing metadata")
 	}
 
-	// Re-validate playlist membership at fulfillment time.
-	validatedURI, err := h.Manager.PlaylistTrackURI(trackID)
+	validatedURI, err := h.Manager.TrackURIForVotingSession(skip.VotingSessionID, trackID)
 	if err != nil {
 		skip.Status = "failed"
 		db.DB.Save(&skip)
@@ -218,9 +218,20 @@ func (h *Handlers) fulfillCheckoutSession(cs *stripe.CheckoutSession) error {
 		return err
 	}
 
+	payCtx, span := otel.Tracer(tracing.InstrumentationName).Start(ctx, "payment.publish",
+		trace.WithAttributes(
+			attribute.Int64("paid_skip.id", int64(skip.ID)),
+			attribute.Int64("voting.session_id", int64(skip.VotingSessionID)),
+		),
+	)
+	defer span.End()
+	_ = events.Default.PublishPayment(payCtx, events.PaymentPayload{
+		PaidSkipID:      skip.ID,
+		VotingSessionID: skip.VotingSessionID,
+	})
+
 	if err := h.Manager.ApplyPaidSkipAfterPayment(&skip); err != nil {
-		log.Printf("paidskip: queue after payment: %v", err)
-		// Payment is recorded; advance round may still pick up queued_at NULL rows.
+		log.Printf("paidskip: queue after payment on this replica: %v", err)
 	}
 	return nil
 }

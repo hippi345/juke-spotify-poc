@@ -1,13 +1,18 @@
 package venue
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"juke-spotify-poc/server/auth"
+	"juke-spotify-poc/server/cache"
 	"juke-spotify-poc/server/db"
 	"juke-spotify-poc/server/models"
+	"juke-spotify-poc/server/search"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,7 +48,48 @@ func (h *Handlers) Create(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create venue"})
 		return
 	}
+	_ = search.Default.IndexVenue(c.Request.Context(), search.VenueHit{
+		ID:        v.ID,
+		Name:      v.Name,
+		Latitude:  v.Latitude,
+		Longitude: v.Longitude,
+		StaffID:   v.StaffUserID,
+	})
 	c.JSON(http.StatusCreated, venueResponse(&v))
+}
+
+// Search finds venues by name (OpenSearch when configured, otherwise SQL fallback).
+func (h *Handlers) Search(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	if q == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "q query param required"})
+		return
+	}
+	limit := 20
+	if hits, err := search.Default.SearchVenues(c.Request.Context(), q, limit); err == nil && len(hits) > 0 {
+		out := make([]gin.H, 0, len(hits))
+		for _, hit := range hits {
+			out = append(out, gin.H{
+				"id":            hit.ID,
+				"name":          hit.Name,
+				"latitude":      hit.Latitude,
+				"longitude":     hit.Longitude,
+				"staff_user_id": hit.StaffID,
+			})
+		}
+		c.JSON(http.StatusOK, gin.H{"venues": out, "source": "opensearch"})
+		return
+	}
+	var venues []models.Venue
+	if err := db.DB.Where("name LIKE ?", "%"+q+"%").Limit(limit).Find(&venues).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not search venues"})
+		return
+	}
+	out := make([]gin.H, 0, len(venues))
+	for _, v := range venues {
+		out = append(out, venueResponse(&v))
+	}
+	c.JSON(http.StatusOK, gin.H{"venues": out, "source": "mysql"})
 }
 
 func (h *Handlers) Mine(c *gin.Context) {
@@ -76,6 +122,14 @@ func (h *Handlers) Nearby(c *gin.Context) {
 			radiusM = parsed
 		}
 	}
+
+	cacheKey := fmt.Sprintf("jukespotify:nearby:%.5f:%.5f:%.0f", lat, lng, radiusM)
+	if raw, ok := cache.Default.Get(c.Request.Context(), cacheKey); ok {
+		c.Header("X-Cache", "HIT")
+		c.Data(http.StatusOK, "application/json", []byte(raw))
+		return
+	}
+	c.Header("X-Cache", "MISS")
 
 	var venues []models.Venue
 	if err := db.DB.Find(&venues).Error; err != nil {
@@ -113,7 +167,11 @@ func (h *Handlers) Nearby(c *gin.Context) {
 			"requires_password":  joinProtected,
 		})
 	}
-	c.JSON(http.StatusOK, gin.H{"sessions": out})
+	resp := gin.H{"sessions": out}
+	raw, _ := json.Marshal(resp)
+	_ = cache.Default.Set(c.Request.Context(), cacheKey, string(raw), 30*time.Second)
+	c.Header("X-Cache", "MISS")
+	c.Data(http.StatusOK, "application/json", raw)
 }
 
 func (h *Handlers) Join(c *gin.Context) {

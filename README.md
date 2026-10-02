@@ -37,7 +37,7 @@ A proof-of-concept **collaborative jukebox**: a Go API connects to Spotify, runs
 docker compose up -d --build
 ```
 
-This starts MySQL, the Go API on **http://127.0.0.1:8081**, and the Vite dev host on **http://localhost:5173**. Compose loads **`docker-compose.env.example`** for placeholder env vars; copy it to **`docker-compose.env`** (gitignored) only when you want to override Spotify, Gemini, or Stripe settings locally.
+This starts the full production-shaped demo stack: **MySQL** (with scheduled dumps), **two Go API replicas** behind **nginx**, **Redis** (response and Spotify now-playing cache), **OpenSearch** (venue name search), **Kafka** (vote, payment, and session events only), **Prometheus** + **Grafana** (metrics), **Loki** + **Promtail** (container logs in Grafana), **Tempo** (distributed traces for votes and payments across the API and Kafka), and the **Vite** web client on **http://localhost:5173**. The API load balancer is **http://127.0.0.1:8081**; Grafana is **http://localhost:3000** (default login `admin` / `admin` unless you set `GRAFANA_ADMIN_PASSWORD`) with Prometheus, Loki, and Tempo datasources pre-provisioned. Compose loads **`docker-compose.env.example`** for placeholder env vars; copy it to **`docker-compose.env`** (gitignored) only when you want to override Spotify, Gemini, or Stripe settings locally.
 
 **Spotify use:** Personal demo only — not for commercial use, shared venues, or multi-tenant deployment (see intro above).
 
@@ -174,7 +174,8 @@ juke-spotify-poc/
 ├── server/              # Go + Gin API (vendored deps in vendor/)
 ├── mobile-client/       # Kotlin / Jetpack Compose Android app
 ├── scripts/             # MySQL / Docker helpers
-├── docker-compose.yml   # MySQL + API + web (Vite)
+├── docker-compose.yml   # MySQL, API replicas, nginx, Redis, OpenSearch, Kafka, metrics, web
+├── deploy/              # nginx, Prometheus, Grafana, MySQL backup scripts
 ├── .github/workflows/   # CI
 └── SECURITY.md          # Vulnerability reporting
 ```

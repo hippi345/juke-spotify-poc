@@ -1,12 +1,15 @@
 package voting
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
 	"sync"
 	"time"
 
+	"juke-spotify-poc/server/cache"
 	"juke-spotify-poc/server/db"
 	"juke-spotify-poc/server/models"
 	"juke-spotify-poc/server/spotify"
@@ -16,6 +19,7 @@ const (
 	roundEndBufferMs   = 15000 // End voting 15 seconds before song ends
 	advanceDebounceSec = 8     // Don't advance again within this many seconds
 	cpCacheTTL         = 4 * time.Second // Fresher now-playing for responsive UI
+	redisCpCacheKey      = "jukespotify:spotify:currently_playing"
 	refillDelayMs      = 80    // Brief delay between refill API calls (parallel fetches reduce total time)
 	refillCountMax     = 10    // Max tracks to add per refill (API throttling)
 )
@@ -95,6 +99,19 @@ func (m *Manager) GetOrFetchCurrentlyPlaying() (*spotify.CurrentlyPlaying, error
 	}
 	m.mu.RUnlock()
 
+	if !skipCache && ttl > 0 {
+		if raw, ok := cache.Default.Get(context.Background(), redisCpCacheKey); ok {
+			var cp spotify.CurrentlyPlaying
+			if json.Unmarshal([]byte(raw), &cp) == nil {
+				m.mu.Lock()
+				m.lastCp = &cp
+				m.lastCpAt = time.Now()
+				m.mu.Unlock()
+				return &cp, nil
+			}
+		}
+	}
+
 	cp, err := m.svc.GetCurrentlyPlaying()
 	if err != nil {
 		return nil, err
@@ -104,7 +121,18 @@ func (m *Manager) GetOrFetchCurrentlyPlaying() (*spotify.CurrentlyPlaying, error
 	m.lastCp = cp
 	m.lastCpAt = time.Now()
 	m.mu.Unlock()
+	if !skipCache && cp != nil {
+		if raw, err := json.Marshal(cp); err == nil {
+			_ = cache.Default.Set(context.Background(), redisCpCacheKey, string(raw), cpCacheTTL)
+		}
+	}
 	return cp, nil
+}
+
+func (m *Manager) invalidateCurrentlyPlayingCache() {
+	m.lastCp = nil
+	m.lastCpAt = time.Time{}
+	_ = cache.Default.Delete(context.Background(), redisCpCacheKey)
 }
 
 // NewManager creates a new voting manager
@@ -134,8 +162,7 @@ func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold,
 	}
 
 	// Invalidate now-playing cache so next poll fetches fresh data (avoids showing previous session's track)
-	m.lastCp = nil
-	m.lastCpAt = time.Time{}
+	m.invalidateCurrentlyPlayingCache()
 
 	if refillCount <= 0 {
 		refillCount = 10
@@ -515,8 +542,7 @@ func (m *Manager) AdvanceRound() error {
 		log.Printf("voting: voting ended, waiting for winner %s to start", winner.Name)
 
 		// Invalidate cp cache so next poll/tick fetches fresh data and detects winner sooner
-		m.lastCp = nil
-		m.lastCpAt = time.Time{}
+		m.invalidateCurrentlyPlayingCache()
 
 		// Refill when unused tracks (total - played) falls below threshold (runs in background)
 		if m.Session.RefillThreshold > 0 && m.Session.RefillCount > 0 {

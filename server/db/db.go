@@ -22,7 +22,7 @@ func SetDB(database *gorm.DB) {
 
 // Connect establishes a connection to MySQL using config
 func Connect(cfg *config.Config) error {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&timeout=5s&readTimeout=10s&writeTimeout=10s",
 		cfg.DBUser,
 		cfg.DBPassword,
 		cfg.DBHost,
