@@ -21,6 +21,7 @@ x-api-environment: &api-environment
   AUTH_SECRET: ${AUTH_SECRET:-local-dev-auth-secret-change-me}
   SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
   SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+  SPOTIFY_REFRESH_TOKEN: ${SPOTIFY_REFRESH_TOKEN:-}
   SPOTIFY_REDIRECT_URI: http://127.0.0.1:5173/api/spotify/callback
   APP_BASE_URL: http://localhost:5173
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}

@@ -23,8 +23,11 @@ fi
 
 API="${JUKE_API_BASE:-http://localhost:8081}"
 TEMPO="${TEMPO_URL:-http://localhost:3200}"
-PLAYLIST_ID="compose-session-walk-demo"
-PLAYLIST_NAME="Compose session walk demo"
+FIXTURE_PLAYLIST_ID="compose-session-walk-demo"
+FIXTURE_PLAYLIST_NAME="Compose session walk demo"
+PLAYLIST_ID="$FIXTURE_PLAYLIST_ID"
+PLAYLIST_NAME="$FIXTURE_PLAYLIST_NAME"
+USE_FIXTURE_PLAYLIST=1
 
 fail() {
   echo -e "${RED}FAIL:${NC} $*"
@@ -95,6 +98,61 @@ wait_for_kafka_log() {
   return 1
 }
 
+spotify_env_complete() {
+  [ -n "${SPOTIFY_CLIENT_ID:-}" ] && [ -n "${SPOTIFY_CLIENT_SECRET:-}" ] && [ -n "${SPOTIFY_REFRESH_TOKEN:-}" ]
+}
+
+spotify_access_token() {
+  curl -sf --max-time 30 -X POST "https://accounts.spotify.com/api/token" \
+    -u "${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}" \
+    -d "grant_type=refresh_token" \
+    -d "refresh_token=${SPOTIFY_REFRESH_TOKEN}" | jq -r '.access_token // empty'
+}
+
+spotify_search_track_uri() {
+  local token="$1" query="$2"
+  local enc uri
+  enc=$(printf '%s' "$query" | jq -sRr @uri)
+  uri=$(curl -sf --max-time 30 -H "Authorization: Bearer $token" \
+    "https://api.spotify.com/v1/search?q=${enc}&type=track&limit=1" \
+    | jq -r '.tracks.items[0].uri // empty')
+  [ -n "$uri" ] || return 1
+  printf '%s' "$uri"
+}
+
+create_session_walk_spotify_playlist() {
+  local token="$1" name="$2"
+  local pl_id body uris_json queries q uri
+  pl_id=$(curl -sf --max-time 30 -X POST "https://api.spotify.com/v1/me/playlists" \
+    -H "Authorization: Bearer $token" \
+    -H "Content-Type: application/json" \
+    -d "$(jq -nc --arg n "$name" --arg d "Ephemeral playlist for Compose session walk (automation only)" \
+      '{name:$n,description:$d,public:false}')" | jq -r '.id // empty')
+  [ -n "$pl_id" ] || return 1
+
+  uris_json='[]'
+  queries=(
+    "track:Mr. Brightside artist:The Killers"
+    "track:Yellow artist:Coldplay"
+    "track:Blinding Lights artist:The Weeknd"
+    "track:Levitating artist:Dua Lipa"
+    "track:Don't Stop Believin' artist:Journey"
+  )
+  for q in "${queries[@]}"; do
+    uri=$(spotify_search_track_uri "$token" "$q") || continue
+    uris_json=$(echo "$uris_json" | jq --arg u "$uri" '. + [$u]')
+  done
+  if [ "$(echo "$uris_json" | jq 'length')" -lt 3 ]; then
+    return 1
+  fi
+  body=$(jq -nc --argjson uris "$uris_json" '{uris:$uris}')
+  curl -sf --max-time 30 -X POST "https://api.spotify.com/v1/playlists/${pl_id}/items" \
+    -H "Authorization: Bearer $token" \
+    -H "Content-Type: application/json" \
+    -d "$body" >/dev/null || return 1
+  printf '%s' "$pl_id"
+}
+
 wait_for_tempo_span() {
   local span_name="$1"
   local i trace_id
@@ -122,6 +180,31 @@ echo "$lb_health" | jq -e '.status == "ok"' >/dev/null || fail "load balancer he
 ok "Stack healthy at $API"
 
 suffix=$(date +%s)
+
+if spotify_env_complete; then
+  spotify_connected=$(curl -sf --max-time 15 "$API/api/spotify/status" | jq -r '.connected // false')
+  if [ "$spotify_connected" = "true" ]; then
+    walk_token=$(spotify_access_token || true)
+    if [ -n "$walk_token" ]; then
+      walk_pl_name="Compose session walk ${suffix}"
+      if new_pl_id=$(create_session_walk_spotify_playlist "$walk_token" "$walk_pl_name"); then
+        PLAYLIST_ID="$new_pl_id"
+        PLAYLIST_NAME="$walk_pl_name"
+        USE_FIXTURE_PLAYLIST=0
+        ok "Venue Spotify connected; session walk will use dedicated playlist id=${PLAYLIST_ID}"
+      else
+        skip "Spotify credentials present but could not create/populate walk playlist — using session-walk fixture"
+      fi
+    else
+      skip "Spotify credentials present but refresh token exchange failed — using session-walk fixture"
+    fi
+  else
+    skip "Spotify env vars set but API has no connected venue account — using session-walk fixture"
+  fi
+else
+  skip "SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REFRESH_TOKEN not all set — using session-walk fixture playlist"
+fi
+
 staff_email="session-walk-staff-${suffix}@example.com"
 patron_email="session-walk-patron-${suffix}@example.com"
 pass="sessionwalkpass123"
@@ -138,7 +221,11 @@ venue_resp=$(json_post "$API/api/venues" "$staff_token" \
   "{\"name\":\"$venue_name\",\"latitude\":$venue_lat,\"longitude\":$venue_lng}")
 venue_id=$(echo "$venue_resp" | jq -r '.id')
 [[ -n "$venue_id" && "$venue_id" != "null" ]] || fail "venue create: $venue_resp"
-ok "Venue $venue_id created ($venue_name); playlist id=$PLAYLIST_ID (session-walk fixture)"
+if [ "$USE_FIXTURE_PLAYLIST" = "1" ]; then
+  ok "Venue $venue_id created ($venue_name); playlist id=$PLAYLIST_ID (session-walk fixture)"
+else
+  ok "Venue $venue_id created ($venue_name); playlist id=$PLAYLIST_ID (venue Spotify)"
+fi
 
 echo ""
 echo "--- Step 2: Staff starts a session ---"
@@ -219,8 +306,16 @@ echo ""
 echo "--- Step 5: Paid skip (Stripe test mode, optional) ---"
 if [ -z "${STRIPE_TEST_SECRET_KEY:-}" ]; then
   skip "STRIPE_TEST_SECRET_KEY not in environment — paid-skip payment and payment traces skipped"
+elif [ -z "${STRIPE_WEBHOOK_SECRET:-}" ]; then
+  skip "STRIPE_WEBHOOK_SECRET not in environment — paid-skip payment and payment traces skipped"
 else
-  paid_track="walk-track-echo"
+  if [ "$USE_FIXTURE_PLAYLIST" = "1" ]; then
+    paid_track="walk-track-echo"
+  else
+    paid_track=$(json_get "$API/api/voting/playlist-overview" "$patron_token" \
+      | jq -r --arg voted "$vote_track" '.tracks[]?.track.id | select(. != $voted)' | head -1)
+    [[ -n "$paid_track" ]] || fail "no alternate playlist track for paid skip (real Spotify playlist)"
+  fi
   overview=$(json_get "$API/api/voting/playlist-overview" "$patron_token")
   echo "$overview" | jq -e --arg t "$paid_track" '.tracks[]? | select(.track.id == $t)' >/dev/null \
     || fail "paid-skip track $paid_track not on playlist overview"
@@ -229,10 +324,6 @@ else
   [[ -n "$checkout_id" ]] || fail "checkout create: $checkout_resp"
   echo "$checkout_resp" | jq -e '.price_usd == "1.00"' >/dev/null || fail "unexpected checkout price: $checkout_resp"
   ok "Stripe Checkout session created for \$1.00 USD (id prefix ${checkout_id:0:8}…)"
-
-  if [ -z "${STRIPE_WEBHOOK_SECRET:-}" ]; then
-    fail "STRIPE_TEST_SECRET_KEY is set but STRIPE_WEBHOOK_SECRET is missing — cannot fulfill paid skip locally"
-  fi
 
   stripe_api="https://api.stripe.com/v1"
   session_json=$(curl -sf --max-time 30 -u "${STRIPE_TEST_SECRET_KEY}:" \
@@ -262,14 +353,44 @@ else
   echo "$wh_resp" | jq -e '.received == true' >/dev/null || fail "webhook failed: $wh_resp"
   ok "Paid skip fulfilled via Stripe test checkout + webhook"
 
-  wait_for_kafka_log "kafka payment:" || fail "Kafka payment event not observed"
+  wait_for_kafka_log "kafka payment: session=${session_id}" \
+    || fail "Kafka payment event not observed in API logs for session $session_id"
   ok "Kafka consumer logged payment event"
 
-  if wait_for_tempo_span "payment.publish" >/dev/null; then
-    ok "Tempo trace contains payment.publish (API)"
+  payment_http_trace=""
+  if payment_http_trace=$(wait_for_tempo_span "payment.publish"); then
+    ok "Tempo trace $payment_http_trace contains payment.publish (API)"
   else
     fail "Tempo: no payment.publish span after paid skip"
   fi
+
+  wait_for_tempo_kafka_payment() {
+    local track="$1"
+    local i trace_id blob
+    for i in $(seq 1 30); do
+      while IFS= read -r trace_id; do
+        [ -n "$trace_id" ] || continue
+        blob=$(curl -sf --max-time 15 "$TEMPO/api/traces/$trace_id" 2>/dev/null || true)
+        if [ -n "$blob" ] && echo "$blob" | grep -q 'kafka.consume' && echo "$blob" | grep -q "$track"; then
+          echo "$trace_id"
+          return 0
+        fi
+      done < <(curl -sf --max-time 15 "$TEMPO/api/search?limit=100" | jq -r '.traces[]?.traceID // empty' 2>/dev/null || true)
+      sleep 3
+    done
+    return 1
+  }
+
+  if payment_kafka_trace=$(wait_for_tempo_kafka_payment "$paid_track"); then
+    ok "Tempo trace $payment_kafka_trace contains kafka.consume for paid skip track (Kafka)"
+  else
+    fail "Tempo: no kafka.consume trace for paid skip track $paid_track"
+  fi
+
+  paid_overview=$(json_get "$API/api/voting/playlist-overview" "$patron_token")
+  echo "$paid_overview" | jq -e --arg t "$paid_track" '.tracks[]? | select(.track.id == $t and .played == true)' >/dev/null \
+    || fail "paid-skip track not marked played in session playlist overview: $paid_overview"
+  ok "Session playlist overview shows paid-skip track $paid_track as played"
 fi
 
 echo ""
