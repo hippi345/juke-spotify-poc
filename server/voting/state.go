@@ -22,9 +22,10 @@ const (
 
 // RoundState holds the current voting round
 type RoundState struct {
-	Candidates  []spotify.Track
-	Votes       map[string]int
-	RoundEndsAt time.Time
+	Candidates     []spotify.Track
+	Votes          map[string]int
+	VotedPatronIDs map[uint]bool // one vote per joined patron per round
+	RoundEndsAt    time.Time
 }
 
 // PlaylistTrackWithMeta extends a track with session metadata
@@ -48,6 +49,7 @@ type Manager struct {
 	lastAdvanceAt     time.Time
 	pendingWinnerID  string // winner added to queue; new round starts when this track begins playing
 	svc              *spotify.Client
+	removerOverride  playlistTrackRemover // tests only; when set, used instead of svc for refill cleanup
 
 	// Cache for GetCurrentlyPlaying to avoid duplicate calls from ticker + state handler
 	lastCp   *spotify.CurrentlyPlaying
@@ -108,10 +110,17 @@ func (m *Manager) GetOrFetchCurrentlyPlaying() (*spotify.CurrentlyPlaying, error
 // NewManager creates a new voting manager
 func NewManager(svc *spotify.Client) *Manager {
 	return &Manager{
-		UsedTrackIDs:    make(map[string]bool),
+		UsedTrackIDs:     make(map[string]bool),
 		RefilledTrackIDs: make(map[string]bool),
-		svc:             svc,
+		svc:              svc,
 	}
+}
+
+func (m *Manager) playlistRemover() playlistTrackRemover {
+	if m.removerOverride != nil {
+		return m.removerOverride
+	}
+	return m.svc
 }
 
 // StartSession creates a new voting session and fetches initial candidates.
@@ -291,7 +300,6 @@ func (m *Manager) EndSession() {
 
 	if m.Session != nil && m.Session.Status == "active" {
 		keepRefill := m.Session.KeepRefillTracks
-		playlistID := m.Session.PlaylistID
 		endedSessionID := m.Session.ID
 		m.Session.Status = "ended"
 		db.DB.Save(m.Session)
@@ -302,21 +310,11 @@ func (m *Manager) EndSession() {
 		_ = m.svc.PausePlayback()
 		time.Sleep(300 * time.Millisecond) // let pause propagate
 
-		if !keepRefill && len(m.RefilledTrackURIs) > 0 {
-			for i := 0; i < len(m.RefilledTrackURIs); i += 100 {
-				end := i + 100
-				if end > len(m.RefilledTrackURIs) {
-					end = len(m.RefilledTrackURIs)
-				}
-				batch := m.RefilledTrackURIs[i:end]
-				if err := m.svc.RemoveTracksFromPlaylist(playlistID, batch); err != nil {
-					log.Printf("voting: remove refilled tracks on session end: %v", err)
-				} else {
-					log.Printf("voting: removed %d refilled tracks from playlist", len(batch))
-				}
-			}
-		} else if keepRefill && len(m.RefilledTrackURIs) > 0 {
+		if keepRefill && len(m.RefilledTrackURIs) > 0 {
 			log.Printf("voting: session end — keeping %d refill tracks in playlist (per session option)", len(m.RefilledTrackURIs))
+		}
+		if err := removeRefillTracksForSession(m.playlistRemover(), m.Session); err != nil {
+			log.Printf("voting: session end refill cleanup: %v", err)
 		}
 	}
 	m.Session = nil
@@ -329,10 +327,14 @@ func (m *Manager) EndSession() {
 	m.sessionStartAt = time.Time{}
 }
 
-// Vote records a vote for a track
-func (m *Manager) Vote(trackID string) error {
+// Vote records a vote for a track from one joined patron (one vote per patron per round).
+func (m *Manager) Vote(patronUserID uint, trackID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	if patronUserID == 0 {
+		return fmt.Errorf("patron login required to vote")
+	}
 
 	if m.Round == nil {
 		return fmt.Errorf("no active round")
@@ -350,9 +352,17 @@ func (m *Manager) Vote(trackID string) error {
 		return fmt.Errorf("track not a candidate")
 	}
 
+	if m.Round.VotedPatronIDs == nil {
+		m.Round.VotedPatronIDs = make(map[uint]bool)
+	}
+	if m.Round.VotedPatronIDs[patronUserID] {
+		return ErrAlreadyVotedThisRound
+	}
+
 	if m.Round.Votes == nil {
 		m.Round.Votes = make(map[string]int)
 	}
+	m.Round.VotedPatronIDs[patronUserID] = true
 	m.Round.Votes[trackID]++
 	return nil
 }
@@ -619,9 +629,10 @@ func (m *Manager) fetchCandidatesLocked(nextSong *spotify.Track) (*RoundState, e
 	}
 
 	return &RoundState{
-		Candidates:  candidates,
-		Votes:       make(map[string]int),
-		RoundEndsAt: roundEndsAt,
+		Candidates:     candidates,
+		Votes:          make(map[string]int),
+		VotedPatronIDs: make(map[uint]bool),
+		RoundEndsAt:    roundEndsAt,
 	}, nil
 }
 
@@ -699,6 +710,9 @@ func (m *Manager) triggerRefillAsync(force bool) {
 			m.RefilledTrackIDs[id] = true
 		}
 		m.RefilledTrackURIs = append(m.RefilledTrackURIs, uris...)
+		if err := persistSessionRefillTracks(m.Session.ID, trackIDs, uris); err != nil {
+			log.Printf("voting: persist refill tracks: %v", err)
+		}
 		m.lastRefillAt = time.Now()
 		log.Printf("voting: refill added %d tracks to playlist", len(uris))
 	}()
