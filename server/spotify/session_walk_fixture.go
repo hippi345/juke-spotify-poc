@@ -1,19 +1,15 @@
 package spotify
 
-import (
-	"sync"
-	"time"
-)
+import "sync"
 
 // SessionWalkPlaylistID is the fixed playlist id used by scripts/compose-session-walk.sh
 // when Spotify is not connected. Playback calls are no-ops; tracks are served locally.
 const SessionWalkPlaylistID = "compose-session-walk-demo"
 
 var (
-	sessionWalkMu           sync.Mutex
+	sessionWalkMu            sync.Mutex
 	sessionWalkFixtureActive bool
-	sessionWalkNowPlaying   *Track
-	sessionWalkNowPlayingAt time.Time
+	sessionWalkNowPlaying    *Track
 )
 
 func isSessionWalkPlaylist(playlistID string) bool {
@@ -62,7 +58,6 @@ func setSessionWalkNowPlaying(trackURI string) {
 		if tr.URI == trackURI {
 			t := tr
 			sessionWalkNowPlaying = &t
-			sessionWalkNowPlayingAt = time.Now()
 			return
 		}
 	}
@@ -90,7 +85,6 @@ func getSessionWalkCurrentlyPlaying() (*CurrentlyPlaying, error) {
 		// Default idle state: first track at start so round timing works.
 		t := sessionWalkTracks()[0]
 		sessionWalkNowPlaying = &t
-		sessionWalkNowPlayingAt = time.Now()
 	}
 	return &CurrentlyPlaying{
 		IsPlaying:  true,
