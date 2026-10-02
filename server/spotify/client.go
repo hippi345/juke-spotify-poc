@@ -253,6 +253,9 @@ func (c *Client) Post(path string, body io.Reader) (*http.Response, error) {
 
 // GetCurrentlyPlaying fetches the currently playing track from Spotify
 func (c *Client) GetCurrentlyPlaying() (*CurrentlyPlaying, error) {
+	if sessionWalkPlaybackEnabled() {
+		return getSessionWalkCurrentlyPlaying()
+	}
 	resp, err := c.Get("/me/player/currently-playing")
 	if err != nil {
 		return nil, err
@@ -363,6 +366,9 @@ func (c *Client) GetPlaylists() ([]PlaylistItem, error) {
 // Uses /items endpoint (the /tracks endpoint is deprecated and returns 403)
 // Explicitly requests album.images so all tracks (including refill) display artwork
 func (c *Client) GetPlaylistTracks(playlistID string, offset int) (*PlaylistTracksResponse, error) {
+	if isSessionWalkPlaylist(playlistID) {
+		return getSessionWalkPlaylistTracks(offset)
+	}
 	fields := "items(track(id,name,uri,artists,album(id,name,images),duration_ms),item(id,name,uri,artists,album(id,name,images),duration_ms)),next,total"
 	path := fmt.Sprintf("/playlists/%s/items?limit=50&offset=%d&fields=%s", playlistID, offset, url.QueryEscape(fields))
 	resp, err := c.Get(path)
@@ -422,6 +428,10 @@ func (c *Client) TransferPlayback(deviceID string, play bool) error {
 // StartPlayback starts playback with the given track URI (or resumes if uri is empty).
 // Uses the account's ActiveDeviceID if set; otherwise falls back to auto-pick on 404.
 func (c *Client) StartPlayback(trackURI string) error {
+	if isSessionWalkTrackURI(trackURI) {
+		setSessionWalkNowPlaying(trackURI)
+		return nil
+	}
 	acc, _ := c.GetDefaultAccount()
 	preferredDevice := ""
 	if acc != nil && acc.ActiveDeviceID != "" {
@@ -586,6 +596,9 @@ func (c *Client) ClearQueue() {
 // On 404 (no active device), transfers to preferred or first available device and retries.
 // Does NOT call TransferPlayback on the happy path—that can pause playback.
 func (c *Client) AddToQueue(trackURI string) error {
+	if isSessionWalkTrackURI(trackURI) || sessionWalkPlaybackEnabled() {
+		return nil
+	}
 	acc, _ := c.GetDefaultAccount()
 	preferredDevice := ""
 	if acc != nil && acc.ActiveDeviceID != "" {
