@@ -27,9 +27,9 @@ type Config struct {
 	// HMAC secret for email login tokens (set AUTH_SECRET in production).
 	AuthSecret string
 
-	// Stripe (test mode) — paid skip demo; never commit live keys.
-	StripeSecretKey       string
-	StripeWebhookSecret   string
+	// Stripe test-mode secret for paid-skip demo (read from STRIPE_TEST_SECRET_KEY only).
+	StripeTestSecretKey string
+	StripeWebhookSecret string
 }
 
 // Load reads config from environment with sensible defaults for local Docker MySQL
@@ -54,7 +54,7 @@ func Load() *Config {
 
 		AuthSecret: loadAuthSecret(),
 
-		StripeSecretKey:     strings.TrimSpace(getEnv("STRIPE_SECRET_KEY", "")),
+		StripeTestSecretKey: strings.TrimSpace(getEnv("STRIPE_TEST_SECRET_KEY", "")),
 		StripeWebhookSecret: strings.TrimSpace(getEnv("STRIPE_WEBHOOK_SECRET", "")),
 	}
 }

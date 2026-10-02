@@ -92,8 +92,8 @@ Secrets are **never** committed. Use environment variables or gitignored `.env` 
 | `GEMINI_API_KEY` | — | Google AI key for VibeSense / AI playlists |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Optional model override |
 | `AUTH_SECRET` | — | HMAC secret for staff/patron login tokens (required for email auth) |
-| `STRIPE_SECRET_KEY` | — | Stripe **test** secret key (`sk_test_…`) for paid-skip checkout |
-| `STRIPE_WEBHOOK_SECRET` | — | Stripe webhook signing secret (`whsec_…`) for `POST /api/stripe/webhook` |
+| `STRIPE_TEST_SECRET_KEY` | — | Stripe **test** secret key for paid-skip checkout (set in your environment only; never commit) |
+| `STRIPE_WEBHOOK_SECRET` | — | Stripe webhook signing secret for `POST /api/stripe/webhook` (environment only) |
 
 ### Client
 

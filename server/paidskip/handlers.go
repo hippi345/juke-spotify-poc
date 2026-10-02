@@ -33,15 +33,15 @@ func (h *Handlers) ConfigInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"price_usd":       PriceUSD,
 		"currency":        Currency,
-		"stripe_enabled":  h.Config.StripeSecretKey != "",
+		"stripe_enabled":  h.Config.StripeTestSecretKey != "",
 		"product_name":    ProductName,
 	})
 }
 
 // CreateCheckout starts a Stripe Checkout session (test mode) for a playlist track.
 func (h *Handlers) CreateCheckout(c *gin.Context) {
-	if h.Config.StripeSecretKey == "" {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Stripe is not configured (set STRIPE_SECRET_KEY)"})
+	if h.Config.StripeTestSecretKey == "" {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Stripe test mode is not configured on the server"})
 		return
 	}
 	if auth.RoleFromContext(c) != "patron" {
@@ -89,7 +89,7 @@ func (h *Handlers) CreateCheckout(c *gin.Context) {
 		return
 	}
 
-	stripe.Key = h.Config.StripeSecretKey
+	stripe.Key = h.Config.StripeTestSecretKey
 	successURL := strings.TrimRight(h.Config.AppBaseURL, "/") + "/paid-skip/success?session_id={CHECKOUT_SESSION_ID}"
 	cancelURL := strings.TrimRight(h.Config.AppBaseURL, "/") + "/paid-skip/cancel"
 
