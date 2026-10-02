@@ -89,3 +89,22 @@ jobs:
 
       - name: Unit tests and debug APK
         run: ./gradlew testDebugUnitTest assembleDebug
+
+  compose-smoke:
+    name: Compose stack smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start production Compose stack
+        run: |
+          docker compose up -d --build --wait
+          docker compose ps
+
+      - name: Stack smoke test
+        run: ./scripts/smoke-stack.sh
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

@@ -54,6 +54,12 @@ services:
         condition: service_healthy
       tempo:
         condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/health | grep -q '\"status\":\"ok\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
 
   api-2:
     <<: *extra-hosts
@@ -81,6 +87,12 @@ services:
         condition: service_healthy
       tempo:
         condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/health | grep -q '\"status\":\"ok\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
 
   nginx:
     <<: *extra-hosts
@@ -91,8 +103,16 @@ services:
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - api-1
-      - api-2
+      api-1:
+        condition: service_healthy
+      api-2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/health | grep -q '\"status\":\"ok\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   web:
     <<: *extra-hosts
@@ -105,7 +125,14 @@ services:
     environment:
       VITE_API_URL: http://host.docker.internal:8081
     depends_on:
-      - nginx
+      nginx:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5173/ | grep -qi '<div id=\"root\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   mysql:
     image: mysql:8
@@ -149,6 +176,12 @@ services:
           bash /backup.sh
           sleep "$${BACKUP_INTERVAL_SEC}"
         done
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h \"$$DB_HOST\" -P \"$$DB_PORT\" -u \"$$DB_USER\" -p\"$$DB_PASSWORD\" --protocol=TCP"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
 
   redis:
     image: redis:7-alpine
@@ -225,6 +258,12 @@ services:
     depends_on:
       - api-1
       - api-2
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9090/-/healthy | grep -q Healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   grafana:
     <<: *extra-hosts
@@ -243,6 +282,12 @@ services:
       - prometheus
       - loki
       - tempo
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health | grep -q '\"database\":\"ok\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
 
   loki:
     image: grafana/loki:2.9.4
@@ -253,6 +298,12 @@ services:
     volumes:
       - ./deploy/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
       - jukespotify_loki_data:/loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3100/ready | grep -q '^ready$'"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
 
   promtail:
     <<: *extra-hosts
@@ -276,6 +327,12 @@ services:
     volumes:
       - ./deploy/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
       - jukespotify_tempo_data:/var/tempo
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3200/ready | grep -q ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
 
 volumes:
   jukespotify_mysql_data:
