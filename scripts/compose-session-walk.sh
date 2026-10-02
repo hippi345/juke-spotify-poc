@@ -12,6 +12,17 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+fail() {
+  echo -e "${RED}FAIL:${NC} $*"
+  exit 1
+}
+ok() {
+  echo -e "${GREEN}OK:${NC} $*"
+}
+skip() {
+  echo -e "${YELLOW}SKIP:${NC} $*"
+}
+
 COMPOSE="docker compose"
 if ! docker compose ps >/dev/null 2>&1; then
   if sudo docker compose ps >/dev/null 2>&1; then
@@ -28,17 +39,6 @@ FIXTURE_PLAYLIST_NAME="Compose session walk demo"
 PLAYLIST_ID="$FIXTURE_PLAYLIST_ID"
 PLAYLIST_NAME="$FIXTURE_PLAYLIST_NAME"
 USE_FIXTURE_PLAYLIST=1
-
-fail() {
-  echo -e "${RED}FAIL:${NC} $*"
-  exit 1
-}
-ok() {
-  echo -e "${GREEN}OK:${NC} $*"
-}
-skip() {
-  echo -e "${YELLOW}SKIP:${NC} $*"
-}
 
 json_post() {
   local url="$1" token="$2" body="$3"
