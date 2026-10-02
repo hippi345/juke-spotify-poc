@@ -2,6 +2,7 @@ package cors
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -68,7 +69,7 @@ func newCors(config Config) *cors {
 }
 
 func (cors *cors) applyCors(c *gin.Context) {
-	origin := c.Request.Header.Get("Origin")
+	origin := c.Request.Header.Get(headerOrigin)
 	if len(origin) == 0 {
 		// request is not a CORS request
 		return
@@ -86,7 +87,7 @@ func (cors *cors) applyCors(c *gin.Context) {
 		return
 	}
 
-	if c.Request.Method == "OPTIONS" {
+	if c.Request.Method == http.MethodOptions {
 		cors.handlePreflight(c)
 		defer c.AbortWithStatus(cors.optionsResponseStatusCode)
 	} else {
@@ -122,21 +123,32 @@ func (cors *cors) isOriginValid(c *gin.Context, origin string) bool {
 	return valid
 }
 
+var originRegex = regexp.MustCompile(`^/(.+)/[gimuy]?$`)
+
 func (cors *cors) validateOrigin(origin string) bool {
 	if cors.allowAllOrigins {
 		return true
 	}
+
 	for _, value := range cors.allowOrigins {
-		if value == origin {
+		if !originRegex.MatchString(value) && value == origin {
+			return true
+		}
+
+		if originRegex.MatchString(value) &&
+			regexp.MustCompile(originRegex.FindStringSubmatch(value)[1]).MatchString(origin) {
 			return true
 		}
 	}
+
 	if len(cors.wildcardOrigins) > 0 && cors.validateWildcardOrigin(origin) {
 		return true
 	}
+
 	if cors.allowOriginFunc != nil {
 		return cors.allowOriginFunc(origin)
 	}
+
 	return false
 }
 
