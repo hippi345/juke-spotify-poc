@@ -55,6 +55,9 @@ func main() {
 	if err := db.Connect(cfg); err != nil {
 		log.Fatalf("Database connection failed: %v", err)
 	}
+	if err := spotify.BootstrapVenueAccountFromEnv(cfg); err != nil {
+		log.Printf("Spotify venue bootstrap: %v", err)
+	}
 	if err := cache.InitRedis(cfg.RedisAddr); err != nil {
 		log.Fatalf("Redis connection failed: %v", err)
 	}
@@ -215,6 +218,7 @@ func handleKafkaMessage(ctx context.Context, topic string, value []byte, mgr *vo
 		if skip.Status != "paid" {
 			return nil
 		}
+		log.Printf("kafka payment: session=%d paid_skip_id=%d track=%s", p.VotingSessionID, p.PaidSkipID, skip.TrackID)
 		if err := mgr.ApplyPaidSkipAfterPayment(&skip); err != nil {
 			log.Printf("kafka payment: apply paid skip %d: %v", skip.ID, err)
 			span.RecordError(err)

@@ -18,6 +18,8 @@ type Config struct {
 	SpotifyClientID     string
 	SpotifyClientSecret string
 	SpotifyRedirectURI  string
+	// Long-lived refresh token for the venue playback account (automation / CI only).
+	SpotifyVenueRefreshToken string
 	AppBaseURL          string
 
 	// Google AI (Gemini) — used for AI-generated playlists (server-side only)
@@ -53,9 +55,10 @@ func Load() *Config {
 		DBName:     getEnv("DB_NAME", "jukespotify"),
 		ServerPort: port,
 
-		SpotifyClientID:     getEnv("SPOTIFY_CLIENT_ID", ""),
-		SpotifyClientSecret: getEnv("SPOTIFY_CLIENT_SECRET", ""),
-		SpotifyRedirectURI:  getEnv("SPOTIFY_REDIRECT_URI", "http://127.0.0.1:5173/api/spotify/callback"),
+		SpotifyClientID:          getEnv("SPOTIFY_CLIENT_ID", ""),
+		SpotifyClientSecret:      getEnv("SPOTIFY_CLIENT_SECRET", ""),
+		SpotifyRedirectURI:       getEnv("SPOTIFY_REDIRECT_URI", "http://127.0.0.1:5173/api/spotify/callback"),
+		SpotifyVenueRefreshToken: strings.TrimSpace(getEnv("SPOTIFY_REFRESH_TOKEN", "")),
 		AppBaseURL:          getEnv("APP_BASE_URL", "http://localhost:5173"),
 
 		GeminiAPIKey: loadGeminiAPIKey(),
