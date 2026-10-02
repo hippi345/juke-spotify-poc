@@ -122,7 +122,7 @@ func RunConsumer(ctx context.Context, brokers string, groupID string, topics []s
 				MinBytes: 1,
 				MaxBytes: 10e6,
 			})
-			defer r.Close()
+			defer func() { _ = r.Close() }()
 			for {
 				msg, err := r.ReadMessage(ctx)
 				if err != nil {

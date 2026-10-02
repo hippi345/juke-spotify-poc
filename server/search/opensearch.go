@@ -45,7 +45,7 @@ func (o *osIndexer) ensureIndex(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode == http.StatusOK {
 		return nil
 	}
@@ -75,7 +75,7 @@ func (o *osIndexer) ensureIndex(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer putResp.Body.Close()
+	defer func() { _ = putResp.Body.Close() }()
 	if putResp.StatusCode >= 300 {
 		b, _ := io.ReadAll(putResp.Body)
 		return fmt.Errorf("create index: %s", string(b))
@@ -101,7 +101,7 @@ func (o *osIndexer) IndexVenue(ctx context.Context, v VenueHit) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("index venue: %s", string(b))
@@ -136,7 +136,7 @@ func (o *osIndexer) SearchVenues(ctx context.Context, query string, limit int) (
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("search venues: %s", string(b))

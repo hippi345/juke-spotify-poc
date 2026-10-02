@@ -26,13 +26,8 @@ func Init(ctx context.Context, endpoint, serviceName, instanceID string) (func(c
 		return nil, nil
 	}
 
-	host := endpoint
-	if strings.HasPrefix(host, "http://") {
-		host = strings.TrimPrefix(host, "http://")
-	}
-	if strings.HasPrefix(host, "https://") {
-		host = strings.TrimPrefix(host, "https://")
-	}
+	host := strings.TrimPrefix(endpoint, "http://")
+	host = strings.TrimPrefix(host, "https://")
 
 	exporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithEndpoint(host),
