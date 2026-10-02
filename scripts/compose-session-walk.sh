@@ -13,8 +13,12 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 COMPOSE="docker compose"
-if ! docker compose version >/dev/null 2>&1; then
-  COMPOSE="sudo docker compose"
+if ! docker compose ps >/dev/null 2>&1; then
+  if sudo docker compose ps >/dev/null 2>&1; then
+    COMPOSE="sudo docker compose"
+  elif ! docker compose version >/dev/null 2>&1; then
+    fail "docker compose is not available"
+  fi
 fi
 
 API="${JUKE_API_BASE:-http://localhost:8081}"
