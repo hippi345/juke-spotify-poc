@@ -1,6 +1,7 @@
 package voting
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -208,29 +209,31 @@ func (h *Handlers) Vote(c *gin.Context) {
 		return
 	}
 
-	if auth.RoleFromContext(c) == "patron" {
-		patronID := auth.UserIDFromContext(c)
-		if patronID == 0 {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "patron login required to vote"})
-			return
-		}
-		var user models.User
-		if err := db.DB.First(&user, patronID).Error; err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
-			return
-		}
-		session, _, _ := h.Manager.GetState(nil)
-		if session == nil || session.Status != "active" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "no active session"})
-			return
-		}
-		if user.JoinedVotingSessionID == nil || *user.JoinedVotingSessionID != session.ID {
-			c.JSON(http.StatusForbidden, gin.H{"error": "join the venue session before voting"})
-			return
-		}
+	patronID := auth.UserIDFromContext(c)
+	if patronID == 0 || auth.RoleFromContext(c) != "patron" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "patron login required to vote"})
+		return
+	}
+	var user models.User
+	if err := db.DB.First(&user, patronID).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+		return
+	}
+	session, _, _ := h.Manager.GetState(nil)
+	if session == nil || session.Status != "active" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no active session"})
+		return
+	}
+	if user.JoinedVotingSessionID == nil || *user.JoinedVotingSessionID != session.ID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "join the venue session before voting"})
+		return
 	}
 
-	if err := h.Manager.Vote(body.TrackID); err != nil {
+	if err := h.Manager.Vote(patronID, body.TrackID); err != nil {
+		if errors.Is(err, ErrAlreadyVotedThisRound) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

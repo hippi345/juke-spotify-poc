@@ -88,6 +88,7 @@ func main() {
 
 	// Voting
 	votingManager := voting.NewManager(spotifyClient)
+	voting.RecoverOrphanedActiveSessions(votingManager)
 	votingHandlers := &voting.Handlers{Manager: votingManager, Svc: spotifyClient}
 	votingTicker := voting.NewTicker(votingManager, spotifyClient)
 	votingTicker.Start()
