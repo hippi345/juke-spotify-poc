@@ -21,6 +21,10 @@ type VotePayload struct {
 	SessionID uint   `json:"session_id"`
 	PatronID  uint   `json:"patron_id"`
 	TrackID   string `json:"track_id"`
+	VenueID   uint   `json:"venue_id,omitempty"`
+	Title     string `json:"title,omitempty"`
+	Artist    string `json:"artist,omitempty"`
+	Genres    string `json:"genres,omitempty"`
 }
 
 // PaymentPayload is published when a paid skip is marked paid.
@@ -110,34 +114,39 @@ type Handler func(ctx context.Context, topic string, value []byte, headers []kaf
 func RunConsumer(ctx context.Context, brokers string, groupID string, topics []string, h Handler) {
 	brokers = strings.TrimSpace(brokers)
 	if brokers == "" || len(topics) == 0 {
+		log.Printf("kafka: consumer not started (brokers or topics empty)")
 		return
 	}
-	addrs := strings.Split(brokers, ",")
-	for _, topic := range topics {
-		go func(topic string) {
-			r := kafka.NewReader(kafka.ReaderConfig{
-				Brokers:  addrs,
-				GroupID:  groupID,
-				Topic:    topic,
-				MinBytes: 1,
-				MaxBytes: 10e6,
-			})
-			defer func() { _ = r.Close() }()
-			for {
-				msg, err := r.ReadMessage(ctx)
-				if err != nil {
-					if ctx.Err() != nil {
-						return
-					}
-					log.Printf("kafka: read %s: %v", topic, err)
-					time.Sleep(time.Second)
-					continue
-				}
-				msgCtx := extractTraceContext(ctx, msg.Headers)
-				if err := h(msgCtx, topic, msg.Value, msg.Headers); err != nil {
-					log.Printf("kafka: handle %s: %v", topic, err)
-				}
-			}
-		}(topic)
+	if !waitForKafkaBroker(brokers) {
+		log.Printf("kafka: starting consumer anyway; reads will retry until broker is up")
 	}
+	ensureKafkaTopics(brokers, topics)
+	addrs := strings.Split(brokers, ",")
+	go func() {
+		log.Printf("kafka: consumer started topics=%v group=%s brokers=%s", topics, groupID, brokers)
+		r := kafka.NewReader(kafka.ReaderConfig{
+			Brokers:     addrs,
+			GroupID:     groupID,
+			GroupTopics: topics,
+			MinBytes:    1,
+			MaxBytes:    10e6,
+			StartOffset: kafka.FirstOffset,
+		})
+		defer func() { _ = r.Close() }()
+		for {
+			msg, err := r.ReadMessage(ctx)
+			if err != nil {
+				if ctx.Err() != nil {
+					return
+				}
+				log.Printf("kafka: read topics=%v: %v", topics, err)
+				time.Sleep(time.Second)
+				continue
+			}
+			msgCtx := extractTraceContext(ctx, msg.Headers)
+			if err := h(msgCtx, msg.Topic, msg.Value, msg.Headers); err != nil {
+				log.Printf("kafka: handle %s: %v", msg.Topic, err)
+			}
+		}
+	}()
 }

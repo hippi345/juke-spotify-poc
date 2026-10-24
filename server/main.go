@@ -24,6 +24,7 @@ import (
 	"juke-spotify-poc/server/search"
 	"juke-spotify-poc/server/spotify"
 	"juke-spotify-poc/server/tracing"
+	"juke-spotify-poc/server/vector"
 	"juke-spotify-poc/server/venue"
 	"juke-spotify-poc/server/voting"
 
@@ -60,6 +61,9 @@ func main() {
 	}
 	if err := search.InitOpenSearch(cfg.OpenSearchURL); err != nil {
 		log.Fatalf("OpenSearch init failed: %v", err)
+	}
+	if err := vector.Init(cfg.VibeSenseVectorEnabled, cfg.OpenSearchURL, cfg.GeminiAPIKey, cfg.EmbedProvider); err != nil {
+		log.Printf("vector init: %v", err)
 	}
 	if err := events.InitKafka(cfg.KafkaBrokers); err != nil {
 		log.Fatalf("Kafka init failed: %v", err)
@@ -104,6 +108,7 @@ func main() {
 	r.GET("/api/venues/search", venueHandlers.Search)
 	r.GET("/api/venues/nearby", venueHandlers.Nearby)
 	r.POST("/api/venues/:id/join", venueHandlers.Join)
+	r.GET("/api/venues/:id/tracks/similar", handlers.SimilarVenueTracks(cfg))
 
 	// Spotify OAuth
 	spotifyClient := spotify.NewClient(cfg)
@@ -247,6 +252,7 @@ func handleKafkaMessage(ctx context.Context, topic string, value []byte, mgr *vo
 			attribute.String("track.id", p.TrackID),
 		)
 		log.Printf("kafka vote: session=%d patron=%d track=%s", p.SessionID, p.PatronID, p.TrackID)
+		vector.HandleVoteEvent(ctx, p)
 	}
 	return nil
 }
