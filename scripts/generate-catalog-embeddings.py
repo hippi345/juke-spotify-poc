@@ -26,18 +26,19 @@ VECTORS = OUT_DIR / "catalog_track_embeddings.f32"
 
 # Keep in sync with evals/catalog_eval_queries.go
 EVAL_QUERIES = [
-    "crepuscule highway outing with companions",
-    "amber sky relaxed social drive",
-    "post-shift decompression on the veranda",
-    "gentle unwinding after overtime ends",
-    "breezy open-air gathering at dayfade",
-    "convivial horizon cruise among companions",
-    "homeward inbound commute calm-down playlist",
-    "leisurely al fresco atmosphere at dayend",
-    "coral radiance social ride with mates",
-    "vesper veranda decompression interlude",
-    "crimson sky companionable road trip",
-    "soft glowing commute unwind with crew",
+    "something easygoing for after work drinks",
+    "playlist while the sky turns orange",
+    "laid back stuff for hanging on the deck",
+    "what is spun a lot during the pre-dinner window",
+    "need soft songs for chatting with your group",
+    "music for easing into supper",
+    "well liked picks that seem cozy and kind",
+    "gentle background for our table tonight",
+    "bouncy but not too loud for the deck",
+    "what fits a low key hangout",
+    "tunes patrons keep asking us to play",
+    "play whatever fits an unhurried kind vibe",
+    "suggestions for a snug open air meetup",
 ]
 
 STORED_DIM = 768

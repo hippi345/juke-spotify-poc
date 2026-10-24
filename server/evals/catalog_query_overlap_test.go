@@ -38,9 +38,9 @@ func TestCatalogEvalQueriesNoStemOverlapWithPlanted(t *testing.T) {
 		t.Fatal("no planted tracks")
 	}
 	for _, query := range catalogEvalQueries {
-		qTok := tokenSetStemmedNoStop(query)
+		qTok := tokenSetFromIndexTokens(query) // same pipeline as catalogIndexTokens / BM25
 		for _, tr := range planted {
-			docTok := tokenSetStemmedNoStop(CatalogTrackIndexText(tr))
+			docTok := tokenSetFromIndexTokens(CatalogTrackIndexText(tr))
 			for tok := range qTok {
 				if docTok[tok] {
 					t.Fatalf("query %q shares stemmed token %q with planted track %q — %q",

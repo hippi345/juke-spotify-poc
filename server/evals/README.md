@@ -13,28 +13,33 @@ python3 scripts/generate-catalog-embeddings.py          # local open model (comm
 # GEMINI_API_KEY=... python3 scripts/generate-catalog-embeddings.py --provider gemini
 ```
 
-Eval paraphrase queries use committed query vectors only (no query hints). The keyword arm is **Okapi BM25** with **Porter stemming** over the same index text as embeddings (`title`, `artist`, `genres`, `mood`, `tempo` — no album column in the SAMPLE fixture). `TestCatalogEvalQueriesNoStemOverlapWithPlanted` requires zero stemmed-token overlap (stopwords excluded) between each of **12** paraphrase queries and planted-track index text.
+Eval uses **13** natural guest-style paraphrase queries (committed query vectors only). The keyword arm is **Okapi BM25** via `catalogIndexTokens` (Porter stem + shared stopword list) over the same index text as embeddings. `TestCatalogEvalQueriesNoStemOverlapWithPlanted` uses that **same** token pipeline for overlap checks vs planted-track index text.
 
-**Aggregate retrieval gate** (`TestCatalogVectorRetrievalIntegration`): mean vector recall@20 and nDCG@20 must beat BM25 by **≥0.12** / **≥0.10**, and vector must win (**recall and nDCG both higher**) on **≥ half** of queries. If the gate fails honestly, the test **skips** with metrics (not tuned). Planted sunset keys come from `scripts/generate-venue-catalog.py` only (not MiniLM retrieval).
+**BM25 false-positive root cause (fixed):** the overlap test previously stripped stopwords while BM25 did not, so tokens like `the` and `at` still scored in BM25 (e.g. “The Weeknd”, “Live at The Echo”) and, with tied scores, catalog order biased toward planted rows—showing recall@20=1.0 despite no real paraphrase overlap. Overlap and BM25 now share `catalogIndexTokens`.
 
-### Catalog retrieval metrics (last CI run, planted sunset @20)
+Catalog v2 adds **120 hard decoys** (sunrise/morning-coffee, late-night-club, rainy-evening) and **sparse metadata** on 7 planted rows. Regenerate: `python3 scripts/generate-venue-catalog.py` then `python3 scripts/generate-catalog-embeddings.py`.
+
+**Aggregate retrieval gate:** mean vector recall@20 and nDCG@20 must beat BM25 by **≥0.12** / **≥0.10**, and vector must win on **≥ half** of queries (strict on both metrics). Honest miss → `t.Skipf` with the metric table (not tuned).
+
+### Catalog retrieval metrics (planted sunset @20, local run)
 
 | Query | vec R@20 | bm25 R@20 | vec nDCG | bm25 nDCG |
 |-------|----------|-----------|----------|-----------|
-| crepuscule highway outing with companions | 1.000 | 0.000 | 1.000 | 0.000 |
-| amber sky relaxed social drive | 1.000 | 0.000 | 1.000 | 0.000 |
-| post-shift decompression on the veranda | 1.000 | 1.000 | 1.000 | 1.000 |
-| gentle unwinding after overtime ends | 1.000 | 0.000 | 1.000 | 0.000 |
-| breezy open-air gathering at dayfade | 1.000 | 1.000 | 1.000 | 1.000 |
-| convivial horizon cruise among companions | 1.000 | 0.000 | 1.000 | 0.000 |
-| homeward inbound commute calm-down playlist | 1.000 | 0.000 | 1.000 | 0.000 |
-| leisurely al fresco atmosphere at dayend | 1.000 | 1.000 | 1.000 | 1.000 |
-| coral radiance social ride with mates | 1.000 | 0.000 | 1.000 | 0.000 |
-| vesper veranda decompression interlude | 1.000 | 0.000 | 1.000 | 0.000 |
-| crimson sky companionable road trip | 1.000 | 0.000 | 1.000 | 0.000 |
-| soft glowing commute unwind with crew | 1.000 | 0.000 | 1.000 | 0.000 |
+| something easygoing for after work drinks | 1.000 | 0.000 | 1.000 | 0.000 |
+| playlist while the sky turns orange | 1.000 | 0.000 | 1.000 | 0.000 |
+| laid back stuff for hanging on the deck | 1.000 | 0.000 | 1.000 | 0.000 |
+| what is spun a lot during the pre-dinner window | 1.000 | 0.000 | 1.000 | 0.000 |
+| need soft songs for chatting with your group | 0.750 | 0.000 | 0.638 | 0.000 |
+| music for easing into supper | 1.000 | 0.000 | 1.000 | 0.000 |
+| well liked picks that seem cozy and kind | 0.750 | 0.000 | 0.652 | 0.000 |
+| gentle background for our table tonight | 1.000 | 0.000 | 1.000 | 0.000 |
+| bouncy but not too loud for the deck | 1.000 | 0.000 | 1.000 | 0.000 |
+| what fits a low key hangout | 0.950 | 0.000 | 0.953 | 0.000 |
+| tunes patrons keep asking us to play | 1.000 | 0.000 | 1.000 | 0.000 |
+| play whatever fits an unhurried kind vibe | 0.000 | 0.000 | 0.000 | 0.000 |
+| suggestions for a snug open air meetup | 1.000 | 0.000 | 1.000 | 0.000 |
 
-**Means:** vec recall **1.000**, bm25 **0.250** (Δ **0.750**); vec nDCG **1.000**, bm25 **0.250** (Δ **0.750**); vector wins **9/12** queries (strict recall **and** nDCG).
+**Means:** vec recall **0.881**, bm25 **0.000** (Δ **0.881**); vec nDCG **0.865**, bm25 **0.000** (Δ **0.865**); vector wins **12/13** queries (strict recall **and** nDCG).
 
 ## Case matrix by feature
 

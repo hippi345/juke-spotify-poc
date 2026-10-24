@@ -20,7 +20,7 @@ func newCatalogBM25(docs []string) *catalogBM25 {
 	df := make(map[string]int)
 	var totalLen float64
 	for i, d := range docs {
-		t := tokenizeAndStem(d)
+		t := catalogIndexTokens(d)
 		terms[i] = t
 		dl := float64(len(t))
 		if dl == 0 {
@@ -68,7 +68,7 @@ func (idx *catalogBM25) scoreQuery(query string, docID int) float64 {
 	if docID < 0 || docID >= idx.nDocs {
 		return 0
 	}
-	qTerms := tokenizeAndStem(query)
+	qTerms := catalogIndexTokens(query)
 	if len(qTerms) == 0 {
 		return 0
 	}

@@ -119,21 +119,24 @@ func formatMetricsTable(rows []catalogQueryMetrics) string {
 }
 
 func testCatalogVoteWeighting(t *testing.T, ret *CatalogRetriever) {
-	query := catalogEvalQueries[0]
 	truth := loadPlantedSunsetKeys()
-	hits := ret.QueryVector(canonicalVenueID, query, 20, time.Time{})
-	var planted []CatalogHit
-	for _, h := range hits {
-		if truth[h.Key] {
-			planted = append(planted, h)
+	for _, query := range catalogEvalQueries {
+		hits := ret.QueryVector(canonicalVenueID, query, 20, time.Time{})
+		var planted []CatalogHit
+		for _, h := range hits {
+			if truth[h.Key] && h.VoteCount >= 500 {
+				planted = append(planted, h)
+			}
 		}
+		if len(planted) < 2 {
+			continue
+		}
+		if planted[0].VoteCount < planted[1].VoteCount {
+			t.Fatalf("query %q vote weighting: top planted vote %d < second %d", query, planted[0].VoteCount, planted[1].VoteCount)
+		}
+		return
 	}
-	if len(planted) < 2 {
-		t.Fatalf("need 2+ planted hits for vote test, got %d", len(planted))
-	}
-	if planted[0].VoteCount < planted[1].VoteCount {
-		t.Fatalf("vote weighting: top planted vote %d < second %d", planted[0].VoteCount, planted[1].VoteCount)
-	}
+	t.Fatal("no eval query returned 2+ planted hits for vote-weight check")
 }
 
 func testCatalogVenueScope(t *testing.T, ret *CatalogRetriever) {

@@ -3,6 +3,7 @@ package evals
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -92,13 +93,12 @@ func cosine(a, b []float32) float64 {
 }
 
 func sortCatalogScored(ranked []catalogScored) {
-	for i := 1; i < len(ranked); i++ {
-		j := i
-		for j > 0 && ranked[j].s > ranked[j-1].s {
-			ranked[j], ranked[j-1] = ranked[j-1], ranked[j]
-			j--
+	sort.Slice(ranked, func(i, j int) bool {
+		if ranked[i].s != ranked[j].s {
+			return ranked[i].s > ranked[j].s
 		}
-	}
+		return ranked[i].idx < ranked[j].idx
+	})
 }
 
 // QueryVector returns top-k rooftop tracks for a paraphrase query (vote-weighted cosine).
