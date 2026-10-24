@@ -1,11 +1,6 @@
 package gemini
 
-import (
-	"net/http"
-	"net/url"
-	"regexp"
-	"strings"
-)
+import "net/http"
 
 const apiKeyHeader = "x-goog-api-key"
 
@@ -19,18 +14,4 @@ func SetAPIKeyHeader(req *http.Request, apiKey string) {
 	if apiKey != "" {
 		req.Header.Set(apiKeyHeader, apiKey)
 	}
-}
-
-// RedactSecrets removes API keys and key= query fragments from strings intended for logs or clients.
-func RedactSecrets(s string, secrets ...string) string {
-	for _, sec := range secrets {
-		sec = strings.TrimSpace(sec)
-		if sec == "" {
-			continue
-		}
-		s = strings.ReplaceAll(s, sec, "[REDACTED]")
-		s = strings.ReplaceAll(s, url.QueryEscape(sec), "[REDACTED]")
-	}
-	s = regexp.MustCompile(`(?i)([?&]key=)[^&\s"']+`).ReplaceAllString(s, "${1}[REDACTED]")
-	return s
 }

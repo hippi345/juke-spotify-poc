@@ -1,0 +1,11 @@
+title = "juke-spotify-poc gitleaks"
+
+[allowlist]
+description = "Intentional fake keys in tests and adversarial eval fixtures"
+paths = [
+  '''(^|/).*_test\.go$''',
+  '''server/evals/cases\.go$''',
+  '''server/evals/key_leak\.go$''',
+  '''scripts/prepare-artifact-upload\.sh$''',
+  '''scripts/check-artifact-secrets\.sh$''',
+]

@@ -88,6 +88,16 @@ func (j *GeminiJudge) Score(description string, suggestions []gemini.TrackSugges
 	for _, s := range suggestions {
 		trackLines = append(trackLines, fmt.Sprintf("- %s — %s", s.Title, s.Artist))
 	}
+	useMood := true
+	if c := caseByID(currentCaseID); c != nil && !c.MoodRubric {
+		useMood = false
+	}
+	var rubric string
+	if useMood {
+		rubric = `Score mood_fit, crowd_fit, variety, and coherence (1-5 integers).`
+	} else {
+		rubric = `This is a "more like these artists" request — set mood_fit to 0 and mood_reason to "n/a". Score crowd_fit, variety, and coherence (1-5 integers).`
+	}
 	prompt := fmt.Sprintf(`You are evaluating an AI-generated playlist for a venue jukebox.
 
 Playlist brief:
@@ -96,9 +106,9 @@ Playlist brief:
 Tracks:
 %s
 
-Score each dimension 1-5 (integers). Return ONLY JSON:
+%s Return ONLY JSON:
 {"mood_fit":3,"crowd_fit":3,"variety":3,"coherence":3,"mood_reason":"...","crowd_reason":"...","variety_reason":"...","coherence_reason":"..."}
-`, description, strings.Join(trackLines, "\n"))
+`, description, strings.Join(trackLines, "\n"), rubric)
 
 	body := map[string]interface{}{
 		"contents": []map[string]interface{}{

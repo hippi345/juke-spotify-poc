@@ -1,0 +1,572 @@
+{
+  "artist raglofiretrieval 1 track 1": [
+    {
+      "id": "id-rag_lofi_retrieval-0",
+      "name": "Track 1",
+      "uri": "spotify:track:id-rag_lofi_retrieval-0",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist raglofiretrieval 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist raglofiretrieval 1 track 6": [
+    {
+      "id": "id-rag_lofi_retrieval-5",
+      "name": "Track 6",
+      "uri": "spotify:track:id-rag_lofi_retrieval-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist raglofiretrieval 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist raglofiretrieval 2 track 2": [
+    {
+      "id": "id-rag_lofi_retrieval-1",
+      "name": "Track 2",
+      "uri": "spotify:track:id-rag_lofi_retrieval-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist raglofiretrieval 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist raglofiretrieval 2 track 7": [
+    {
+      "id": "id-rag_lofi_retrieval-6",
+      "name": "Track 7",
+      "uri": "spotify:track:id-rag_lofi_retrieval-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist raglofiretrieval 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist raglofiretrieval 3 track 3": [
+    {
+      "id": "id-rag_lofi_retrieval-2",
+      "name": "Track 3",
+      "uri": "spotify:track:id-rag_lofi_retrieval-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist raglofiretrieval 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist raglofiretrieval 3 track 8": [
+    {
+      "id": "id-rag_lofi_retrieval-7",
+      "name": "Track 8",
+      "uri": "spotify:track:id-rag_lofi_retrieval-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist raglofiretrieval 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist raglofiretrieval 4 track 4": [
+    {
+      "id": "id-rag_lofi_retrieval-3",
+      "name": "Track 4",
+      "uri": "spotify:track:id-rag_lofi_retrieval-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist raglofiretrieval 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist raglofiretrieval 4 track 9": [
+    {
+      "id": "id-rag_lofi_retrieval-8",
+      "name": "Track 9",
+      "uri": "spotify:track:id-rag_lofi_retrieval-8",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist raglofiretrieval 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist raglofiretrieval 5 track 10": [
+    {
+      "id": "id-rag_lofi_retrieval-9",
+      "name": "Track 10",
+      "uri": "spotify:track:id-rag_lofi_retrieval-9",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist raglofiretrieval 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist raglofiretrieval 5 track 5": [
+    {
+      "id": "id-rag_lofi_retrieval-4",
+      "name": "Track 5",
+      "uri": "spotify:track:id-rag_lofi_retrieval-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist raglofiretrieval 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 1": [
+    {
+      "id": "vec-rag_lofi_retrieval-0",
+      "name": "Lofi Study 1",
+      "uri": "spotify:track:vec-rag_lofi_retrieval-0",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 10": [
+    {
+      "id": "vec-rag_lofi_retrieval-9",
+      "name": "Lofi Study 10",
+      "uri": "spotify:track:vec-rag_lofi_retrieval-9",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 2": [
+    {
+      "id": "vec-rag_lofi_retrieval-1",
+      "name": "Lofi Study 2",
+      "uri": "spotify:track:vec-rag_lofi_retrieval-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 3": [
+    {
+      "id": "vec-rag_lofi_retrieval-2",
+      "name": "Lofi Study 3",
+      "uri": "spotify:track:vec-rag_lofi_retrieval-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 4": [
+    {
+      "id": "vec-rag_lofi_retrieval-3",
+      "name": "Lofi Study 4",
+      "uri": "spotify:track:vec-rag_lofi_retrieval-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 5": [
+    {
+      "id": "vec-rag_lofi_retrieval-4",
+      "name": "Lofi Study 5",
+      "uri": "spotify:track:vec-rag_lofi_retrieval-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 6": [
+    {
+      "id": "vec-rag_lofi_retrieval-5",
+      "name": "Lofi Study 6",
+      "uri": "spotify:track:vec-rag_lofi_retrieval-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 7": [
+    {
+      "id": "vec-rag_lofi_retrieval-6",
+      "name": "Lofi Study 7",
+      "uri": "spotify:track:vec-rag_lofi_retrieval-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 8": [
+    {
+      "id": "vec-rag_lofi_retrieval-7",
+      "name": "Lofi Study 8",
+      "uri": "spotify:track:vec-rag_lofi_retrieval-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 9": [
+    {
+      "id": "vec-rag_lofi_retrieval-8",
+      "name": "Lofi Study 9",
+      "uri": "spotify:track:vec-rag_lofi_retrieval-8",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "beabadoobee coffee": [
+    {
+      "id": "id-rag_lofi_retrieval-v-0",
+      "name": "Coffee",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-0",
+      "artists": [
+        {
+          "id": "",
+          "name": "beabadoobee"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "home resonance": [
+    {
+      "id": "id-rag_lofi_retrieval-v-1",
+      "name": "Resonance",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "HOME"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "jinsang affection": [
+    {
+      "id": "id-rag_lofi_retrieval-v-2",
+      "name": "Affection",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "Jinsang"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "kyle dixon & michael stein montage": [
+    {
+      "id": "id-rag_lofi_retrieval-v-3",
+      "name": "Montage",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "Kyle Dixon & Michael Stein"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "glass animals heat waves": [
+    {
+      "id": "id-rag_lofi_retrieval-v-4",
+      "name": "Heat Waves",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "Glass Animals"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "the killers mr. brightside": [
+    {
+      "id": "id-rag_lofi_retrieval-v-5",
+      "name": "Mr. Brightside",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "The Killers"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "chris stapleton tennessee whiskey": [
+    {
+      "id": "id-rag_lofi_retrieval-v-6",
+      "name": "Tennessee Whiskey",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Chris Stapleton"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "daft punk one more time": [
+    {
+      "id": "id-rag_lofi_retrieval-v-7",
+      "name": "One More Time",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Daft Punk"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "queen bohemian rhapsody": [
+    {
+      "id": "id-rag_lofi_retrieval-v-8",
+      "name": "Bohemian Rhapsody",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-8",
+      "artists": [
+        {
+          "id": "",
+          "name": "Queen"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "old crow medicine show wagon wheel": [
+    {
+      "id": "id-rag_lofi_retrieval-v-9",
+      "name": "Wagon Wheel",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-9",
+      "artists": [
+        {
+          "id": "",
+          "name": "Old Crow Medicine Show"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ]
+}

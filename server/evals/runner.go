@@ -3,6 +3,9 @@ package evals
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"juke-spotify-poc/server/gemini"
@@ -10,6 +13,23 @@ import (
 )
 
 const judgeRunsPerCase = 3
+
+func judgeRunsForSuite() int {
+	if os.Getenv("JUKE_EVALS_LIVE") != "1" {
+		return judgeRunsPerCase
+	}
+	if v := stringsTrimSpace(os.Getenv("JUKE_EVALS_JUDGE_RUNS")); v != "" {
+		n, err := strconv.Atoi(v)
+		if err == nil && n > 0 {
+			return n
+		}
+	}
+	return judgeRunsPerCase
+}
+
+func stringsTrimSpace(s string) string {
+	return strings.TrimSpace(s)
+}
 
 // CaseResult is one case after generation, checks, and judging.
 type CaseResult struct {
@@ -34,6 +54,7 @@ type RunConfig struct {
 	VectorOnly  bool
 	VectorOn    bool
 	InjectVenueCandidates bool // vector index ON: inject venue history candidates like AI playlist handler
+	MockVenueCandidates   []gemini.TrackSuggestion // mocked vector inject (eval fixtures)
 	Generator   gemini.PlaylistGenerator
 	Searcher    TrackSearcher
 	Judge       Judge
@@ -47,6 +68,11 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 	if cfg.VectorOnly {
 		cases = FilterVectorCases()
 	}
+	return RunSuiteCases(cfg, cases)
+}
+
+// RunSuiteCases runs an explicit case list (used by example/doc tests).
+func RunSuiteCases(cfg RunConfig, cases []Case) ([]CaseResult, error) {
 	var out []CaseResult
 	for _, c := range cases {
 		SetRunCaseID(c.ID)
@@ -55,7 +81,13 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 		var genErr error
 		genOpts := gemini.GenerateOptions{}
 		if cfg.InjectVenueCandidates && c.VenueID > 0 {
-			genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 30)
+			if c.CanonicalRAG {
+				genOpts.PreferredCandidates = CandidatesForCanonicalCase(c, 0)
+			} else if len(cfg.MockVenueCandidates) > 0 {
+				genOpts.PreferredCandidates = cfg.MockVenueCandidates
+			} else {
+				genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 0)
+			}
 		}
 		if c.ExpectError {
 			_, genErr = cfg.Generator.GenerateTrackList(c.Description, c.TrackCount, c.SimilarArtists, genOpts)
@@ -63,15 +95,22 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 			suggestions, genErr = cfg.Generator.GenerateTrackList(c.Description, c.TrackCount, c.SimilarArtists, genOpts)
 		}
 		searcher := cfg.Searcher
+		if c.ForceResolveNA {
+			searcher = nil
+		}
 		if fs, ok := searcher.(FixtureSearcher); ok {
 			fs.CaseID = c.ID
 			searcher = fs
 		}
-		hard := RunHardChecks(c, suggestions, searcher, cfg.VenueKeys, start, genErr)
+		venueKeys := cfg.VenueKeys
+		if c.CanonicalRAG {
+			venueKeys = loadCanonicalHistoryKeys()
+		}
+		hard := RunHardChecksWithVector(c, suggestions, searcher, venueKeys, start, genErr, cfg.VectorOn, cfg.InjectVenueCandidates)
 
 		var judgeRuns []JudgeScores
 		if !c.ExpectError && len(suggestions) > 0 && cfg.Judge != nil {
-			for i := 0; i < judgeRunsPerCase; i++ {
+			for i := 0; i < judgeRunsForSuite(); i++ {
 				sc, err := cfg.Judge.Score(c.Description, suggestions)
 				if err != nil {
 					return nil, fmt.Errorf("case %s judge run %d: %w", c.ID, i+1, err)

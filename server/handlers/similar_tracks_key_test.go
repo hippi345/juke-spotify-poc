@@ -33,6 +33,7 @@ func (s stubEmbedIndexer) Get(context.Context, string) (*vector.VenueTrackDoc, e
 	return nil, nil
 }
 func (s stubEmbedIndexer) Upsert(context.Context, string, vector.VenueTrackDoc) error { return nil }
+func (s stubEmbedIndexer) DeleteByVenueID(context.Context, uint) (int, error)        { return 0, nil }
 func (s stubEmbedIndexer) SearchSimilar(context.Context, uint, []float32, int) ([]vector.SearchHit, error) {
 	return nil, nil
 }
@@ -52,7 +53,7 @@ func (e *embedErrWithKey) Error() string {
 }
 
 func TestSimilarVenueTracks_neverLeaksAPIKeyInResponseOrLogs(t *testing.T) {
-	const secret = "AIzaSyLeakedKeyForTestOnly"
+	const secret = "AIzaSyLeakedKeyForTestOnly1234567890" // test-only fake (35 chars after AIza)
 	leaky := leakyTestEmbedder{apiKey: secret}
 	vector.SetDefaultService(vector.Service{
 		Enabled:    true,

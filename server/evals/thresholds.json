@@ -1,0 +1,36 @@
+{
+  "calibration": {
+    "method": "Two full live vector-OFF runs (2026-10-24) with JUKE_EVALS_JUDGE_RUNS=2 per case; reported means are the average of those runs. Mean targets are set ~0.15 below the lower run (noise margin). Per-case floors are 2.0 on all judge dimensions. No-false-claims is enforced by per-case grounding + schema hard gates (vector cases when index is on).",
+    "live_runs_averaged": 2,
+    "judge_runs_per_case": 2,
+    "calibrated_at": "2026-10-24"
+  },
+  "mean_targets": {
+    "mood_intent": 2.85,
+    "crowd_fit": 2.85,
+    "accuracy_coherence": 2.85,
+    "variety": 2.75,
+    "resolve_rate": 0.70,
+    "venue_overlap_vector_on": 0.15
+  },
+  "per_case_floors": {
+    "mood_intent": 2.0,
+    "crowd_fit": 2.0,
+    "accuracy_coherence": 2.0,
+    "variety": 2.0
+  },
+  "regression_tolerance": {
+    "mood_intent_drop": 0.2,
+    "crowd_fit_drop": 0.2,
+    "accuracy_coherence_drop": 0.2,
+    "variety_drop": 0.2,
+    "resolve_rate_drop": 0.05,
+    "hard_pass_count_drop": 0
+  },
+  "hard_gates": {
+    "schema_per_case": true,
+    "grounding_per_case": true,
+    "tool_sequence_per_case": true,
+    "key_leak_scan": true
+  }
+}

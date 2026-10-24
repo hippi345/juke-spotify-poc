@@ -1,0 +1,25 @@
+[
+  [
+    {
+      "mood_fit": 0,
+      "crowd_fit": 4.1,
+      "variety": 4,
+      "coherence": 4.2,
+      "mood_reason": "n/a"
+    },
+    {
+      "mood_fit": 0,
+      "crowd_fit": 4,
+      "variety": 4.1,
+      "coherence": 4.1,
+      "mood_reason": "n/a"
+    },
+    {
+      "mood_fit": 0,
+      "crowd_fit": 4.2,
+      "variety": 3.9,
+      "coherence": 4.3,
+      "mood_reason": "n/a"
+    }
+  ]
+]

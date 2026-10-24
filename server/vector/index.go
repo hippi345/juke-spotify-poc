@@ -40,6 +40,7 @@ type Indexer interface {
 	EnsureIndex(ctx context.Context, dimension int) error
 	Get(ctx context.Context, docID string) (*VenueTrackDoc, error)
 	Upsert(ctx context.Context, docID string, doc VenueTrackDoc) error
+	DeleteByVenueID(ctx context.Context, venueID uint) (int, error)
 	SearchSimilar(ctx context.Context, venueID uint, queryVec []float32, limit int) ([]SearchHit, error)
 	SearchByText(ctx context.Context, venueID uint, q string, embedder Embedder, limit int) ([]SearchHit, error)
 }
@@ -68,6 +69,7 @@ type NopIndexer struct{}
 func (NopIndexer) EnsureIndex(context.Context, int) error              { return nil }
 func (NopIndexer) Get(context.Context, string) (*VenueTrackDoc, error) { return nil, nil }
 func (NopIndexer) Upsert(context.Context, string, VenueTrackDoc) error { return nil }
+func (NopIndexer) DeleteByVenueID(context.Context, uint) (int, error)  { return 0, nil }
 func (NopIndexer) SearchSimilar(context.Context, uint, []float32, int) ([]SearchHit, error) {
 	return nil, nil
 }
@@ -165,6 +167,39 @@ func (o *osIndexer) Get(ctx context.Context, docID string) (*VenueTrackDoc, erro
 		return nil, err
 	}
 	return &parsed.Source, nil
+}
+
+func (o *osIndexer) DeleteByVenueID(ctx context.Context, venueID uint) (int, error) {
+	payload := map[string]interface{}{
+		"query": map[string]interface{}{
+			"term": map[string]interface{}{
+				"venue_id": venueID,
+			},
+		},
+	}
+	raw, _ := json.Marshal(payload)
+	url := fmt.Sprintf("%s/%s/_delete_by_query?refresh=true", o.baseURL, venueTracksIndex)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(raw))
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := o.httpClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		return 0, fmt.Errorf("delete by venue_id: %s", string(body))
+	}
+	var parsed struct {
+		Deleted int `json:"deleted"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return 0, err
+	}
+	return parsed.Deleted, nil
 }
 
 func (o *osIndexer) Upsert(ctx context.Context, docID string, doc VenueTrackDoc) error {

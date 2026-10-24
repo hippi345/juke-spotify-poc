@@ -30,6 +30,19 @@ func (m *memIndexer) Upsert(_ context.Context, docID string, doc VenueTrackDoc) 
 	return nil
 }
 
+func (m *memIndexer) DeleteByVenueID(_ context.Context, venueID uint) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var n int
+	for id, d := range m.docs {
+		if d.VenueID == venueID {
+			delete(m.docs, id)
+			n++
+		}
+	}
+	return n, nil
+}
+
 func (m *memIndexer) SearchSimilar(context.Context, uint, []float32, int) ([]SearchHit, error) {
 	return nil, nil
 }
