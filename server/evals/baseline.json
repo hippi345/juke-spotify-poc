@@ -1,6 +1,6 @@
 {
   "ci": {
-    "generated_at": "2026-10-24T18:33:18Z",
+    "generated_at": "2026-10-24T19:56:23Z",
     "mode": "mocked",
     "vector_on": false,
     "case_count": 11,
@@ -17,26 +17,28 @@
     "venue_overlap_mean": 0,
     "json_ok": true,
     "count_ok": true,
-    "no_duplicates": true
+    "no_duplicates": true,
+    "judge_error_count": 0
   },
   "full": {
-    "generated_at": "2026-10-24T18:33:18Z",
+    "generated_at": "2026-10-24T19:56:23Z",
     "mode": "mocked",
     "vector_on": false,
-    "case_count": 53,
-    "resolve_rate_mean": 0.9615384615384616,
+    "case_count": 58,
+    "resolve_rate_mean": 0.9649122807017544,
     "resolve_rate_na": false,
-    "mood_fit_mean": 3.72452830188679,
-    "crowd_fit_mean": 3.9452830188679213,
-    "variety_mean": 3.849056603773585,
-    "coherence_mean": 4.04150943396226,
+    "mood_fit_mean": 3.4034482758620666,
+    "crowd_fit_mean": 3.6051724137931003,
+    "variety_mean": 3.8620689655172415,
+    "coherence_mean": 4.055172413793099,
     "p50_latency_ms": 0,
-    "p95_latency_ms": 0,
-    "hard_pass_count": 53,
+    "p95_latency_ms": 12,
+    "hard_pass_count": 58,
     "venue_history_share_mean": 0,
     "venue_overlap_mean": 0,
     "json_ok": true,
     "count_ok": true,
-    "no_duplicates": true
+    "no_duplicates": true,
+    "judge_error_count": 0
   }
 }

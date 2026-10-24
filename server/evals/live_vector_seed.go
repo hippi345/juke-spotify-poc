@@ -4,7 +4,6 @@ package evals
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,16 +13,9 @@ import (
 	"juke-spotify-poc/server/vector"
 )
 
-const liveEvalVenueID = 1
+const liveEvalVenueID = 2 // canonical SAMPLE rooftop (shared catalog)
 
-type liveVenueTrack struct {
-	SpotifyID string `json:"spotify_id"`
-	Title     string `json:"title"`
-	Artist    string `json:"artist"`
-	Genres    string `json:"genres"`
-}
-
-// SeedLiveEvalVenueIndex upserts well-known tracks for venue 1 (live vector arm).
+// SeedLiveEvalVenueIndex upserts SAMPLE catalog tracks for venue 2 (live vector arm).
 func SeedLiveEvalVenueIndex(cfg *config.Config) error {
 	if err := vector.Init(true, cfg.OpenSearchURL, cfg.GeminiAPIKey, cfg.EmbedProvider); err != nil {
 		return err
@@ -32,38 +24,58 @@ func SeedLiveEvalVenueIndex(cfg *config.Config) error {
 	if !svc.Enabled || svc.Indexer == nil {
 		return fmt.Errorf("vector service not enabled for live seed")
 	}
-	path := filepath.Join(fixtureRoot(), "vector", "live_venue_tracks.json")
-	raw, err := os.ReadFile(path)
+	path := filepath.Join(fixtureRoot(), "vector", "venue_catalog.json.gz")
+	if _, err := os.Stat(path); err != nil {
+		path = vector.DefaultCatalogFixturePath()
+	}
+	doc, err := vector.LoadVenueCatalogFixture(path)
 	if err != nil {
 		return err
 	}
-	var tracks []liveVenueTrack
-	if err := json.Unmarshal(raw, &tracks); err != nil {
-		return err
+	roof := doc.VenueRooftopID
+	if roof == 0 {
+		roof = liveEvalVenueID
 	}
 	ctx := context.Background()
-	for _, tr := range tracks {
+	indexed := 0
+	for _, tr := range doc.Tracks {
+		if tr.VenueID != roof {
+			continue
+		}
 		if tr.SpotifyID == "" {
 			continue
 		}
-		text := vector.TrackEmbedText(tr.Title, tr.Artist, tr.Genres)
+		meta := tr.Genres + " " + tr.Mood
+		if tr.PlantedSunset {
+			meta += " crowd favorite sunset enjoyed"
+		}
+		text := vector.TrackEmbedText(tr.Title, tr.Artist, meta)
 		vec, err := svc.Embedder.Embed(text)
 		if err != nil {
 			return fmt.Errorf("embed %s: %w", tr.Title, err)
 		}
 		docID := fmt.Sprintf("%d-%s", liveEvalVenueID, tr.SpotifyID)
-		doc := vector.VenueTrackDoc{
+		vdoc := vector.VenueTrackDoc{
 			VenueID:   liveEvalVenueID,
 			SpotifyID: tr.SpotifyID,
 			Title:     tr.Title,
 			Artist:    tr.Artist,
 			Genres:    tr.Genres,
-			LastSeen:  time.Now().UTC().Format(time.RFC3339),
+			PlayCount: tr.PlayCount,
+			VoteCount: tr.VoteCount,
+			LastSeen:  tr.LastSeen,
 			Embedding: vec,
 		}
-		if err := svc.Indexer.Upsert(ctx, docID, doc); err != nil {
+		if vdoc.LastSeen == "" {
+			vdoc.LastSeen = time.Now().UTC().Format(time.RFC3339)
+		}
+		if err := svc.Indexer.Upsert(ctx, docID, vdoc); err != nil {
 			return fmt.Errorf("upsert %s: %w", docID, err)
 		}
+		indexed++
+	}
+	if indexed == 0 {
+		return fmt.Errorf("no SAMPLE catalog tracks indexed")
 	}
 	return nil
 }

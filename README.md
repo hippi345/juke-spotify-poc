@@ -78,6 +78,16 @@ Open **http://localhost:5173**. Copy `client/.env.example` to `client/.env` if t
 
 See [mobile-client/README.md](mobile-client/README.md). Set `JUKE_API_BASE` in `gradle.properties` to your machine’s API URL (emulator default: `http://10.0.2.2:8081/`).
 
+## Spotify setup (real playlists from VibeSense)
+
+1. Create an app in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) and note **Client ID** and **Client secret**.
+2. Set **Redirect URI** to match the server (default): `http://127.0.0.1:5173/api/spotify/callback` — must match `SPOTIFY_REDIRECT_URI` in `server/.env`.
+3. In `server/.env` (or Compose env): `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REDIRECT_URI`, `APP_BASE_URL=http://localhost:5173`.
+4. Start API + web client; register a **staff** account, open the host UI, click **Connect Spotify**, approve OAuth, then pick a **device** and **playlist** before starting a session or AI playlist job.
+5. Scopes are requested by the server OAuth flow (playlist read/modify and playback as implemented in `server/spotify/`). Use a **personal** Spotify account only (see intro disclaimer).
+
+Live VibeSense evals optionally resolve suggestions via the same Spotify search API when `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` are set; mocked CI does not require them.
+
 ## Configuration
 
 Secrets are **never** committed. Use environment variables or gitignored `.env` files.
@@ -226,6 +236,29 @@ Embeddings for `make seed-vector` use `GEMINI_API_KEY` when set; without a key, 
 
 ## RAG (venue-history grounding)
 
+Joel’s example prompt: **“play sunset songs based on what folks have liked in the past.”** In Juke that maps cleanly to classic **pre-retrieval RAG**:
+
+| Step | What happens |
+|------|----------------|
+| **Retrieve** | The server embeds the mood text and runs **k-NN** over **private venue play/vote history** in OpenSearch (`venue_tracks`, scoped by `venue_id`). |
+| **Augment** | Top matches (titles, artists, genres — vote-weighted in the index) are injected into the Gemini prompt as **preferred candidates**. |
+| **Generate** | Gemini returns a JSON playlist; Spotify search resolves tracks to URIs. |
+
+```mermaid
+flowchart LR
+  prompt[Mood prompt e.g. sunset songs folks liked]
+  embed[Embed query]
+  knn[k-NN venue_tracks]
+  inject[Inject preferred candidates]
+  gemini[Gemini playlist JSON]
+  spotify[Spotify resolve]
+  prompt --> embed --> knn --> inject --> gemini --> spotify
+```
+
+**Juke uses pre-retrieval RAG:** retrieval is **mandatory and server-side** before the LLM call. The model always sees venue-history candidates when vector is on and `venue_id` is set.
+
+**Contrast (spot-ai-fy):** that stack uses **agentic, tool-based RAG** — the agent decides whether to call something like `search_my_library`. That is flexible, but the model may **skip retrieval**; their evals explicitly check that the tool was invoked. Juke’s evals instead check **grounding overlap** with committed venue-history fixtures and live **highly-voted / SAMPLE catalog** rows when the vector arm is on.
+
 When `VIBESENSE_VECTOR_ENABLED=true` and `venue_id` is supplied on `POST /api/ai-playlist/create`:
 
 1. The mood **description is embedded** and used for k-NN search over that venue’s `venue_tracks`.
@@ -235,6 +268,8 @@ When `VIBESENSE_VECTOR_ENABLED=true` and `venue_id` is supplied on `POST /api/ai
 **What this is:** retrieval-augmented **generation** in the narrow sense — retrieved track titles/artists are extra context for a single Gemini call. There is **no** multi-step agent, tool loop, or citation layer.
 
 **What this is not:** full RAG over lyrics, audio, or the open web; no automatic verification that output tracks appeared in the index; refill/voting paths are unchanged unless vector ingest runs.
+
+For **SAMPLE** local demos of this flow, see [SAMPLE demo venue history](#sample-demo-venue-history-local-dev) (`make seed-vector`).
 
 `TestVibeSenseVectorRegressionGate` in `server/evals` runs **venue-history** cases (`venue_crowd_lofi`, `venue_crowd_country`) with vector **on vs off**. This is a **mocked regression check only** — it does not claim LLM merit. The gate compares **deterministic overlap** between generated picks and committed `venue_history_keys.json` fixtures (must improve by ≥ **0.25** with vector on). Resolve rate, mood/crowd (same fixture judge for both arms), and p50 latency must not regress.
 

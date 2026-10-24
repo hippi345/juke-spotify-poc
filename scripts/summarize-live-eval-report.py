@@ -48,6 +48,7 @@ def main():
         s = doc["summary"]
         g = doc.get("gate", {})
         print(f"## {label}")
+        print(f"- Vector index: {'ON' if s.get('vector_on') else 'OFF'}")
         print(f"- Cases: {s.get('case_count')}")
         print(f"- Mood / crowd / variety / coherence: {s.get('mood_fit_mean'):.3f} / {s.get('crowd_fit_mean'):.3f} / {s.get('variety_mean'):.3f} / {s.get('coherence_mean'):.3f}")
         print(f"- Resolve mean: {s.get('resolve_rate_mean'):.3f} (NA={s.get('resolve_rate_na')})")

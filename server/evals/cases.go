@@ -15,6 +15,8 @@ type Case struct {
 	Feature         Feature
 	MoodRubric      bool // when false, live/mock judge skips mood_fit rubric
 	ForceResolveNA  bool // exercise Spotify resolve N/A (no crash)
+	CanonicalRAG    bool   // rooftop canonical venue history (venue_id 2)
+	HistoryAfter    string // optional RFC3339 — only tracks last_seen after this instant
 }
 
 // AllCases returns the full eval matrix (50+ scenarios).
@@ -77,6 +79,13 @@ func AllCases() []Case {
 		{ID: "venue_crowd_edm", Description: "late-night EDM room — crowd favors house bangers", TrackCount: 12, VenueID: 1, VectorEval: true, Feature: FeatureCrowdVote, MoodRubric: true},
 		{ID: "rag_lofi_retrieval", Description: "RAG grounding — calm study lofi with venue history retrieval", TrackCount: 10, VenueID: 1, VectorEval: true, Feature: FeatureRAGGrounding, MoodRubric: true},
 		{ID: "rag_country_retrieval", Description: "RAG grounding — country singalong with venue history retrieval", TrackCount: 10, VenueID: 1, VectorEval: true, Feature: FeatureRAGGrounding, MoodRubric: true},
+
+		// --- canonical rooftop RAG (1k–3k real venue history, venue_id 2) ---
+		{ID: "rag_canonical_sunset", Description: "play sunset song vibes based on what people have enjoyed in the past at this rooftop bar", TrackCount: 12, VenueID: 2, VectorEval: true, CanonicalRAG: true, Feature: FeatureRAGGrounding, MoodRubric: true},
+		{ID: "rag_canonical_late_night", Description: "late-night peak hour — high energy but still this crowd's taste, drawn from what guests loved here before", TrackCount: 14, VenueID: 2, VectorEval: true, CanonicalRAG: true, Feature: FeatureRAGGrounding, MoodRubric: true},
+		{ID: "rag_canonical_sunday_brunch", Description: "Sunday brunch on the patio — mellow, sunny, crowd-pleasing picks from this venue's history", TrackCount: 12, VenueID: 2, VectorEval: true, CanonicalRAG: true, Feature: FeatureRAGGrounding, MoodRubric: true},
+		{ID: "rag_canonical_last_summer", Description: "more like what people loved last summer on this rooftop — warm evening singalongs and nu-disco", TrackCount: 12, VenueID: 2, VectorEval: true, CanonicalRAG: true, Feature: FeatureRAGGrounding, MoodRubric: true, HistoryAfter: "2025-06-01T00:00:00Z"},
+		{ID: "rag_canonical_rooftop_disco", Description: "rooftop warm-up — indie and nu-disco leaning into this venue's most upvoted tracks", TrackCount: 12, VenueID: 2, VectorEval: true, CanonicalRAG: true, Feature: FeatureRAGGrounding, MoodRubric: true},
 
 		// --- counts / edge ---
 		{ID: "count_two", Description: "two songs only — quick opener", TrackCount: 2, Feature: FeatureMood, MoodRubric: true, CI: true},

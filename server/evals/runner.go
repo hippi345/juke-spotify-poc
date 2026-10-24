@@ -81,7 +81,9 @@ func RunSuiteCases(cfg RunConfig, cases []Case) ([]CaseResult, error) {
 		var genErr error
 		genOpts := gemini.GenerateOptions{}
 		if cfg.InjectVenueCandidates && c.VenueID > 0 {
-			if len(cfg.MockVenueCandidates) > 0 {
+			if c.CanonicalRAG {
+				genOpts.PreferredCandidates = CandidatesForCanonicalCase(c, 0)
+			} else if len(cfg.MockVenueCandidates) > 0 {
 				genOpts.PreferredCandidates = cfg.MockVenueCandidates
 			} else {
 				genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 0)
@@ -100,7 +102,11 @@ func RunSuiteCases(cfg RunConfig, cases []Case) ([]CaseResult, error) {
 			fs.CaseID = c.ID
 			searcher = fs
 		}
-		hard := RunHardChecksWithVector(c, suggestions, searcher, cfg.VenueKeys, start, genErr, cfg.VectorOn, cfg.InjectVenueCandidates)
+		venueKeys := cfg.VenueKeys
+		if c.CanonicalRAG {
+			venueKeys = loadCanonicalHistoryKeys()
+		}
+		hard := RunHardChecksWithVector(c, suggestions, searcher, venueKeys, start, genErr, cfg.VectorOn, cfg.InjectVenueCandidates)
 
 		var judgeRuns []JudgeScores
 		if !c.ExpectError && len(suggestions) > 0 && cfg.Judge != nil {

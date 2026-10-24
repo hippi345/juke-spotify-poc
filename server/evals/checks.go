@@ -27,6 +27,7 @@ type HardCheckResult struct {
 	ErrorMessage        string
 	ResolvedFromVenue   float64 // share of resolved tracks matching venue history (vector eval)
 	VenueOverlap        float64 // share of suggestions matching venue-history keys (deterministic)
+	HighlyVotedShare    float64 // canonical RAG: share matching highly upvoted venue keys
 }
 
 func normalizeKey(title, artist string) string {
@@ -140,7 +141,7 @@ func RunHardChecksWithVector(c Case, suggestions []gemini.TrackSuggestion, searc
 	if search == nil {
 		res.ResolveSkipped = true
 		res.SimilarArtistRate = similarArtistAdherence(suggestions, c.SimilarArtists)
-		res.GroundingOK = groundingOK(c, res.VenueOverlap, vectorOn, injectCandidates)
+		res.GroundingOK = groundingOK(c, res.VenueOverlap, res.HighlyVotedShare, vectorOn, injectCandidates)
 		return res
 	}
 
@@ -176,7 +177,11 @@ func RunHardChecksWithVector(c Case, suggestions []gemini.TrackSuggestion, searc
 		}
 		res.VenueOverlap = float64(hits) / float64(len(suggestions))
 	}
-	res.GroundingOK = groundingOK(c, res.VenueOverlap, vectorOn, injectCandidates)
+	if c.CanonicalRAG {
+		hv := loadCanonicalHighlyVotedKeys()
+		res.HighlyVotedShare = highlyVotedShare(suggestions, hv)
+	}
+	res.GroundingOK = groundingOK(c, res.VenueOverlap, res.HighlyVotedShare, vectorOn, injectCandidates)
 	return res
 }
 
@@ -189,12 +194,15 @@ func schemaValid(suggestions []gemini.TrackSuggestion) bool {
 	return len(suggestions) > 0
 }
 
-func groundingOK(c Case, overlap float64, vectorOn, injectCandidates bool) bool {
+func groundingOK(c Case, overlap, highlyVotedShare float64, vectorOn, injectCandidates bool) bool {
 	if !c.VectorEval {
 		return true
 	}
 	if !vectorOn || !injectCandidates {
 		return true
+	}
+	if c.CanonicalRAG {
+		return overlap >= 0.25 && highlyVotedShare >= 0.15
 	}
 	return overlap >= 0.25
 }
