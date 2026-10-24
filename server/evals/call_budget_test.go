@@ -22,6 +22,8 @@ func TestLiveCallBudget_enforcesCap(t *testing.T) {
 }
 
 func TestLiveBudgetStatus_inactiveByDefault(t *testing.T) {
+	t.Setenv("JUKE_EVALS_LIVE", "")
+	liveBudget = nil
 	if LiveBudgetStatus() != "" {
 		t.Fatalf("expected empty status when live budget inactive, got %q", LiveBudgetStatus())
 	}
