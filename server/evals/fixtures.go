@@ -21,7 +21,8 @@ func DefaultFixtureStore() FixtureStore {
 
 // FixtureGenerator returns suggestions from gemini.json.
 type FixtureGenerator struct {
-	Store FixtureStore
+	Store    FixtureStore
+	VectorOn bool
 }
 
 func (g FixtureGenerator) GenerateTrackList(description string, count int, similarArtists []string, opts gemini.GenerateOptions) ([]gemini.TrackSuggestion, error) {
@@ -35,7 +36,14 @@ func (g FixtureGenerator) GenerateTrackList(description string, count int, simil
 	if description == "asdf qwerty zxcv" {
 		return nil, fmt.Errorf("nonsense prompt rejected")
 	}
-	path := g.Store.Root + "/cases/" + id + "/gemini.json"
+	file := "gemini.json"
+	if g.VectorOn {
+		vectorPath := g.Store.Root + "/cases/" + id + "/gemini_vector.json"
+		if _, err := os.Stat(vectorPath); err == nil {
+			file = "gemini_vector.json"
+		}
+	}
+	path := g.Store.Root + "/cases/" + id + "/" + file
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("fixture %s: %w", id, err)
@@ -81,8 +89,15 @@ func (s FixtureSearcher) SearchTracks(query string, limit int) ([]spotify.Track,
 	return nil, nil
 }
 
-func LoadJudgeFixture(store FixtureStore, caseID string) [][]JudgeScores {
-	path := store.Root + "/cases/" + caseID + "/judge.json"
+func LoadJudgeFixture(store FixtureStore, caseID string, vectorOn bool) [][]JudgeScores {
+	file := "judge.json"
+	if vectorOn {
+		p := store.Root + "/cases/" + caseID + "/judge_vector.json"
+		if _, err := os.Stat(p); err == nil {
+			file = "judge_vector.json"
+		}
+	}
+	path := store.Root + "/cases/" + caseID + "/" + file
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return nil
