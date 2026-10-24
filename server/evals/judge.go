@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -111,12 +110,13 @@ Score each dimension 1-5 (integers). Return ONLY JSON:
 		},
 	}
 	raw, _ := json.Marshal(body)
-	u := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", j.Model, url.QueryEscape(j.APIKey))
+	u := gemini.GenerativeModelURL(j.Model, "generateContent")
 	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(raw))
 	if err != nil {
 		return JudgeScores{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	gemini.SetAPIKeyHeader(req, j.APIKey)
 	resp, err := j.Client.Do(req)
 	if err != nil {
 		return JudgeScores{}, err
@@ -124,7 +124,7 @@ Score each dimension 1-5 (integers). Return ONLY JSON:
 	defer func() { _ = resp.Body.Close() }()
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return JudgeScores{}, fmt.Errorf("judge gemini HTTP %d: %s", resp.StatusCode, truncate(respBody, 200))
+		return JudgeScores{}, fmt.Errorf("judge gemini HTTP %d: %s", resp.StatusCode, gemini.RedactSecrets(truncate(respBody, 200), j.APIKey))
 	}
 	text, err := extractGeminiText(respBody)
 	if err != nil {

@@ -34,7 +34,8 @@ func Init(enabled bool, opensearchURL string, geminiKey string, embedProvider st
 		log.Printf("vector: enabled but OPENSEARCH_URL empty — searches will return no hits")
 		idx = NopIndexer{}
 	} else {
-		if err := idx.EnsureIndex(context.Background(), 768); err != nil {
+		dim := EmbedDimension(emb)
+		if err := idx.EnsureIndex(context.Background(), dim); err != nil {
 			log.Printf("vector: index ensure failed at startup (searches may retry): %v", err)
 		} else {
 			indexReady = true
@@ -56,6 +57,14 @@ func Default() Service {
 		return Service{Enabled: false, Indexer: NopIndexer{}}
 	}
 	return s
+}
+
+// SetDefaultService replaces the global vector service (for tests).
+func SetDefaultService(s Service) {
+	defaultMu.Lock()
+	defaultSvc = s
+	defaultInited = true
+	defaultMu.Unlock()
 }
 
 // CandidatesForMood retrieves top-N venue tracks for Gemini grounding.

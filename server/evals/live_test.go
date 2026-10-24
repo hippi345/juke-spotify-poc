@@ -4,12 +4,13 @@ package evals
 
 import (
 	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 
+	"juke-spotify-poc/server/config"
 	"juke-spotify-poc/server/gemini"
 	"juke-spotify-poc/server/spotify"
-	"juke-spotify-poc/server/config"
+	"juke-spotify-poc/server/vector"
 )
 
 func TestVibeSenseEvalLive(t *testing.T) {
@@ -22,8 +23,8 @@ func TestVibeSenseEvalLive(t *testing.T) {
 	}
 	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
 	var searcher TrackSearcher
-	if sc := spotify.NewClient(cfg); sc != nil {
-		searcher = SpotifyClientAdapter{Client: sc}
+	if spotifyResolveAvailable(cfg) {
+		searcher = SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
 	}
 	judge := NewGeminiJudgeFromEnv()
 	runCfg := RunConfig{
@@ -31,6 +32,10 @@ func TestVibeSenseEvalLive(t *testing.T) {
 		Generator: gen,
 		Searcher:  searcher,
 		Judge:     judge,
+	}
+	if os.Getenv("JUKE_EVALS_VECTOR") == "1" {
+		_ = vector.Init(true, cfg.OpenSearchURL, cfg.GeminiAPIKey, cfg.EmbedProvider)
+		runCfg.InjectVenueCandidates = true
 	}
 	results, err := RunSuite(runCfg)
 	if err != nil {
@@ -46,4 +51,8 @@ func TestVibeSenseEvalLive(t *testing.T) {
 	if !gate.Passed {
 		t.Fatalf("live gate failed: %v", gate.Failures)
 	}
+}
+
+func spotifyResolveAvailable(cfg *config.Config) bool {
+	return strings.TrimSpace(cfg.SpotifyClientID) != "" && strings.TrimSpace(cfg.SpotifyClientSecret) != ""
 }

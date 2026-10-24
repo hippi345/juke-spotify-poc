@@ -30,6 +30,9 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+      - name: Vet (evals_live tag)
+        run: go vet -tags evals_live ./...
+
       - name: Build
         run: go build ./...
 

@@ -23,6 +23,7 @@ type SummaryMetrics struct {
 	VectorOn          bool    `json:"vector_on"`
 	CaseCount         int     `json:"case_count"`
 	ResolveRateMean   float64 `json:"resolve_rate_mean"`
+	ResolveRateNA     bool    `json:"resolve_rate_na"`
 	MoodFitMean       float64 `json:"mood_fit_mean"`
 	CrowdFitMean      float64 `json:"crowd_fit_mean"`
 	VarietyMean       float64 `json:"variety_mean"`
@@ -45,6 +46,7 @@ type GateResult struct {
 
 func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics {
 	var resolveSum, moodSum, crowdSum, varietySum, coherenceSum, venueSum, overlapSum float64
+	var resolveN int
 	var latencies []int64
 	hardPass := 0
 	jsonOK := true
@@ -52,14 +54,18 @@ func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics 
 	dupOK := true
 	var venueN int
 	for _, r := range results {
-		resolveSum += r.Hard.ResolveRate
+		if !r.Hard.ResolveSkipped {
+			resolveSum += r.Hard.ResolveRate
+			resolveN++
+		}
 		moodSum += r.Judge.MoodFit
 		crowdSum += r.Judge.CrowdFit
 		varietySum += r.Judge.Variety
 		coherenceSum += r.Judge.Coherence
 		latencies = append(latencies, r.Hard.LatencyMs)
 		if r.Hard.JSONOK && r.Hard.CountOK && r.Hard.NoDuplicates && (r.Hard.ErrorClean || !expectErrorCase(r.CaseID)) {
-			if r.Hard.ResolveRate >= 0.85 || expectErrorCase(r.CaseID) {
+			resolveOK := r.Hard.ResolveSkipped || r.Hard.ResolveRate >= 0.85
+			if resolveOK || expectErrorCase(r.CaseID) {
 				hardPass++
 			}
 		}
@@ -94,7 +100,13 @@ func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics 
 		Mode:              mode,
 		VectorOn:          vectorOn,
 		CaseCount:         len(results),
-		ResolveRateMean:   resolveSum / n,
+		ResolveRateMean:   func() float64 {
+			if resolveN == 0 {
+				return 0
+			}
+			return resolveSum / float64(resolveN)
+		}(),
+		ResolveRateNA:     resolveN == 0,
 		MoodFitMean:       moodSum / n,
 		CrowdFitMean:      crowdSum / n,
 		VarietyMean:       varietySum / n,
@@ -122,7 +134,7 @@ func expectErrorCase(id string) bool {
 // CompareBaseline applies regression thresholds from the spec.
 func CompareBaseline(current, baseline SummaryMetrics) GateResult {
 	var failures []string
-	if current.ResolveRateMean < baseline.ResolveRateMean-0.05 {
+	if !current.ResolveRateNA && !baseline.ResolveRateNA && current.ResolveRateMean < baseline.ResolveRateMean-0.05 {
 		failures = append(failures, fmt.Sprintf("resolve rate dropped %.3f -> %.3f (max -0.05)", baseline.ResolveRateMean, current.ResolveRateMean))
 	}
 	if current.MoodFitMean < baseline.MoodFitMean-0.2 {

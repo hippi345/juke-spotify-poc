@@ -17,6 +17,7 @@ type HardCheckResult struct {
 	RequestedCount      int
 	ActualCount         int
 	ResolveRate         float64
+	ResolveSkipped      bool // true when Spotify resolve was not run (no creds / searcher)
 	SimilarArtistRate   float64
 	LatencyMs           int64
 	ErrorClean          bool
@@ -124,7 +125,7 @@ func RunHardChecks(c Case, suggestions []gemini.TrackSuggestion, search TrackSea
 	}
 
 	if search == nil {
-		res.ResolveRate = 1
+		res.ResolveSkipped = true
 		res.SimilarArtistRate = similarArtistAdherence(suggestions, c.SimilarArtists)
 		return res
 	}

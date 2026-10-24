@@ -29,7 +29,7 @@ func CompareVectorGate(off, on SummaryMetrics) VectorGateResult {
 			"venue-history overlap lift %.3f below %.2f (off=%.3f on=%.3f)",
 			lift, vectorOverlapMinLift, off.VenueOverlapMean, on.VenueOverlapMean))
 	}
-	if on.ResolveRateMean < off.ResolveRateMean-0.001 {
+	if !on.ResolveRateNA && !off.ResolveRateNA && on.ResolveRateMean < off.ResolveRateMean-0.001 {
 		failures = append(failures, fmt.Sprintf("resolve rate regressed: %.3f -> %.3f", off.ResolveRateMean, on.ResolveRateMean))
 	}
 	if on.MoodFitMean < off.MoodFitMean-0.01 {
