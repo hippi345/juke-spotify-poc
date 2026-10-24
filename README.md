@@ -7,6 +7,12 @@ A proof-of-concept **collaborative jukebox**: a Go API connects to Spotify, runs
 
 **Spotify use:** This project is for **personal, non-commercial demonstration only**. It is not licensed for commercial use, public performance, or shared venue playback beyond your own Spotify account terms. Do not deploy it as a product or multi-tenant service.
 
+## VibeSense in action
+
+Describe a vibe in the web UI and VibeSense builds a real playlist on your connected Spotify account.
+
+![VibeSense prompt next to the Spotify playlist it created](docs/images/vibesense-to-spotify.png)
+
 ## Features
 
 - **Spotify OAuth** — connect an account, pick a device, and control playback
