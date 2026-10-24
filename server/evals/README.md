@@ -2,6 +2,8 @@
 
 Table-driven quality gates for playlist generation, venue-history RAG grounding, and safety cases.
 
+**SAMPLE shared catalog:** `testdata/vector/venue_catalog.json.gz` (~4k tracks, 50 planted sunset crowd favorites). Regenerate with `python3 scripts/generate-venue-catalog.py` from the repo root. Local OpenSearch demos: `make seed-vector` / `make reset-vector` (see root [README](../../README.md#sample-demo-venue-history-local-dev)).
+
 ## Case matrix by feature
 
 | Feature | Cases | Check type | Mode |

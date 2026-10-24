@@ -173,6 +173,57 @@ Optional **venue track** semantic search backs VibeSense grounding and the “mo
 | **Refresh** | Kafka consumers bump counts on vote/session activity; one-shot `go run ./cmd/backfill-vectors -venue-id=<id>` replays DB session history (best-effort). |
 | **Privacy** | Vectors are derived from **track metadata already visible in the venue** (titles/artists/genres), scoped per `venue_id`. Embeddings are sent to Google (or local Ollama) only when the flag is on and a key is configured. No patron PII is indexed. |
 
+### SAMPLE demo venue history (local dev)
+
+The same **SAMPLE** stubbed catalog used by VibeSense evals (`server/evals/testdata/vector/venue_catalog.json.gz`, ~4k fictional tracks with votes and planted “sunset crowd favorite” rows) can be loaded into OpenSearch for hands-on demos. **This is not real venue data** — every log line and the MySQL venue name say so.
+
+Regenerate the fixture (optional):
+
+```bash
+python3 scripts/generate-venue-catalog.py
+```
+
+**Prerequisites:** MySQL and OpenSearch running (e.g. `docker compose up -d mysql opensearch`), `OPENSEARCH_URL=http://127.0.0.1:9200`, and DB env vars as in [Quick start](#1-full-stack-api--mysql--web).
+
+```bash
+make seed-vector    # SAMPLE demo data → OpenSearch + venue "Sample Rooftop (demo data)"
+make reset-vector   # remove SAMPLE demo venue + its OpenSearch docs
+```
+
+`make seed-vector` prints a `venue_id` (MySQL). Use that id below.
+
+**Try “sunset vibes people enjoyed” — vector OFF vs ON**
+
+1. Start the API (from `server/`, with `GEMINI_API_KEY` set for real generation).
+2. **Vector OFF (default):** `VIBESENSE_VECTOR_ENABLED=false` (or unset). Create an AI playlist with a text prompt only — no `venue_id`:
+
+   ```bash
+   curl -s -X POST http://127.0.0.1:8081/api/ai-playlist/create \
+     -H 'Content-Type: application/json' \
+     -d '{"description":"play sunset vibes based on what people enjoyed","track_count":12}'
+   ```
+
+   Gemini does not receive k-NN candidates from the SAMPLE catalog.
+
+3. **Vector ON:** enable the flag and pass the **SAMPLE** demo `venue_id` from `make seed-vector`:
+
+   ```bash
+   export VIBESENSE_VECTOR_ENABLED=true
+   export OPENSEARCH_URL=http://127.0.0.1:9200
+   # restart the API, then:
+   curl -s -X POST http://127.0.0.1:8081/api/ai-playlist/create \
+     -H 'Content-Type: application/json' \
+     -d '{"description":"play sunset vibes based on what people enjoyed","track_count":12,"venue_id":<SAMPLE_VENUE_ID>}'
+   ```
+
+   With vector on, the mood string is embedded and top matches from the **SAMPLE** rooftop history are injected as preferred candidates before Gemini runs.
+
+4. Poll `GET /api/ai-playlist/status/<job_id>` and compare picks. With ON, you should see more overlap with highly voted / sunset-tagged **SAMPLE** tracks from the catalog.
+
+5. When finished: `make reset-vector` to drop the SAMPLE demo venue and index rows.
+
+Embeddings for `make seed-vector` use `GEMINI_API_KEY` when set; without a key, the seeder uses the same deterministic **hash embedder** as local vector dev (fine for structure demos, not for semantic quality).
+
 ## RAG (venue-history grounding)
 
 When `VIBESENSE_VECTOR_ENABLED=true` and `venue_id` is supplied on `POST /api/ai-playlist/create`:
@@ -252,7 +303,7 @@ Committed **live thresholds**: [server/evals/thresholds.json](server/evals/thres
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | [vibesense-evals.yml](.github/workflows/vibesense-evals.yml) | Every PR / push to `main` | **Required gate:** mocked CI subset vs `baseline.json`; uploads `server/evals/out/` artifacts |
-| [vibesense-evals-live.yml](.github/workflows/vibesense-evals-live.yml) | PRs touching evals/AI paths, nightly `main`, `workflow_dispatch` | **Check name:** `VibeSense eval gate (live)` — requires repo secret **`GEMINI_API_KEY`**; **fails** on fork PRs or missing secret (never skips); call cap + artifact leak scan |
+| [vibesense-evals-live.yml](.github/workflows/vibesense-evals-live.yml) | PRs touching evals/AI paths, nightly `main`, `workflow_dispatch` | **Check name:** `VibeSense eval gate (live)` — full suite **vector OFF + ON**; thresholds gate **OFF only**; ON arm informational unless schema/grounding fails; secret **`GEMINI_API_KEY`** required (fork/missing secret **fails**) |
 
 **Branch protection:** require **`VibeSense eval gate (mocked)`** on every PR and **`VibeSense eval gate (live)`** when live workflow runs.
 

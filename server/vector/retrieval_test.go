@@ -12,6 +12,7 @@ type scoreIndexer struct {
 func (s scoreIndexer) EnsureIndex(context.Context, int) error              { return nil }
 func (s scoreIndexer) Get(context.Context, string) (*VenueTrackDoc, error) { return nil, nil }
 func (s scoreIndexer) Upsert(context.Context, string, VenueTrackDoc) error { return nil }
+func (s scoreIndexer) DeleteByVenueID(context.Context, uint) (int, error)  { return 0, nil }
 func (s scoreIndexer) SearchSimilar(context.Context, uint, []float32, int) ([]SearchHit, error) {
 	return s.hits, nil
 }

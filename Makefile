@@ -1,4 +1,10 @@
-.PHONY: eval eval-mock
+.PHONY: eval eval-mock seed-vector reset-vector
+
+seed-vector:
+	cd server && go run ./cmd/seed-demo-vector/
+
+reset-vector:
+	cd server && go run ./cmd/reset-demo-vector/
 
 eval-mock:
 	cd server && go test -count=1 ./evals/ -run 'TestVibeSenseEvalGate|TestKeyLeakGuard|TestVibeSenseVectorRegressionGate|TestCompareBaseline' -write-reports
