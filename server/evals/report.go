@@ -133,9 +133,26 @@ func expectErrorCase(id string) bool {
 	return false
 }
 
-// CompareBaseline applies regression thresholds from the spec.
-func CompareBaseline(current, baseline SummaryMetrics) GateResult {
+// CompareBaseline applies regression thresholds from the spec and per-case hard checks.
+func CompareBaseline(current, baseline SummaryMetrics, results []CaseResult) GateResult {
 	var failures []string
+	for _, r := range results {
+		if expectErrorCase(r.CaseID) {
+			continue
+		}
+		if !r.Hard.SchemaOK {
+			failures = append(failures, fmt.Sprintf("case %s: schema check failed", r.CaseID))
+		}
+		if !r.Hard.GroundingOK {
+			failures = append(failures, fmt.Sprintf("case %s: grounding check failed", r.CaseID))
+		}
+		if !r.Hard.ToolSequenceOK {
+			failures = append(failures, fmt.Sprintf("case %s: tool sequence check failed", r.CaseID))
+		}
+	}
+	if current.HardPassCount < baseline.HardPassCount {
+		failures = append(failures, fmt.Sprintf("hard pass count dropped %d -> %d", baseline.HardPassCount, current.HardPassCount))
+	}
 	if !current.ResolveRateNA && !baseline.ResolveRateNA && current.ResolveRateMean < baseline.ResolveRateMean-0.05 {
 		failures = append(failures, fmt.Sprintf("resolve rate dropped %.3f -> %.3f (max -0.05)", baseline.ResolveRateMean, current.ResolveRateMean))
 	}

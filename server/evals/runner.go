@@ -64,7 +64,7 @@ func RunSuiteCases(cfg RunConfig, cases []Case) ([]CaseResult, error) {
 			if len(cfg.MockVenueCandidates) > 0 {
 				genOpts.PreferredCandidates = cfg.MockVenueCandidates
 			} else {
-				genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 30)
+				genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 0)
 			}
 		}
 		if c.ExpectError {

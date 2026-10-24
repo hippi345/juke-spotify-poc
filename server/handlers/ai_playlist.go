@@ -171,12 +171,12 @@ func runAIPlaylistJob(id string, cfg *config.Config, client *spotify.Client, bod
 
 	var opts gemini.GenerateOptions
 	if cfg.VibeSenseVectorEnabled && body.VenueID > 0 {
-		opts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), body.VenueID, desc, 30)
+		opts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), body.VenueID, desc, 0)
 	}
 	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
 	suggestions, err := gen.GenerateTrackList(desc, n, artists, opts)
 	if err != nil {
-		failJob(id, err.Error())
+		failJobGemini(id, cfg, err)
 		return
 	}
 
@@ -264,5 +264,12 @@ func failJob(id, msg string) {
 		j.Status = "failed"
 		j.ErrMsg = msg
 	})
+}
+
+func failJobGemini(id string, cfg *config.Config, err error) {
+	if err != nil {
+		vector.LogEmbedError("ai playlist job", err, cfg.GeminiAPIKey)
+	}
+	failJob(id, "VibeSense could not generate track suggestions right now. Try again in a moment.")
 }
 

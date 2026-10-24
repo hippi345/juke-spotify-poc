@@ -378,5 +378,195 @@
       },
       "duration_ms": 0
     }
+  ],
+  "beabadoobee coffee": [
+    {
+      "id": "id-rag_lofi_retrieval-v-0",
+      "name": "Coffee",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-0",
+      "artists": [
+        {
+          "id": "",
+          "name": "beabadoobee"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "home resonance": [
+    {
+      "id": "id-rag_lofi_retrieval-v-1",
+      "name": "Resonance",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "HOME"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "jinsang affection": [
+    {
+      "id": "id-rag_lofi_retrieval-v-2",
+      "name": "Affection",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "Jinsang"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "kyle dixon & michael stein montage": [
+    {
+      "id": "id-rag_lofi_retrieval-v-3",
+      "name": "Montage",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "Kyle Dixon & Michael Stein"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "glass animals heat waves": [
+    {
+      "id": "id-rag_lofi_retrieval-v-4",
+      "name": "Heat Waves",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "Glass Animals"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "the killers mr. brightside": [
+    {
+      "id": "id-rag_lofi_retrieval-v-5",
+      "name": "Mr. Brightside",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "The Killers"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "chris stapleton tennessee whiskey": [
+    {
+      "id": "id-rag_lofi_retrieval-v-6",
+      "name": "Tennessee Whiskey",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Chris Stapleton"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "daft punk one more time": [
+    {
+      "id": "id-rag_lofi_retrieval-v-7",
+      "name": "One More Time",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Daft Punk"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "queen bohemian rhapsody": [
+    {
+      "id": "id-rag_lofi_retrieval-v-8",
+      "name": "Bohemian Rhapsody",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-8",
+      "artists": [
+        {
+          "id": "",
+          "name": "Queen"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "old crow medicine show wagon wheel": [
+    {
+      "id": "id-rag_lofi_retrieval-v-9",
+      "name": "Wagon Wheel",
+      "uri": "spotify:track:id-rag_lofi_retrieval-v-9",
+      "artists": [
+        {
+          "id": "",
+          "name": "Old Crow Medicine Show"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
   ]
 }

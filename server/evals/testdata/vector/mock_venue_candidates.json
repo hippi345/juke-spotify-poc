@@ -1,242 +1,50 @@
 [
   {
-    "title": "Lofi Study 1",
-    "artist": "Venue Regular"
+    "title": "Coffee",
+    "artist": "beabadoobee"
   },
   {
-    "title": "Lofi Study 2",
-    "artist": "Venue Regular"
+    "title": "Resonance",
+    "artist": "HOME"
   },
   {
-    "title": "Lofi Study 3",
-    "artist": "Venue Regular"
+    "title": "Mr. Brightside",
+    "artist": "The Killers"
   },
   {
-    "title": "Lofi Study 4",
-    "artist": "Venue Regular"
+    "title": "Tennessee Whiskey",
+    "artist": "Chris Stapleton"
   },
   {
-    "title": "Lofi Study 5",
-    "artist": "Venue Regular"
+    "title": "One More Time",
+    "artist": "Daft Punk"
   },
   {
-    "title": "Lofi Study 6",
-    "artist": "Venue Regular"
+    "title": "Bohemian Rhapsody",
+    "artist": "Queen"
   },
   {
-    "title": "Lofi Study 7",
-    "artist": "Venue Regular"
+    "title": "Wagon Wheel",
+    "artist": "Old Crow Medicine Show"
   },
   {
-    "title": "Lofi Study 8",
-    "artist": "Venue Regular"
+    "title": "Before He Cheats",
+    "artist": "Carrie Underwood"
   },
   {
-    "title": "Lofi Study 9",
-    "artist": "Venue Regular"
+    "title": "Titanium",
+    "artist": "David Guetta"
   },
   {
-    "title": "Lofi Study 10",
-    "artist": "Venue Regular"
+    "title": "Affection",
+    "artist": "Jinsang"
   },
   {
-    "title": "Honky Tonk 1",
-    "artist": "Nashville Crowd"
+    "title": "Montage",
+    "artist": "Kyle Dixon & Michael Stein"
   },
   {
-    "title": "Honky Tonk 2",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 3",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 4",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 5",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 6",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 7",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 8",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 9",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 10",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Classic Rock 1",
-    "artist": "Crowd Favorite"
-  },
-  {
-    "title": "Classic Rock 2",
-    "artist": "Crowd Favorite"
-  },
-  {
-    "title": "Classic Rock 3",
-    "artist": "Crowd Favorite"
-  },
-  {
-    "title": "Classic Rock 4",
-    "artist": "Crowd Favorite"
-  },
-  {
-    "title": "Classic Rock 5",
-    "artist": "Crowd Favorite"
-  },
-  {
-    "title": "Classic Rock 6",
-    "artist": "Crowd Favorite"
-  },
-  {
-    "title": "Classic Rock 7",
-    "artist": "Crowd Favorite"
-  },
-  {
-    "title": "Classic Rock 8",
-    "artist": "Crowd Favorite"
-  },
-  {
-    "title": "Classic Rock 9",
-    "artist": "Crowd Favorite"
-  },
-  {
-    "title": "Classic Rock 10",
-    "artist": "Crowd Favorite"
-  },
-  {
-    "title": "House Banger 1",
-    "artist": "DJ Regular"
-  },
-  {
-    "title": "House Banger 2",
-    "artist": "DJ Regular"
-  },
-  {
-    "title": "House Banger 3",
-    "artist": "DJ Regular"
-  },
-  {
-    "title": "House Banger 4",
-    "artist": "DJ Regular"
-  },
-  {
-    "title": "House Banger 5",
-    "artist": "DJ Regular"
-  },
-  {
-    "title": "House Banger 6",
-    "artist": "DJ Regular"
-  },
-  {
-    "title": "House Banger 7",
-    "artist": "DJ Regular"
-  },
-  {
-    "title": "House Banger 8",
-    "artist": "DJ Regular"
-  },
-  {
-    "title": "House Banger 9",
-    "artist": "DJ Regular"
-  },
-  {
-    "title": "House Banger 10",
-    "artist": "DJ Regular"
-  },
-  {
-    "title": "Lofi Study 1",
-    "artist": "Venue Regular"
-  },
-  {
-    "title": "Lofi Study 2",
-    "artist": "Venue Regular"
-  },
-  {
-    "title": "Lofi Study 3",
-    "artist": "Venue Regular"
-  },
-  {
-    "title": "Lofi Study 4",
-    "artist": "Venue Regular"
-  },
-  {
-    "title": "Lofi Study 5",
-    "artist": "Venue Regular"
-  },
-  {
-    "title": "Lofi Study 6",
-    "artist": "Venue Regular"
-  },
-  {
-    "title": "Lofi Study 7",
-    "artist": "Venue Regular"
-  },
-  {
-    "title": "Lofi Study 8",
-    "artist": "Venue Regular"
-  },
-  {
-    "title": "Lofi Study 9",
-    "artist": "Venue Regular"
-  },
-  {
-    "title": "Lofi Study 10",
-    "artist": "Venue Regular"
-  },
-  {
-    "title": "Honky Tonk 1",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 2",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 3",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 4",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 5",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 6",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 7",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 8",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 9",
-    "artist": "Nashville Crowd"
-  },
-  {
-    "title": "Honky Tonk 10",
-    "artist": "Nashville Crowd"
+    "title": "Heat Waves",
+    "artist": "Glass Animals"
   }
 ]

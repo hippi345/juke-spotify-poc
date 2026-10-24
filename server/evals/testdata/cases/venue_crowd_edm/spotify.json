@@ -454,5 +454,233 @@
       },
       "duration_ms": 0
     }
+  ],
+  "daft punk one more time": [
+    {
+      "id": "id-venue_crowd_edm-v-0",
+      "name": "One More Time",
+      "uri": "spotify:track:id-venue_crowd_edm-v-0",
+      "artists": [
+        {
+          "id": "",
+          "name": "Daft Punk"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "david guetta titanium": [
+    {
+      "id": "id-venue_crowd_edm-v-1",
+      "name": "Titanium",
+      "uri": "spotify:track:id-venue_crowd_edm-v-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "David Guetta"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "beabadoobee coffee": [
+    {
+      "id": "id-venue_crowd_edm-v-2",
+      "name": "Coffee",
+      "uri": "spotify:track:id-venue_crowd_edm-v-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "beabadoobee"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "home resonance": [
+    {
+      "id": "id-venue_crowd_edm-v-3",
+      "name": "Resonance",
+      "uri": "spotify:track:id-venue_crowd_edm-v-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "HOME"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "the killers mr. brightside": [
+    {
+      "id": "id-venue_crowd_edm-v-4",
+      "name": "Mr. Brightside",
+      "uri": "spotify:track:id-venue_crowd_edm-v-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "The Killers"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "chris stapleton tennessee whiskey": [
+    {
+      "id": "id-venue_crowd_edm-v-5",
+      "name": "Tennessee Whiskey",
+      "uri": "spotify:track:id-venue_crowd_edm-v-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "Chris Stapleton"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "queen bohemian rhapsody": [
+    {
+      "id": "id-venue_crowd_edm-v-6",
+      "name": "Bohemian Rhapsody",
+      "uri": "spotify:track:id-venue_crowd_edm-v-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Queen"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "old crow medicine show wagon wheel": [
+    {
+      "id": "id-venue_crowd_edm-v-7",
+      "name": "Wagon Wheel",
+      "uri": "spotify:track:id-venue_crowd_edm-v-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Old Crow Medicine Show"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "carrie underwood before he cheats": [
+    {
+      "id": "id-venue_crowd_edm-v-8",
+      "name": "Before He Cheats",
+      "uri": "spotify:track:id-venue_crowd_edm-v-8",
+      "artists": [
+        {
+          "id": "",
+          "name": "Carrie Underwood"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "jinsang affection": [
+    {
+      "id": "id-venue_crowd_edm-v-9",
+      "name": "Affection",
+      "uri": "spotify:track:id-venue_crowd_edm-v-9",
+      "artists": [
+        {
+          "id": "",
+          "name": "Jinsang"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "kyle dixon & michael stein montage": [
+    {
+      "id": "id-venue_crowd_edm-v-10",
+      "name": "Montage",
+      "uri": "spotify:track:id-venue_crowd_edm-v-10",
+      "artists": [
+        {
+          "id": "",
+          "name": "Kyle Dixon & Michael Stein"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "glass animals heat waves": [
+    {
+      "id": "id-venue_crowd_edm-v-11",
+      "name": "Heat Waves",
+      "uri": "spotify:track:id-venue_crowd_edm-v-11",
+      "artists": [
+        {
+          "id": "",
+          "name": "Glass Animals"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
   ]
 }

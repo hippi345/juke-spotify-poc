@@ -22,33 +22,44 @@ func TestVibeSenseEvalLive(t *testing.T) {
 	if cfg.GeminiAPIKey == "" {
 		t.Skip("GEMINI_API_KEY not set")
 	}
+	vectorOn := os.Getenv("JUKE_EVALS_VECTOR") == "1"
 	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
 	var searcher TrackSearcher
 	if spotifyResolveAvailable(cfg) {
 		searcher = SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
 	}
-	judge := NewGeminiJudgeFromEnv()
 	runCfg := RunConfig{
 		Short:     false,
+		VectorOn:  vectorOn,
 		Generator: gen,
 		Searcher:  searcher,
-		Judge:     judge,
+		Judge:     NewGeminiJudgeFromEnv(),
+		VenueKeys: loadVenueHistoryKeys(),
 	}
-	if os.Getenv("JUKE_EVALS_VECTOR") == "1" {
-		_ = vector.Init(true, cfg.OpenSearchURL, cfg.GeminiAPIKey, cfg.EmbedProvider)
+	if vectorOn {
+		if err := SeedLiveEvalVenueIndex(cfg); err != nil {
+			t.Fatalf("seed live venue index: %v", err)
+		}
 		runCfg.InjectVenueCandidates = true
 	}
+	runCfg = wrapLiveBudget(runCfg)
 	results, err := RunSuite(runCfg)
 	if err != nil {
+		if msg := liveBudgetReport(); msg != "" {
+			t.Fatalf("%v (%s)", err, msg)
+		}
 		t.Fatal(err)
 	}
-	summary := Summarize(results, "live", false)
+	summary := Summarize(results, "live", vectorOn)
 	bl, err := LoadBaseline(baselineFile())
 	if err != nil {
 		t.Fatalf("baseline: %v", err)
 	}
-	gate := CompareBaseline(summary, bl.Full)
+	gate := CompareBaseline(summary, bl.Full, results)
 	_ = WriteReports(reportsDir(), summary, results, gate)
+	if msg := liveBudgetReport(); msg != "" {
+		t.Log(msg)
+	}
 	if !gate.Passed {
 		t.Fatalf("live gate failed: %v", gate.Failures)
 	}
@@ -66,13 +77,15 @@ func TestVibeSenseEvalLiveVectorOn(t *testing.T) {
 	if cfg.GeminiAPIKey == "" {
 		t.Skip("GEMINI_API_KEY not set")
 	}
+	if err := SeedLiveEvalVenueIndex(cfg); err != nil {
+		t.Fatalf("seed live venue index: %v", err)
+	}
 	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
 	var searcher TrackSearcher
 	if spotifyResolveAvailable(cfg) {
 		searcher = SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
 	}
-	_ = vector.Init(true, cfg.OpenSearchURL, cfg.GeminiAPIKey, cfg.EmbedProvider)
-	runCfg := RunConfig{
+	runCfg := wrapLiveBudget(RunConfig{
 		Short:                 false,
 		VectorOnly:            true,
 		VectorOn:              true,
@@ -81,13 +94,16 @@ func TestVibeSenseEvalLiveVectorOn(t *testing.T) {
 		Searcher:              searcher,
 		Judge:                 NewGeminiJudgeFromEnv(),
 		VenueKeys:             loadVenueHistoryKeys(),
-	}
+	})
 	results, err := RunSuite(runCfg)
 	if err != nil {
+		if msg := liveBudgetReport(); msg != "" {
+			t.Fatalf("%v (%s)", err, msg)
+		}
 		t.Fatal(err)
 	}
 	summary := Summarize(results, "live", true)
-	t.Logf("live vector ON: cases=%d overlap=%.3f resolveNA=%v", summary.CaseCount, summary.VenueOverlapMean, summary.ResolveRateNA)
+	t.Logf("live vector ON: cases=%d overlap=%.3f resolveNA=%v %s", summary.CaseCount, summary.VenueOverlapMean, summary.ResolveRateNA, liveBudgetReport())
 	scanLiveReportsForLeaks(t)
 }
 
