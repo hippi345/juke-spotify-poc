@@ -31,7 +31,7 @@ go test -tags evals_live -count=1 -timeout 120m ./evals/ -run TestVibeSenseEvalL
 cp evals/out/report.json "$ROOT/artifacts/live-evals/report-vector-off.json"
 cp evals/out/report.md "$ROOT/artifacts/live-evals/report-vector-off.md"
 
-echo "=== Live evals: vector index ON (vector cases) ==="
+echo "=== Live evals: vector index ON (full suite, same cases as OFF) ==="
 export JUKE_EVALS_VECTOR=1
 go test -tags evals_live -count=1 -timeout 120m ./evals/ -run TestVibeSenseEvalLiveVectorOn -write-reports -v 2>&1 | tee "$ROOT/artifacts/live-evals/on.log"
 cp evals/out/report.json "$ROOT/artifacts/live-evals/report-vector-on.json"

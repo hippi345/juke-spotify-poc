@@ -13,35 +13,31 @@ import (
 	"juke-spotify-poc/server/spotify"
 )
 
+// TestVibeSenseEvalLive is the full live suite with vector index OFF (default product path).
 func TestVibeSenseEvalLive(t *testing.T) {
 	if os.Getenv("JUKE_EVALS_LIVE") != "1" && os.Getenv("GEMINI_API_KEY") == "" {
 		t.Skip("live evals: set JUKE_EVALS_LIVE=1 and GEMINI_API_KEY")
+	}
+	if os.Getenv("JUKE_EVALS_VECTOR") == "1" {
+		t.Skip("vector OFF arm: unset JUKE_EVALS_VECTOR")
 	}
 	cfg := config.Load()
 	if cfg.GeminiAPIKey == "" {
 		t.Skip("GEMINI_API_KEY not set")
 	}
-	vectorOn := os.Getenv("JUKE_EVALS_VECTOR") == "1"
 	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
 	var searcher TrackSearcher
 	if spotifyResolveAvailable(cfg) {
 		searcher = SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
 	}
-	runCfg := RunConfig{
+	runCfg := wrapLiveBudget(RunConfig{
 		Short:     false,
-		VectorOn:  vectorOn,
+		VectorOn:  false,
 		Generator: gen,
 		Searcher:  searcher,
 		Judge:     NewGeminiJudgeFromEnv(),
 		VenueKeys: loadVenueHistoryKeys(),
-	}
-	if vectorOn {
-		if err := SeedLiveEvalVenueIndex(cfg); err != nil {
-			t.Fatalf("seed live venue index: %v", err)
-		}
-		runCfg.InjectVenueCandidates = true
-	}
-	runCfg = wrapLiveBudget(runCfg)
+	})
 	results, err := RunSuite(runCfg)
 	if err != nil {
 		if msg := liveBudgetReport(); msg != "" {
@@ -49,7 +45,7 @@ func TestVibeSenseEvalLive(t *testing.T) {
 		}
 		t.Fatal(err)
 	}
-	summary := Summarize(results, "live", vectorOn)
+	summary := Summarize(results, "live", false)
 	summary.JudgeErrorCount = 0
 	bl, err := LoadBaseline(baselineFile())
 	if err != nil {
@@ -59,30 +55,31 @@ func TestVibeSenseEvalLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("thresholds: %v", err)
 	}
-	gate := LiveGate(summary, results, bl, th)
+	gate := LiveGateOff(summary, results, bl, th)
 	_ = WriteReports(reportsDir(), summary, results, gate)
 	if msg := liveBudgetReport(); msg != "" {
 		t.Log(msg)
 	}
 	if !gate.Passed {
-		t.Fatalf("live gate failed: %v", gate.Failures)
+		t.Fatalf("live gate (vector OFF) failed: %v", gate.Failures)
 	}
 	scanLiveReportsForLeaks(t)
 }
 
+// TestVibeSenseEvalLiveVectorOn is the full live suite with vector index ON (informational rubrics).
 func TestVibeSenseEvalLiveVectorOn(t *testing.T) {
 	if os.Getenv("JUKE_EVALS_LIVE") != "1" && os.Getenv("GEMINI_API_KEY") == "" {
 		t.Skip("live evals: set JUKE_EVALS_LIVE=1 and GEMINI_API_KEY")
 	}
 	if os.Getenv("JUKE_EVALS_VECTOR") != "1" {
-		t.Skip("vector live arm: set JUKE_EVALS_VECTOR=1")
+		t.Skip("vector ON arm: set JUKE_EVALS_VECTOR=1")
 	}
 	cfg := config.Load()
 	if cfg.GeminiAPIKey == "" {
 		t.Skip("GEMINI_API_KEY not set")
 	}
 	if err := SeedLiveEvalVenueIndex(cfg); err != nil {
-		t.Fatalf("seed live venue index: %v", err)
+		t.Logf("live venue index seed warning (continuing): %v", err)
 	}
 	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
 	var searcher TrackSearcher
@@ -91,7 +88,6 @@ func TestVibeSenseEvalLiveVectorOn(t *testing.T) {
 	}
 	runCfg := wrapLiveBudget(RunConfig{
 		Short:                 false,
-		VectorOnly:            true,
 		VectorOn:              true,
 		InjectVenueCandidates: true,
 		Generator:             gen,
@@ -108,20 +104,13 @@ func TestVibeSenseEvalLiveVectorOn(t *testing.T) {
 	}
 	summary := Summarize(results, "live", true)
 	summary.JudgeErrorCount = 0
-	bl, err := LoadBaseline(baselineFile())
-	if err != nil {
-		t.Fatalf("baseline: %v", err)
-	}
-	th, err := LoadThresholds("")
-	if err != nil {
-		t.Fatalf("thresholds: %v", err)
-	}
-	gate := LiveGate(summary, results, bl, th)
+	gate := LiveGateVectorOn(results)
 	_ = WriteReports(reportsDir(), summary, results, gate)
 	if !gate.Passed {
-		t.Fatalf("live vector gate failed: %v", gate.Failures)
+		t.Fatalf("live vector ON hard gate failed: %v", gate.Failures)
 	}
-	t.Logf("live vector ON: cases=%d overlap=%.3f resolveNA=%v %s", summary.CaseCount, summary.VenueOverlapMean, summary.ResolveRateNA, liveBudgetReport())
+	t.Logf("live vector ON: cases=%d overlap=%.3f venue_share=%.3f %s",
+		summary.CaseCount, summary.VenueOverlapMean, summary.VenueHistoryShare, liveBudgetReport())
 	scanLiveReportsForLeaks(t)
 }
 

@@ -2,6 +2,8 @@
 
 Committed targets for **live** VibeSense runs (`JUKE_EVALS_LIVE=1`, `-tags evals_live`). Mocked CI continues to use `baseline.json` only.
 
+**Joel policy:** `make eval` and CI always run **two arms** on the **full** case matrix — vector index **OFF** (product default) and **ON**. Thresholds and baseline gates apply to the **OFF** arm only. The **ON** arm must complete and is reported side-by-side (rubric deltas, venue-track share, vector helps/neutral/hurts); it fails only on **schema**, **grounding**, or **tool-sequence** hard checks.
+
 ## How thresholds were picked
 
 1. Run **two** full live suites (vector index **OFF**) with **`JUKE_EVALS_JUDGE_RUNS=2`** so each case is judged twice and scores are averaged (less variance than a single judge call).
