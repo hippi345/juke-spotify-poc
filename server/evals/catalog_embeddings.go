@@ -41,27 +41,6 @@ func defaultVectorsPath() string {
 	return filepath.Join(catalogVectorDir(), "catalog_track_embeddings.f32")
 }
 
-func catalogTrackMeta(tr vector.CatalogTrack) string {
-	return joinNonEmpty(tr.Genres, tr.Mood, tr.Tempo)
-}
-
-func joinNonEmpty(parts ...string) string {
-	var out []string
-	for _, p := range parts {
-		if p != "" {
-			out = append(out, p)
-		}
-	}
-	if len(out) == 0 {
-		return ""
-	}
-	s := out[0]
-	for i := 1; i < len(out); i++ {
-		s += " " + out[i]
-	}
-	return s
-}
-
 func loadCatalogEmbeddingStore() (*catalogEmbeddingStore, error) {
 	manifestPath := defaultManifestPath()
 	vecPath := defaultVectorsPath()
