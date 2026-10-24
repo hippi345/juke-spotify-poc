@@ -14,11 +14,12 @@ import (
 )
 
 // Exercises one consumer group subscribed to all jukespotify.* topics (cold-start regression).
-// From the host with compose up: KAFKA_BROKERS=localhost:29092 go test -tags=integration -run TestConsumerAllTopicsSingleGroup ./events/
+// From the host with compose up (published port 29092): KAFKA_BROKERS=host.docker.internal:29092 go test -tags=integration -run TestConsumerAllTopicsSingleGroup ./events/
+// On Linux host OS, localhost:29092 reaches the broker but metadata may advertise host.docker.internal; prefer running the test from a container on the compose network.
 func TestConsumerAllTopicsSingleGroup_integration(t *testing.T) {
 	brokers := os.Getenv("KAFKA_BROKERS")
 	if brokers == "" {
-		brokers = "localhost:29092"
+		brokers = "host.docker.internal:29092"
 	}
 	topics := []string{TopicVote, TopicPayment, TopicSession}
 	ensureKafkaTopics(brokers, topics)
