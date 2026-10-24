@@ -50,12 +50,3 @@ func TestCatalogEvalQueriesNoStemOverlapWithPlanted(t *testing.T) {
 		}
 	}
 }
-
-func tokenSetStemmed(text string) map[string]bool {
-	toks := tokenizeAndStem(text)
-	set := make(map[string]bool, len(toks))
-	for _, t := range toks {
-		set[t] = true
-	}
-	return set
-}
