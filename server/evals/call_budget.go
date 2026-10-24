@@ -60,3 +60,8 @@ func liveCallCount() int {
 	liveBudget.mu.Unlock()
 	return n
 }
+
+// LiveBudgetStatus returns call count/cap when a live budget is active (for reports/logs).
+func LiveBudgetStatus() string {
+	return liveBudgetReport()
+}

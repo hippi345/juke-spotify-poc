@@ -36,6 +36,7 @@ type SummaryMetrics struct {
 	JSONOK            bool    `json:"json_ok"`
 	CountOK           bool    `json:"count_ok"`
 	NoDuplicates      bool    `json:"no_duplicates"`
+	JudgeErrorCount   int     `json:"judge_error_count"`
 }
 
 // GateResult explains baseline comparison outcome.

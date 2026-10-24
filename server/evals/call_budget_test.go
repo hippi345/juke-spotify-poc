@@ -21,6 +21,12 @@ func TestLiveCallBudget_enforcesCap(t *testing.T) {
 	}
 }
 
+func TestLiveBudgetStatus_inactiveByDefault(t *testing.T) {
+	if LiveBudgetStatus() != "" {
+		t.Fatalf("expected empty status when live budget inactive, got %q", LiveBudgetStatus())
+	}
+}
+
 func TestBudgetedGenerator_countsCalls(t *testing.T) {
 	t.Setenv("JUKE_EVALS_LIVE", "1")
 	t.Setenv("JUKE_EVALS_LIVE_CALL_CAP", "1")

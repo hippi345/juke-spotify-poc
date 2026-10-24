@@ -23,6 +23,9 @@ def main():
         print(f"- Mood / crowd / variety / coherence: {s.get('mood_fit_mean'):.3f} / {s.get('crowd_fit_mean'):.3f} / {s.get('variety_mean'):.3f} / {s.get('coherence_mean'):.3f}")
         print(f"- Resolve mean: {s.get('resolve_rate_mean'):.3f} (NA={s.get('resolve_rate_na')})")
         print(f"- Venue overlap mean: {s.get('venue_overlap_mean', 0):.3f}")
+        print(f"- Venue-history share mean: {s.get('venue_history_share_mean', 0):.3f}")
+        print(f"- Hard pass count: {s.get('hard_pass_count')}")
+        print(f"- Judge errors: {s.get('judge_error_count', 0)}")
         print(f"- Gate passed: {g.get('passed')}")
         if g.get("failures"):
             print("- Gate failures:")

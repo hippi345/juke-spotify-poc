@@ -1,17 +1,49 @@
 name: VibeSense evals (live)
 
 on:
-  workflow_dispatch:
+  pull_request:
+    paths:
+      - "server/evals/**"
+      - "server/gemini/**"
+      - "server/handlers/ai_playlist.go"
+      - "server/handlers/similar_tracks.go"
+      - "server/vector/**"
+      - "client/src/components/AiPlaylistPanel.tsx"
+      - "scripts/run-live-evals.sh"
+      - "scripts/check-artifact-secrets.sh"
+      - "Makefile"
+      - ".github/workflows/vibesense-evals-live.yml"
+  push:
+    branches: [main]
+    paths:
+      - "server/evals/**"
+      - "server/gemini/**"
+      - "server/handlers/ai_playlist.go"
+      - "server/vector/**"
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: vibesense-evals-live-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   vibesense-evals-live:
     name: VibeSense eval gate (live)
     runs-on: ubuntu-latest
+    services:
+      opensearch:
+        image: opensearchproject/opensearch:2.11.0
+        env:
+          discovery.type: single-node
+          plugins.security.disabled: "true"
+          OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+        ports:
+          - 9200:9200
     defaults:
       run:
-        working-directory: server
+        working-directory: .
     steps:
       - uses: actions/checkout@v7
 
@@ -20,37 +52,40 @@ jobs:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
 
-      - name: Check secrets
-        id: secrets
+      - name: Require GEMINI_API_KEY (no skip on forks or missing secret)
+        env:
+          FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
+          if [ "$FORK" = "true" ]; then
+            echo "::error::Fork pull requests cannot run live VibeSense evals. Use a branch on the upstream repository."
+            exit 1
+          fi
           if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "GEMINI_API_KEY not configured — skipping live evals"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Repository secret GEMINI_API_KEY is required for live VibeSense evals."
+            exit 1
           fi
 
-      - name: Live eval suite
-        if: steps.secrets.outputs.skip != 'true'
+      - name: Live eval suite (vector OFF and ON, call cap)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           JUKE_EVALS_LIVE: "1"
+          JUKE_EVALS_LIVE_CALL_CAP: "250"
+          JUKE_EVALS_JUDGE_RUNS: "2"
+          OPENSEARCH_URL: http://localhost:9200
         run: |
-          go test -tags evals_live -count=1 ./evals/ -run TestVibeSenseEvalLive -write-reports
-          echo "## VibeSense live eval summary" >> "$GITHUB_STEP_SUMMARY"
-          cat evals/out/report.md >> "$GITHUB_STEP_SUMMARY" || true
+          mkdir -p artifacts/live-evals
+          ./scripts/run-live-evals.sh
+          ./scripts/check-artifact-secrets.sh
+          python3 ./scripts/print-eval-threshold-table.py
 
-      - name: Upload live eval report
-        if: always() && steps.secrets.outputs.skip != 'true'
+      - name: Upload live eval reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: vibesense-evals-live-report
           path: |
-            server/evals/out/report.json
-            server/evals/out/report.md
-
-      - name: Skipped summary
-        if: steps.secrets.outputs.skip == 'true'
-        run: |
-          echo "## VibeSense live evals skipped" >> "$GITHUB_STEP_SUMMARY"
-          echo "No GEMINI_API_KEY repository secret — live suite not run." >> "$GITHUB_STEP_SUMMARY"
+            artifacts/live-evals/report-vector-off.json
+            artifacts/live-evals/report-vector-off.md
+            artifacts/live-evals/report-vector-on.json
+            artifacts/live-evals/report-vector-on.md
+            artifacts/live-evals/summary.md

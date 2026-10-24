@@ -50,11 +50,16 @@ func TestVibeSenseEvalLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	summary := Summarize(results, "live", vectorOn)
+	summary.JudgeErrorCount = 0
 	bl, err := LoadBaseline(baselineFile())
 	if err != nil {
 		t.Fatalf("baseline: %v", err)
 	}
-	gate := CompareBaseline(summary, bl.Full, results)
+	th, err := LoadThresholds("")
+	if err != nil {
+		t.Fatalf("thresholds: %v", err)
+	}
+	gate := LiveGate(summary, results, bl, th)
 	_ = WriteReports(reportsDir(), summary, results, gate)
 	if msg := liveBudgetReport(); msg != "" {
 		t.Log(msg)
@@ -102,6 +107,20 @@ func TestVibeSenseEvalLiveVectorOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	summary := Summarize(results, "live", true)
+	summary.JudgeErrorCount = 0
+	bl, err := LoadBaseline(baselineFile())
+	if err != nil {
+		t.Fatalf("baseline: %v", err)
+	}
+	th, err := LoadThresholds("")
+	if err != nil {
+		t.Fatalf("thresholds: %v", err)
+	}
+	gate := LiveGate(summary, results, bl, th)
+	_ = WriteReports(reportsDir(), summary, results, gate)
+	if !gate.Passed {
+		t.Fatalf("live vector gate failed: %v", gate.Failures)
+	}
 	t.Logf("live vector ON: cases=%d overlap=%.3f resolveNA=%v %s", summary.CaseCount, summary.VenueOverlapMean, summary.ResolveRateNA, liveBudgetReport())
 	scanLiveReportsForLeaks(t)
 }

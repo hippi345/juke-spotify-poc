@@ -3,6 +3,9 @@ package evals
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"juke-spotify-poc/server/gemini"
@@ -10,6 +13,23 @@ import (
 )
 
 const judgeRunsPerCase = 3
+
+func judgeRunsForSuite() int {
+	if os.Getenv("JUKE_EVALS_LIVE") != "1" {
+		return judgeRunsPerCase
+	}
+	if v := stringsTrimSpace(os.Getenv("JUKE_EVALS_JUDGE_RUNS")); v != "" {
+		n, err := strconv.Atoi(v)
+		if err == nil && n > 0 {
+			return n
+		}
+	}
+	return judgeRunsPerCase
+}
+
+func stringsTrimSpace(s string) string {
+	return strings.TrimSpace(s)
+}
 
 // CaseResult is one case after generation, checks, and judging.
 type CaseResult struct {
@@ -84,7 +104,7 @@ func RunSuiteCases(cfg RunConfig, cases []Case) ([]CaseResult, error) {
 
 		var judgeRuns []JudgeScores
 		if !c.ExpectError && len(suggestions) > 0 && cfg.Judge != nil {
-			for i := 0; i < judgeRunsPerCase; i++ {
+			for i := 0; i < judgeRunsForSuite(); i++ {
 				sc, err := cfg.Judge.Score(c.Description, suggestions)
 				if err != nil {
 					return nil, fmt.Errorf("case %s judge run %d: %w", c.ID, i+1, err)

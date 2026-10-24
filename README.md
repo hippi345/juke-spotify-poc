@@ -234,23 +234,27 @@ A **second** model scores each non-error case on **mood fit**, **crowd fit**, **
 |------|------------|------|
 | **Mocked (default)** | `go test ./evals/` | None — recorded Gemini, Spotify, and judge fixtures in `server/evals/testdata/` |
 | **CI subset** | `go test -short ./evals/ -run TestVibeSenseEvalGateCI` | Same fixtures; faster matrix |
-| **Live** | `go test -tags evals_live ./evals/ -run TestVibeSenseEvalLive` | `JUKE_EVALS_LIVE=1` and `GEMINI_API_KEY`; optional Spotify for resolve checks. `-record` (live) refreshes fixtures when implemented |
+| **Live** | `make eval` (repo root) | `GEMINI_API_KEY`, `JUKE_EVALS_LIVE=1`; optional `OPENSEARCH_URL` for vector ON; see `server/evals/thresholds.json` |
 
 ```bash
+make eval-mock    # offline mocked full gate + vector regression
+make eval         # live OFF+ON arms, thresholds, artifact leak scan (requires GEMINI_API_KEY)
+
 cd server
 go test -short -count=1 ./evals/ -run TestVibeSenseEvalGateCI
 go test -count=1 ./evals/ -run TestVibeSenseEvalGate
-JUKE_EVALS_LIVE=1 go test -tags evals_live -count=1 ./evals/ -run TestVibeSenseEvalLive -write-reports
 ```
+
+Committed **live thresholds**: [server/evals/thresholds.json](server/evals/thresholds.json) and [server/evals/THRESHOLDS.md](server/evals/THRESHOLDS.md) (calibration method, mean targets, per-case floors, regression tolerance, hard gates).
 
 #### CI workflows
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | [vibesense-evals.yml](.github/workflows/vibesense-evals.yml) | Every PR / push to `main` | **Required gate:** mocked CI subset vs `baseline.json`; uploads `server/evals/out/` artifacts |
-| [vibesense-evals-live.yml](.github/workflows/vibesense-evals-live.yml) | `workflow_dispatch` + weekly cron | Full live suite with `-tags evals_live`; skips cleanly if `GEMINI_API_KEY` secret is unset; job summary + artifacts |
+| [vibesense-evals-live.yml](.github/workflows/vibesense-evals-live.yml) | PRs touching evals/AI paths, nightly `main`, `workflow_dispatch` | **Check name:** `VibeSense eval gate (live)` — requires repo secret **`GEMINI_API_KEY`**; **fails** on fork PRs or missing secret (never skips); call cap + artifact leak scan |
 
-**Branch protection:** mark **`VibeSense eval gate (mocked)`** as a required status check (workflow *VibeSense evals (mocked)*).
+**Branch protection:** require **`VibeSense eval gate (mocked)`** on every PR and **`VibeSense eval gate (live)`** when live workflow runs.
 
 #### Baseline gate
 

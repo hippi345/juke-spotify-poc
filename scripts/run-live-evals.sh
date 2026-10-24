@@ -27,13 +27,13 @@ export JUKE_EVALS_LIVE=1
 
 echo "=== Live evals: vector index OFF ==="
 unset JUKE_EVALS_VECTOR
-go test -tags evals_live -count=1 ./evals/ -run TestVibeSenseEvalLive -write-reports -v 2>&1 | tee "$ROOT/artifacts/live-evals/off.log"
+go test -tags evals_live -count=1 -timeout 120m ./evals/ -run TestVibeSenseEvalLive -write-reports -v 2>&1 | tee "$ROOT/artifacts/live-evals/off.log"
 cp evals/out/report.json "$ROOT/artifacts/live-evals/report-vector-off.json"
 cp evals/out/report.md "$ROOT/artifacts/live-evals/report-vector-off.md"
 
-echo "=== Live evals: vector index ON ==="
+echo "=== Live evals: vector index ON (vector cases) ==="
 export JUKE_EVALS_VECTOR=1
-go test -tags evals_live -count=1 ./evals/ -run TestVibeSenseEvalLive -write-reports -v 2>&1 | tee "$ROOT/artifacts/live-evals/on.log"
+go test -tags evals_live -count=1 -timeout 120m ./evals/ -run TestVibeSenseEvalLiveVectorOn -write-reports -v 2>&1 | tee "$ROOT/artifacts/live-evals/on.log"
 cp evals/out/report.json "$ROOT/artifacts/live-evals/report-vector-on.json"
 cp evals/out/report.md "$ROOT/artifacts/live-evals/report-vector-on.md"
 
