@@ -4,8 +4,9 @@ import (
 	"testing"
 )
 
-// TestVibeSenseVectorGate compares vector-on vs vector-off on venue-history eval cases only.
-func TestVibeSenseVectorGate(t *testing.T) {
+// TestVibeSenseVectorRegressionGate compares vector on/off on venue-history cases using
+// deterministic overlap with fixture venue keys (not LLM-judge merit).
+func TestVibeSenseVectorRegressionGate(t *testing.T) {
 	offResults, err := RunSuite(vectorEvalConfig(false))
 	if err != nil {
 		t.Fatal(err)
@@ -19,12 +20,12 @@ func TestVibeSenseVectorGate(t *testing.T) {
 	onSum := Summarize(onResults, "mocked", true)
 
 	gate := CompareVectorGate(offSum, onSum)
-	t.Logf("vector gate: mood off=%.3f on=%.3f | crowd off=%.3f on=%.3f | resolve off=%.3f on=%.3f | venue off=%.3f on=%.3f",
+	t.Logf("vector regression gate: overlap off=%.3f on=%.3f lift=%.3f | mood %.3f/%.3f crowd %.3f/%.3f resolve %.3f/%.3f",
+		offSum.VenueOverlapMean, onSum.VenueOverlapMean, gate.Lift,
 		offSum.MoodFitMean, onSum.MoodFitMean,
 		offSum.CrowdFitMean, onSum.CrowdFitMean,
-		offSum.ResolveRateMean, onSum.ResolveRateMean,
-		offSum.VenueHistoryShare, onSum.VenueHistoryShare)
+		offSum.ResolveRateMean, onSum.ResolveRateMean)
 	if !gate.Passed {
-		t.Fatalf("vector gate failed (no measurable quality gain): %v", gate.Failures)
+		t.Fatalf("vector regression gate failed: %v", gate.Failures)
 	}
 }

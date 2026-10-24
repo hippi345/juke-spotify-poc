@@ -273,4 +273,13 @@ else
 fi
 
 echo ""
+echo "--- Cleanup: end voting session (repeat walks) ---"
+end_resp=$(json_post "$API/api/voting/session/end" "$staff_token" '{}' || true)
+if echo "$end_resp" | jq -e '.status == "ended"' >/dev/null 2>&1; then
+  ok "Session ended for repeatability"
+else
+  skip "session end: ${end_resp:-no response} (may already be ended on this API replica)"
+fi
+
+echo ""
 echo -e "${GREEN}Compose session walk passed.${NC}"

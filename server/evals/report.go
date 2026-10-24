@@ -31,6 +31,7 @@ type SummaryMetrics struct {
 	P95LatencyMs      int64   `json:"p95_latency_ms"`
 	HardPassCount     int     `json:"hard_pass_count"`
 	VenueHistoryShare float64 `json:"venue_history_share_mean"`
+	VenueOverlapMean  float64 `json:"venue_overlap_mean"`
 	JSONOK            bool    `json:"json_ok"`
 	CountOK           bool    `json:"count_ok"`
 	NoDuplicates      bool    `json:"no_duplicates"`
@@ -43,7 +44,7 @@ type GateResult struct {
 }
 
 func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics {
-	var resolveSum, moodSum, crowdSum, varietySum, coherenceSum, venueSum float64
+	var resolveSum, moodSum, crowdSum, varietySum, coherenceSum, venueSum, overlapSum float64
 	var latencies []int64
 	hardPass := 0
 	jsonOK := true
@@ -75,6 +76,7 @@ func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics 
 			venueSum += r.Hard.ResolvedFromVenue
 			venueN++
 		}
+		overlapSum += r.Hard.VenueOverlap
 	}
 	n := float64(len(results))
 	if n == 0 {
@@ -101,6 +103,7 @@ func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics 
 		P95LatencyMs:      p95,
 		HardPassCount:     hardPass,
 		VenueHistoryShare: venueMean,
+		VenueOverlapMean:  overlapSum / n,
 		JSONOK:            jsonOK,
 		CountOK:           countOK,
 		NoDuplicates:      dupOK,

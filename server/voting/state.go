@@ -158,7 +158,26 @@ func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold,
 	defer m.mu.Unlock()
 
 	if m.Session != nil && m.Session.Status == "active" {
-		return nil, fmt.Errorf("session already active")
+		log.Printf("voting: ending in-memory active session %d before starting a new one", m.Session.ID)
+		m.endActiveSessionLocked()
+	}
+	var stale []models.VotingSession
+	if err := db.DB.Where("status = ?", "active").Find(&stale).Error; err != nil {
+		log.Printf("voting: list active sessions: %v", err)
+	} else {
+		for i := range stale {
+			s := stale[i]
+			log.Printf("voting: ending stale DB-active session %d (playlist %s)", s.ID, s.PlaylistID)
+			if err := removeRefillTracksForSession(m.playlistRemover(), &s); err != nil {
+				log.Printf("voting: stale session %d refill cleanup: %v", s.ID, err)
+			}
+			s.Status = "ended"
+			if err := db.DB.Save(&s).Error; err != nil {
+				log.Printf("voting: mark session %d ended: %v", s.ID, err)
+			}
+			_ = db.DB.Model(&models.User{}).Where("joined_voting_session_id = ?", s.ID).
+				Update("joined_voting_session_id", nil).Error
+		}
 	}
 
 	// Invalidate now-playing cache so next poll fetches fresh data (avoids showing previous session's track)
@@ -324,7 +343,10 @@ func (m *Manager) RecoverRound() error {
 func (m *Manager) EndSession() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.endActiveSessionLocked()
+}
 
+func (m *Manager) endActiveSessionLocked() {
 	if m.Session != nil && m.Session.Status == "active" {
 		keepRefill := m.Session.KeepRefillTracks
 		endedSessionID := m.Session.ID

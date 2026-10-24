@@ -22,6 +22,7 @@ type HardCheckResult struct {
 	ErrorClean          bool
 	ErrorMessage        string
 	ResolvedFromVenue   float64 // share of resolved tracks matching venue history (vector eval)
+	VenueOverlap        float64 // share of suggestions matching venue-history keys (deterministic)
 }
 
 func normalizeKey(title, artist string) string {
@@ -151,5 +152,14 @@ func RunHardChecks(c Case, suggestions []gemini.TrackSuggestion, search TrackSea
 		}
 	}
 	res.SimilarArtistRate = similarArtistAdherence(suggestions, c.SimilarArtists)
+	if len(venueTrackKeys) > 0 && len(suggestions) > 0 {
+		var hits int
+		for _, s := range suggestions {
+			if venueTrackKeys[normalizeKey(s.Title, s.Artist)] {
+				hits++
+			}
+		}
+		res.VenueOverlap = float64(hits) / float64(len(suggestions))
+	}
 	return res
 }

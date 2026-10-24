@@ -114,11 +114,16 @@ type Handler func(ctx context.Context, topic string, value []byte, headers []kaf
 func RunConsumer(ctx context.Context, brokers string, groupID string, topics []string, h Handler) {
 	brokers = strings.TrimSpace(brokers)
 	if brokers == "" || len(topics) == 0 {
+		log.Printf("kafka: consumer not started (brokers or topics empty)")
 		return
+	}
+	if !waitForKafkaBroker(brokers) {
+		log.Printf("kafka: starting consumer anyway; reads will retry until broker is up")
 	}
 	addrs := strings.Split(brokers, ",")
 	for _, topic := range topics {
 		go func(topic string) {
+			log.Printf("kafka: consumer started topic=%s group=%s brokers=%s", topic, groupID, brokers)
 			r := kafka.NewReader(kafka.ReaderConfig{
 				Brokers:  addrs,
 				GroupID:  groupID,

@@ -48,6 +48,20 @@ func upsertTrack(ctx context.Context, s Service, venueID uint, trackID, title, a
 		LastSeen:  time.Now().UTC().Format(time.RFC3339),
 		Embedding: vec,
 	}
+	if existing, err := s.Indexer.Get(ctx, docID); err == nil && existing != nil {
+		doc.VoteCount = existing.VoteCount
+		doc.PlayCount = existing.PlayCount
+		doc.QueueCount = existing.QueueCount
+		if doc.Title == "" {
+			doc.Title = existing.Title
+		}
+		if doc.Artist == "" {
+			doc.Artist = existing.Artist
+		}
+		if doc.Genres == "" {
+			doc.Genres = existing.Genres
+		}
+	}
 	bump(&doc)
 	if err := s.Indexer.Upsert(ctx, docID, doc); err != nil {
 		log.Printf("vector: upsert %s: %v", docID, err)

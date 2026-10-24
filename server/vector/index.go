@@ -38,6 +38,7 @@ type SearchHit struct {
 // Indexer upserts and searches venue_tracks.
 type Indexer interface {
 	EnsureIndex(ctx context.Context, dimension int) error
+	Get(ctx context.Context, docID string) (*VenueTrackDoc, error)
 	Upsert(ctx context.Context, docID string, doc VenueTrackDoc) error
 	SearchSimilar(ctx context.Context, venueID uint, queryVec []float32, limit int) ([]SearchHit, error)
 	SearchByText(ctx context.Context, venueID uint, q string, embedder Embedder, limit int) ([]SearchHit, error)
@@ -64,7 +65,8 @@ func NewOpenSearchIndexer(baseURL string, embedder Embedder) Indexer {
 // NopIndexer is used when vector search is disabled or OpenSearch is unavailable.
 type NopIndexer struct{}
 
-func (NopIndexer) EnsureIndex(context.Context, int) error { return nil }
+func (NopIndexer) EnsureIndex(context.Context, int) error              { return nil }
+func (NopIndexer) Get(context.Context, string) (*VenueTrackDoc, error) { return nil, nil }
 func (NopIndexer) Upsert(context.Context, string, VenueTrackDoc) error { return nil }
 func (NopIndexer) SearchSimilar(context.Context, uint, []float32, int) ([]SearchHit, error) {
 	return nil, nil
@@ -136,6 +138,33 @@ func (o *osIndexer) EnsureIndex(ctx context.Context, dimension int) error {
 		return fmt.Errorf("create venue_tracks index: %s", string(b))
 	}
 	return nil
+}
+
+func (o *osIndexer) Get(ctx context.Context, docID string) (*VenueTrackDoc, error) {
+	url := fmt.Sprintf("%s/%s/_doc/%s", o.baseURL, venueTracksIndex, docID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := o.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
+	if resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("get venue track: %s", string(b))
+	}
+	var parsed struct {
+		Source VenueTrackDoc `json:"_source"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+		return nil, err
+	}
+	return &parsed.Source, nil
 }
 
 func (o *osIndexer) Upsert(ctx context.Context, docID string, doc VenueTrackDoc) error {

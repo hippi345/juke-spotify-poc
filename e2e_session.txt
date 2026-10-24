@@ -8,8 +8,8 @@ Stacked on: cursor/vibesense-evals-027c (PR1)
 cd server && GOFLAGS=-mod=mod go test -count=1 ./...
   -> PASS (includes ./evals TestVibeSenseVectorGate and full eval gate)
 
-cd server && GOFLAGS=-mod=mod go test -count=1 ./evals/ -run TestVibeSenseVectorGate -v
-  -> PASS mood 3.050/4.250 crowd 2.950/4.450 resolve 1.000/1.000 venue 0.000/1.000 (vector cases only)
+cd server && GOFLAGS=-mod=mod go test -count=1 ./evals/ -run TestVibeSenseVectorRegressionGate -v
+  -> overlap off/on/lift + resolve/mood/crowd regression (deterministic, not judge merit)
 
 ## Compose / smoke / voting / paid-skip / VibeSense (manual stack)
 
