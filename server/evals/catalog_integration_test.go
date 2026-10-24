@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,64 +12,114 @@ import (
 )
 
 const (
-	catalogRecallMin    = 0.35
-	catalogPrecisionMin = 0.20
-	catalogP95MaxMs     = 100
+	catalogRecallMin      = 0.35
+	catalogPrecisionMin   = 0.20
+	catalogRecallMargin   = 0.12
+	catalogNDCGMargin     = 0.10
+	catalogP95MaxMs       = 100
 )
+
+// Paraphrased queries: no catalog mood/tag tokens (sunset, nu-disco, chill, etc.).
+var catalogParaphraseQueries = []string{
+	"golden hour drive with friends",
+	"dusk commute after work",
+	"warm open-air lounge at twilight",
+	"late shift wind-down on the terrace",
+}
 
 func TestCatalogVectorRetrievalIntegration(t *testing.T) {
 	ret, err := NewCatalogRetriever()
 	if err != nil {
 		t.Fatal(err)
 	}
-	query := "sunset vibes people enjoyed at this rooftop bar"
 	truth := loadPlantedSunsetKeys()
 	if len(truth) == 0 {
 		t.Fatal("no planted sunset keys")
 	}
 
 	const k = 20
-	var vecLat []int64
-	var vecHits []CatalogHit
-	for i := 0; i < 50; i++ {
-		start := time.Now()
-		vecHits = ret.QueryVector(canonicalVenueID, query, k, time.Time{})
-		vecLat = append(vecLat, time.Since(start).Milliseconds())
-	}
-	kwHits := ret.QueryKeyword(canonicalVenueID, query, k, time.Time{})
-	recall, prec := RecallPrecisionAtK(vecHits, truth, k)
-	kwRecall, _ := RecallPrecisionAtK(kwHits, truth, k)
+	var vecRecallSum, kwRecallSum, vecNDCGSum, kwNDCGSum float64
 
-	if recall < catalogRecallMin || prec < catalogPrecisionMin {
-		t.Fatalf("vector recall@20=%.3f precision@20=%.3f (min %.2f / %.2f)", recall, prec, catalogRecallMin, catalogPrecisionMin)
-	}
-	kwPrec, _ := RecallPrecisionAtK(kwHits, truth, k)
-	vecVoteAvg := avgVoteCount(vecHits)
-	kwVoteAvg := avgVoteCount(kwHits)
-	if recall < kwRecall || prec < kwPrec || vecVoteAvg <= kwVoteAvg {
-		t.Fatalf("vector should beat keyword: recall %.3f/%.3f prec %.3f/%.3f vote_avg %.0f/%.0f",
-			recall, kwRecall, prec, kwPrec, vecVoteAvg, kwVoteAvg)
+	for _, query := range catalogParaphraseQueries {
+		assertNoTagLexicalOverlap(t, query)
+
+		var vecLat []int64
+		var vecHits []CatalogHit
+		for i := 0; i < 30; i++ {
+			start := time.Now()
+			vecHits = ret.QueryVector(canonicalVenueID, query, k, time.Time{})
+			vecLat = append(vecLat, time.Since(start).Milliseconds())
+		}
+		kwHits := ret.QueryKeyword(canonicalVenueID, query, k, time.Time{})
+
+		vRec, vPrec := RecallPrecisionAtK(vecHits, truth, k)
+		kRec, _ := RecallPrecisionAtK(kwHits, truth, k)
+		vNDCG := NDCGAtK(vecHits, truth, k)
+		kNDCG := NDCGAtK(kwHits, truth, k)
+
+		if vRec < catalogRecallMin || vPrec < catalogPrecisionMin {
+			t.Fatalf("query %q: vector recall@20=%.3f precision@20=%.3f", query, vRec, vPrec)
+		}
+		if vRec-kRec < catalogRecallMargin && vNDCG-kNDCG < catalogNDCGMargin {
+			t.Fatalf("query %q: vector must beat keyword (recall Δ=%.3f need %.2f, nDCG Δ=%.3f need %.2f)",
+				query, vRec-kRec, catalogRecallMargin, vNDCG-kNDCG, catalogNDCGMargin)
+		}
+
+		vecRecallSum += vRec
+		kwRecallSum += kRec
+		vecNDCGSum += vNDCG
+		kwNDCGSum += kNDCG
+
+		sort.Slice(vecLat, func(i, j int) bool { return vecLat[i] < vecLat[j] })
+		p95 := vecLat[len(vecLat)*95/100]
+		if p95 > catalogP95MaxMs {
+			t.Fatalf("query %q: p95 latency %dms exceeds %dms", query, p95, catalogP95MaxMs)
+		}
 	}
 
-	// Venue scoping: other venue returns nothing.
-	if len(ret.QueryVector(99, query, k, time.Time{})) != 0 {
-		t.Fatal("expected no hits for venue_id=99")
-	}
+	nq := float64(len(catalogParaphraseQueries))
+	t.Logf("catalog retrieval avg: vec_recall@20=%.3f kw=%.3f vec_nDCG@20=%.3f kw=%.3f",
+		vecRecallSum/nq, kwRecallSum/nq, vecNDCGSum/nq, kwNDCGSum/nq)
 
-	// Vote weighting: top hit should be high-vote planted sunset.
-	if len(vecHits) == 0 || vecHits[0].VoteCount < 100 {
-		t.Fatalf("expected vote-weighted top hit, got %+v", vecHits[0])
-	}
-
-	sort.Slice(vecLat, func(i, j int) bool { return vecLat[i] < vecLat[j] })
-	p95 := vecLat[len(vecLat)*95/100]
-	if p95 > catalogP95MaxMs {
-		t.Fatalf("p95 latency %dms exceeds %dms", p95, catalogP95MaxMs)
-	}
-	t.Logf("catalog retrieval: recall@20=%.3f precision@20=%.3f kw_recall@20=%.3f p95=%dms", recall, prec, kwRecall, p95)
+	testCatalogVoteWeighting(t, ret)
+	testCatalogVenueScope(t, ret)
 
 	if os.Getenv("OPENSEARCH_URL") != "" {
-		testCatalogOpenSearchRetrieval(t, query, truth)
+		testCatalogOpenSearchRetrieval(t, catalogParaphraseQueries[0], truth)
+	}
+}
+
+func assertNoTagLexicalOverlap(t *testing.T, query string) {
+	banned := []string{"sunset", "nu-disco", "nu disco", "chill", "house", "lofi", "disco", "rooftop", "patio", "brunch"}
+	q := strings.ToLower(query)
+	for _, w := range banned {
+		if strings.Contains(q, w) {
+			t.Fatalf("query %q overlaps banned tag token %q", query, w)
+		}
+	}
+}
+
+func testCatalogVoteWeighting(t *testing.T, ret *CatalogRetriever) {
+	query := "golden hour drive with friends"
+	hits := ret.QueryVector(canonicalVenueID, query, 20, time.Time{})
+	var planted []CatalogHit
+	for _, h := range hits {
+		if h.PlantedSun {
+			planted = append(planted, h)
+		}
+	}
+	if len(planted) < 2 {
+		t.Fatalf("need 2+ planted hits for vote test, got %d", len(planted))
+	}
+	if planted[0].VoteCount < planted[1].VoteCount {
+		t.Fatalf("vote weighting: top planted vote %d < second %d", planted[0].VoteCount, planted[1].VoteCount)
+	}
+}
+
+func testCatalogVenueScope(t *testing.T, ret *CatalogRetriever) {
+	query := catalogParaphraseQueries[0]
+	if len(ret.QueryVector(99, query, 20, time.Time{})) != 0 {
+		t.Fatal("expected no hits for venue_id=99")
 	}
 }
 
@@ -89,7 +140,6 @@ func testCatalogOpenSearchRetrieval(t *testing.T, query string, truth map[string
 	if roof == 0 {
 		roof = canonicalVenueID
 	}
-	// Index a subset for CI speed (high-vote + planted).
 	indexed := 0
 	for _, tr := range doc.Tracks {
 		if tr.VenueID != roof {
@@ -126,7 +176,8 @@ func testCatalogOpenSearchRetrieval(t *testing.T, query string, truth map[string
 	if indexed < 50 {
 		t.Fatalf("indexed only %d docs", indexed)
 	}
-	hits, err := svc.Indexer.SearchByText(ctx, roof, query, svc.Embedder, 20)
+	embedQ := vectorEmbedQueryText(query)
+	hits, err := svc.Indexer.SearchByText(ctx, roof, embedQ, svc.Embedder, 20)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}

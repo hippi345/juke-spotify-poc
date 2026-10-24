@@ -9,6 +9,10 @@ import (
 	"juke-spotify-poc/server/spotify"
 )
 
+func redactErrorDetail(msg string) string {
+	return gemini.RedactSecrets(msg)
+}
+
 // HardCheckResult captures deterministic quality gates for one case run.
 type HardCheckResult struct {
 	JSONOK              bool
@@ -108,7 +112,7 @@ func RunHardChecksWithVector(c Case, suggestions []gemini.TrackSuggestion, searc
 	if c.ExpectError {
 		res.ErrorClean = genErr != nil
 		if genErr != nil {
-			res.ErrorMessage = genErr.Error()
+			res.ErrorMessage = redactErrorDetail(genErr.Error())
 		}
 		res.JSONOK = true
 		res.SchemaOK = true
@@ -119,7 +123,7 @@ func RunHardChecksWithVector(c Case, suggestions []gemini.TrackSuggestion, searc
 		return res
 	}
 	if genErr != nil {
-		res.ErrorMessage = genErr.Error()
+		res.ErrorMessage = redactErrorDetail(genErr.Error())
 		return res
 	}
 	res.JSONOK = len(suggestions) > 0

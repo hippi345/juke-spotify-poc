@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"juke-spotify-poc/server/gemini"
 )
 
 // BaselineFile holds CI and full-suite reference metrics.
@@ -207,17 +209,41 @@ func WriteReports(dir string, summary SummaryMetrics, results []CaseResult, gate
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
+	safeResults := sanitizeCaseResults(results)
+	safeGate := sanitizeGateFailures(gate)
 	report := map[string]interface{}{
 		"summary": summary,
-		"gate":    gate,
-		"cases":   results,
+		"gate":    safeGate,
+		"cases":   safeResults,
 	}
 	raw, _ := json.MarshalIndent(report, "", "  ")
-	if err := os.WriteFile(filepath.Join(dir, "report.json"), raw, 0o644); err != nil {
+	safeJSON := gemini.RedactSecrets(string(raw))
+	if err := os.WriteFile(filepath.Join(dir, "report.json"), []byte(safeJSON), 0o644); err != nil {
 		return err
 	}
-	md := FormatMarkdownReport(summary, gate)
+	md := gemini.RedactSecrets(FormatMarkdownReport(summary, safeGate))
 	return os.WriteFile(filepath.Join(dir, "report.md"), []byte(md), 0o644)
+}
+
+func sanitizeCaseResults(results []CaseResult) []CaseResult {
+	out := make([]CaseResult, len(results))
+	for i, r := range results {
+		out[i] = r
+		out[i].Hard.ErrorMessage = gemini.RedactSecrets(r.Hard.ErrorMessage)
+	}
+	return out
+}
+
+func sanitizeGateFailures(gate GateResult) GateResult {
+	if len(gate.Failures) == 0 {
+		return gate
+	}
+	out := gate
+	out.Failures = make([]string, len(gate.Failures))
+	for i, f := range gate.Failures {
+		out.Failures[i] = gemini.RedactSecrets(f)
+	}
+	return out
 }
 
 func FormatMarkdownReport(summary SummaryMetrics, gate GateResult) string {

@@ -53,7 +53,7 @@ func (e *embedErrWithKey) Error() string {
 }
 
 func TestSimilarVenueTracks_neverLeaksAPIKeyInResponseOrLogs(t *testing.T) {
-	const secret = "AIzaSyLeakedKeyForTestOnly"
+	const secret = "AIzaSyLeakedKeyForTestOnly1234567890" // test-only fake (35 chars after AIza)
 	leaky := leakyTestEmbedder{apiKey: secret}
 	vector.SetDefaultService(vector.Service{
 		Enabled:    true,

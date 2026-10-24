@@ -35,7 +35,9 @@ Counts are derived from `FeatureCatalog()` in `catalog.go` (run `go test ./evals
 
 ## Key leak guard
 
-`TestKeyLeakGuard_*` scans eval reports and error strings for `AIza…`, `?key=`, `sk-…`, and `Bearer` token patterns. Repository CI also runs **gitleaks**.
+`TestKeyLeakGuard_*` scans eval reports and error strings for `AIza…` (35-char suffix), `key=…`, `sk-…`, and `Bearer` token patterns. `gemini.RedactSecrets` and `WriteReports` redact the same patterns before anything is written to `evals/out/` or artifacts.
+
+Generated reports are **gitignored** (`server/evals/out/`, `artifacts/live-evals/`). Repository CI runs **gitleaks** (see `.gitleaks.toml`); optional local hook: `pip install pre-commit && pre-commit install` (`.pre-commit-config.yaml`).
 
 ## Commands
 

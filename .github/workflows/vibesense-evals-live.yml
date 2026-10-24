@@ -1,5 +1,8 @@
 name: VibeSense evals (live)
 
+# INCIDENT (PR #48): Google flagged GEMINI_API_KEY as leaked. Live eval job disabled until
+# secret rotation, leak audit sign-off, and explicit re-enable. No live Gemini calls in CI.
+
 on:
   pull_request:
     paths:
@@ -11,6 +14,7 @@ on:
       - "client/src/components/AiPlaylistPanel.tsx"
       - "scripts/run-live-evals.sh"
       - "scripts/check-artifact-secrets.sh"
+      - "scripts/prepare-artifact-upload.sh"
       - "Makefile"
       - ".github/workflows/vibesense-evals-live.yml"
   push:
@@ -30,6 +34,8 @@ concurrency:
 
 jobs:
   vibesense-evals-live:
+    # INCIDENT: PR #48 — do not run live evals or upload live reports until re-enabled.
+    if: false
     name: VibeSense eval gate (live)
     runs-on: ubuntu-latest
     services:
@@ -51,6 +57,9 @@ jobs:
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
+
+      - name: Mask GEMINI_API_KEY
+        run: echo "::add-mask::${{ secrets.GEMINI_API_KEY }}"
 
       - name: Require GEMINI_API_KEY (no skip on forks or missing secret)
         env:
@@ -78,8 +87,19 @@ jobs:
           ./scripts/check-artifact-secrets.sh
           python3 ./scripts/print-eval-threshold-table.py
 
+      - name: Redact and scan live eval artifacts
+        if: false
+        run: |
+          chmod +x scripts/prepare-artifact-upload.sh
+          ./scripts/prepare-artifact-upload.sh \
+            artifacts/live-evals/report-vector-off.json \
+            artifacts/live-evals/report-vector-off.md \
+            artifacts/live-evals/report-vector-on.json \
+            artifacts/live-evals/report-vector-on.md \
+            artifacts/live-evals/summary.md
+
       - name: Upload live eval reports
-        if: always()
+        if: false
         uses: actions/upload-artifact@v4
         with:
           name: vibesense-evals-live-report

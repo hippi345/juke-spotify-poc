@@ -9,7 +9,7 @@ import (
 )
 
 func TestFailJobGemini_clientMessageNeverContainsAPIKey(t *testing.T) {
-	const leakKey = "AIzaSyTESTKEYFORLEAKGUARD123456789"
+	const leakKey = "AIzaSyTESTKEYFORLEAKGUARD1234567890"
 	cfg := &config.Config{GeminiAPIKey: leakKey}
 	id := "job-redact-test"
 	setJob(id, &aiPlaylistJob{Status: "pending"})

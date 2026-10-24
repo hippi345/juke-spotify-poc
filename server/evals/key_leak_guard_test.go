@@ -3,13 +3,14 @@ package evals
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"juke-spotify-poc/server/gemini"
 )
 
 func TestKeyLeakGuard_RedactAndPatterns(t *testing.T) {
-	fake := "AIzaSyDummyKeyForUnitTestOnly123456"
+	fake := "AIza" + strings.Repeat("z", 35)
 	s := "url?key=" + fake
 	red := gemini.RedactSecrets(s, fake)
 	if err := AssertNoSecretLeaks(red); err != nil {

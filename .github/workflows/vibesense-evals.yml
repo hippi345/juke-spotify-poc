@@ -40,6 +40,13 @@ jobs:
           go test -short -count=1 ./evals/ -run 'TestVibeSenseEvalGateCI|TestKeyLeakGuard|TestVibeSenseVectorRegressionGate|TestCatalogVectorRetrievalIntegration' -write-reports
           cat evals/out/report.md || true
 
+      - name: Redact and scan mocked eval artifacts
+        if: always()
+        working-directory: .
+        run: |
+          chmod +x scripts/prepare-artifact-upload.sh
+          ./scripts/prepare-artifact-upload.sh server/evals/out/report.json server/evals/out/report.md
+
       - name: Upload eval report
         if: always()
         uses: actions/upload-artifact@v4
