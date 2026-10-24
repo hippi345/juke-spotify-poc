@@ -14,14 +14,15 @@ scan_file() {
   local path="$2"
   [[ -f "$path" ]] || return 0
   local rel="${path#"$DL"/}"
-  grep -aHnoE 'AIza[0-9A-Za-z_-]{35}|key=[^&[:space:]"'\'']+' "$path" 2>/dev/null | while IFS= read -r line; do
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
     local file="${line%%:*}"
     local match
     match=$(echo "$line" | sed 's/^[^:]*://')
     local prefix="${match:0:4}"
     local relfile="${file#"$DL"/}"
     echo "${run_id} ${relfile} ${prefix}" >> "$OUT"
-  done
+  done < <(grep -aHnoE 'AIza[0-9A-Za-z_-]{35}|key=[^&[:space:]"'\'']+' "$path" 2>/dev/null || true)
 }
 
 collect_run() {
