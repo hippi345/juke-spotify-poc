@@ -12,11 +12,10 @@ import (
 )
 
 const (
-	catalogRecallMin      = 0.35
-	catalogPrecisionMin   = 0.20
-	catalogRecallMargin   = 0.12
-	catalogNDCGMargin     = 0.10
-	catalogP95MaxMs       = 100
+	catalogRecallMin    = 0.35
+	catalogPrecisionMin = 0.20
+	catalogRecallMargin = 0.12
+	catalogNDCGMargin   = 0.10
 )
 
 // Paraphrased queries: no catalog mood/tag tokens (sunset, nu-disco, chill, etc.).
