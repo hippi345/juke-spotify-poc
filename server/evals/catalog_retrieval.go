@@ -217,16 +217,6 @@ func avgVoteCount(hits []CatalogHit) float64 {
 	return float64(sum) / float64(len(hits))
 }
 
-func plantedInHits(hits []CatalogHit, truth map[string]bool) int {
-	var n int
-	for _, h := range hits {
-		if truth[h.Key] {
-			n++
-		}
-	}
-	return n
-}
-
 func RecallPrecisionAtK(hits []CatalogHit, truth map[string]bool, k int) (recall, precision float64) {
 	if k <= 0 || len(truth) == 0 {
 		return 0, 0

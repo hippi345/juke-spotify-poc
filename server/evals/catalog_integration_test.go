@@ -104,6 +104,10 @@ func testCatalogOpenSearchRetrieval(t *testing.T, query string, truth map[string
 			t.Fatal(err)
 		}
 		docID := "eval-" + tr.SpotifyID
+		lastSeen := tr.LastSeen
+		if lastSeen == "" {
+			lastSeen = "2025-08-01T00:00:00Z"
+		}
 		vdoc := vector.VenueTrackDoc{
 			VenueID:   roof,
 			SpotifyID: tr.SpotifyID,
@@ -111,6 +115,7 @@ func testCatalogOpenSearchRetrieval(t *testing.T, query string, truth map[string
 			Artist:    tr.Artist,
 			Genres:    tr.Genres,
 			VoteCount: tr.VoteCount,
+			LastSeen:  lastSeen,
 			Embedding: vec,
 		}
 		if err := svc.Indexer.Upsert(ctx, docID, vdoc); err != nil {
