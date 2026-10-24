@@ -83,6 +83,21 @@ trace_has_span() {
   ' >/dev/null 2>&1
 }
 
+wait_for_nearby_session() {
+  local lat="$1" lng="$2" venue_id="$3" session_id="$4" token="$5"
+  local i nearby nearby_hit
+  for i in $(seq 1 25); do
+    nearby=$(json_get "$API/api/venues/nearby?lat=${lat}&lng=${lng}" "$token")
+    nearby_hit=$(echo "$nearby" | jq -r --argjson vid "$venue_id" '.sessions[]? | select(.venue.id == $vid) | .session_id' | head -1)
+    if [[ "$nearby_hit" == "$session_id" ]]; then
+      printf '%s' "$nearby"
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 wait_for_kafka_log() {
   local pattern="$1"
   local i
@@ -154,10 +169,9 @@ echo "--- Step 3: Patron registers, finds nearby session, joins (no password) --
 patron_token=$(register_or_login "$patron_email" "$pass" "patron")
 ok "Patron registered/logged in"
 
-$COMPOSE exec -T redis redis-cli DEL "jukespotify:nearby:${venue_lat}:${venue_lng}:2000" >/dev/null 2>&1 || true
-nearby=$(json_get "$API/api/venues/nearby?lat=${venue_lat}&lng=${venue_lng}" "$patron_token")
-nearby_hit=$(echo "$nearby" | jq -r --argjson vid "$venue_id" '.sessions[]? | select(.venue.id == $vid) | .session_id' | head -1)
-[[ "$nearby_hit" == "$session_id" ]] || fail "nearby sessions missing venue $venue_id: $nearby"
+nearby=$(wait_for_nearby_session "$venue_lat" "$venue_lng" "$venue_id" "$session_id" "$patron_token") \
+  || fail "nearby sessions missing venue $venue_id session $session_id after polling"
+nearby_hit="$session_id"
 requires_pw=$(echo "$nearby" | jq -r --argjson vid "$venue_id" '.sessions[]? | select(.venue.id == $vid) | .requires_password' | head -1)
 [[ "$requires_pw" == "false" ]] || fail "expected open join, requires_password=$requires_pw"
 ok "Patron found nearby session $session_id (no password)"

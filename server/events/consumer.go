@@ -43,3 +43,28 @@ func waitForKafkaBroker(brokers string) bool {
 	log.Printf("kafka: broker not reachable within %v", kafkaReadyTimeout)
 	return false
 }
+
+func ensureKafkaTopics(brokers string, topics []string) {
+	brokers = strings.TrimSpace(brokers)
+	if brokers == "" || len(topics) == 0 {
+		return
+	}
+	addr := strings.TrimSpace(strings.Split(brokers, ",")[0])
+	conn, err := kafka.Dial("tcp", addr)
+	if err != nil {
+		log.Printf("kafka: ensure topics dial failed: %v", err)
+		return
+	}
+	defer conn.Close()
+	configs := make([]kafka.TopicConfig, 0, len(topics))
+	for _, t := range topics {
+		configs = append(configs, kafka.TopicConfig{
+			Topic:             t,
+			NumPartitions:     1,
+			ReplicationFactor: 1,
+		})
+	}
+	if err := conn.CreateTopics(configs...); err != nil {
+		log.Printf("kafka: create topics: %v", err)
+	}
+}

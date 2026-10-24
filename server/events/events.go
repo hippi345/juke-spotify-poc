@@ -120,33 +120,33 @@ func RunConsumer(ctx context.Context, brokers string, groupID string, topics []s
 	if !waitForKafkaBroker(brokers) {
 		log.Printf("kafka: starting consumer anyway; reads will retry until broker is up")
 	}
+	ensureKafkaTopics(brokers, topics)
 	addrs := strings.Split(brokers, ",")
-	for _, topic := range topics {
-		go func(topic string) {
-			log.Printf("kafka: consumer started topic=%s group=%s brokers=%s", topic, groupID, brokers)
-			r := kafka.NewReader(kafka.ReaderConfig{
-				Brokers:  addrs,
-				GroupID:  groupID,
-				Topic:    topic,
-				MinBytes: 1,
-				MaxBytes: 10e6,
-			})
-			defer func() { _ = r.Close() }()
-			for {
-				msg, err := r.ReadMessage(ctx)
-				if err != nil {
-					if ctx.Err() != nil {
-						return
-					}
-					log.Printf("kafka: read %s: %v", topic, err)
-					time.Sleep(time.Second)
-					continue
+	go func() {
+		log.Printf("kafka: consumer started topics=%v group=%s brokers=%s", topics, groupID, brokers)
+		r := kafka.NewReader(kafka.ReaderConfig{
+			Brokers:     addrs,
+			GroupID:     groupID,
+			GroupTopics: topics,
+			MinBytes:    1,
+			MaxBytes:    10e6,
+			StartOffset: kafka.FirstOffset,
+		})
+		defer func() { _ = r.Close() }()
+		for {
+			msg, err := r.ReadMessage(ctx)
+			if err != nil {
+				if ctx.Err() != nil {
+					return
 				}
-				msgCtx := extractTraceContext(ctx, msg.Headers)
-				if err := h(msgCtx, topic, msg.Value, msg.Headers); err != nil {
-					log.Printf("kafka: handle %s: %v", topic, err)
-				}
+				log.Printf("kafka: read topics=%v: %v", topics, err)
+				time.Sleep(time.Second)
+				continue
 			}
-		}(topic)
-	}
+			msgCtx := extractTraceContext(ctx, msg.Headers)
+			if err := h(msgCtx, msg.Topic, msg.Value, msg.Headers); err != nil {
+				log.Printf("kafka: handle %s: %v", msg.Topic, err)
+			}
+		}
+	}()
 }

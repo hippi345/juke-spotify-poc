@@ -11,6 +11,7 @@ import (
 	"juke-spotify-poc/server/models"
 	"juke-spotify-poc/server/spotify"
 	"juke-spotify-poc/server/tracing"
+	"juke-spotify-poc/server/venue"
 
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel"
@@ -105,6 +106,7 @@ func (h *Handlers) SessionStart(c *gin.Context) {
 	}
 	session, _, _ := h.Manager.GetState(nil)
 	if session != nil {
+		venue.InvalidateNearbyCaches(c.Request.Context())
 		_ = events.Default.PublishSession(c.Request.Context(), events.SessionPayload{
 			Action:    "started",
 			SessionID: session.ID,
@@ -119,6 +121,7 @@ func (h *Handlers) SessionEnd(c *gin.Context) {
 	session, _, _ := h.Manager.GetState(nil)
 	h.Manager.EndSession()
 	if session != nil {
+		venue.InvalidateNearbyCaches(c.Request.Context())
 		_ = events.Default.PublishSession(c.Request.Context(), events.SessionPayload{
 			Action:    "ended",
 			SessionID: session.ID,
