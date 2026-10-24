@@ -113,6 +113,18 @@ jobs:
         if: always()
         run: docker compose down -v
 
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   compose-session-walk:
     name: Compose session walk
     runs-on: ubuntu-latest

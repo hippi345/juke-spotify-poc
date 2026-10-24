@@ -1,0 +1,230 @@
+{
+  "artist similarartistsbillie 1 track 1": [
+    {
+      "id": "id-similar_artists_billie-0",
+      "name": "Track 1",
+      "uri": "spotify:track:id-similar_artists_billie-0",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 1 track 11": [
+    {
+      "id": "id-similar_artists_billie-10",
+      "name": "Track 11",
+      "uri": "spotify:track:id-similar_artists_billie-10",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 1 track 6": [
+    {
+      "id": "id-similar_artists_billie-5",
+      "name": "Track 6",
+      "uri": "spotify:track:id-similar_artists_billie-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 2 track 12": [
+    {
+      "id": "id-similar_artists_billie-11",
+      "name": "Track 12",
+      "uri": "spotify:track:id-similar_artists_billie-11",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 2 track 2": [
+    {
+      "id": "id-similar_artists_billie-1",
+      "name": "Track 2",
+      "uri": "spotify:track:id-similar_artists_billie-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 2 track 7": [
+    {
+      "id": "id-similar_artists_billie-6",
+      "name": "Track 7",
+      "uri": "spotify:track:id-similar_artists_billie-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 3 track 3": [
+    {
+      "id": "id-similar_artists_billie-2",
+      "name": "Track 3",
+      "uri": "spotify:track:id-similar_artists_billie-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 3 track 8": [
+    {
+      "id": "id-similar_artists_billie-7",
+      "name": "Track 8",
+      "uri": "spotify:track:id-similar_artists_billie-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 4 track 4": [
+    {
+      "id": "id-similar_artists_billie-3",
+      "name": "Track 4",
+      "uri": "spotify:track:id-similar_artists_billie-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 4 track 9": [
+    {
+      "id": "id-similar_artists_billie-8",
+      "name": "Track 9",
+      "uri": "spotify:track:id-similar_artists_billie-8",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 5 track 10": [
+    {
+      "id": "id-similar_artists_billie-9",
+      "name": "Track 10",
+      "uri": "spotify:track:id-similar_artists_billie-9",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist similarartistsbillie 5 track 5": [
+    {
+      "id": "id-similar_artists_billie-4",
+      "name": "Track 5",
+      "uri": "spotify:track:id-similar_artists_billie-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist similarartistsbillie 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ]
+}

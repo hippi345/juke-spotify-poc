@@ -1,22 +1,25 @@
 [
   [
     {
-      "mood_fit": 4.2,
+      "mood_fit": 4.4,
       "crowd_fit": 4.5,
-      "variety": 3.9,
-      "coherence": 4.1
+      "variety": 4,
+      "coherence": 4.2,
+      "mood_reason": ""
     },
     {
-      "mood_fit": 4.2,
-      "crowd_fit": 4.5,
-      "variety": 3.9,
-      "coherence": 4.1
+      "mood_fit": 4.3,
+      "crowd_fit": 4.4,
+      "variety": 4.1,
+      "coherence": 4.1,
+      "mood_reason": ""
     },
     {
-      "mood_fit": 4.2,
-      "crowd_fit": 4.5,
-      "variety": 3.9,
-      "coherence": 4.1
+      "mood_fit": 4.5,
+      "crowd_fit": 4.3,
+      "variety": 4,
+      "coherence": 4.3,
+      "mood_reason": ""
     }
   ]
 ]

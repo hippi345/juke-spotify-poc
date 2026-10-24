@@ -1,0 +1,7 @@
+# Install: pip install pre-commit && pre-commit install
+# Runs locally before commit; mirrors CI secret-scan job.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks

@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Track 1",
+    "artist": "Artist injecttrackjson 1"
+  },
+  {
+    "title": "Track 2",
+    "artist": "Artist injecttrackjson 2"
+  },
+  {
+    "title": "Track 3",
+    "artist": "Artist injecttrackjson 3"
+  },
+  {
+    "title": "Track 4",
+    "artist": "Artist injecttrackjson 4"
+  },
+  {
+    "title": "Track 5",
+    "artist": "Artist injecttrackjson 5"
+  },
+  {
+    "title": "Track 6",
+    "artist": "Artist injecttrackjson 1"
+  },
+  {
+    "title": "Track 7",
+    "artist": "Artist injecttrackjson 2"
+  },
+  {
+    "title": "Track 8",
+    "artist": "Artist injecttrackjson 3"
+  },
+  {
+    "title": "Track 9",
+    "artist": "Artist injecttrackjson 4"
+  },
+  {
+    "title": "Track 10",
+    "artist": "Artist injecttrackjson 5"
+  }
+]

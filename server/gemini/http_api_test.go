@@ -7,7 +7,7 @@ import (
 )
 
 func TestRedactSecrets_removesKeyQueryParam(t *testing.T) {
-	key := "AIzaSyTestSecretKey123"
+	key := "AIza" + "SyTestSecretKeyForRedactUnitTest1" // 35 chars after AIza
 	raw := "embed HTTP 404: https://generativelanguage.googleapis.com/v1beta/models/m:embedContent?key=" + key
 	got := RedactSecrets(raw, key)
 	if strings.Contains(got, key) {

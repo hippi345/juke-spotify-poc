@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"juke-spotify-poc/server/gemini"
 )
 
 // BaselineFile holds CI and full-suite reference metrics.
@@ -36,6 +38,7 @@ type SummaryMetrics struct {
 	JSONOK            bool    `json:"json_ok"`
 	CountOK           bool    `json:"count_ok"`
 	NoDuplicates      bool    `json:"no_duplicates"`
+	JudgeErrorCount   int     `json:"judge_error_count"`
 }
 
 // GateResult explains baseline comparison outcome.
@@ -63,7 +66,9 @@ func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics 
 		varietySum += r.Judge.Variety
 		coherenceSum += r.Judge.Coherence
 		latencies = append(latencies, r.Hard.LatencyMs)
-		if r.Hard.JSONOK && r.Hard.CountOK && r.Hard.NoDuplicates && (r.Hard.ErrorClean || !expectErrorCase(r.CaseID)) {
+		hardOK := r.Hard.JSONOK && r.Hard.SchemaOK && r.Hard.ToolSequenceOK && r.Hard.GroundingOK &&
+			r.Hard.CountOK && r.Hard.NoDuplicates && (r.Hard.ErrorClean || !expectErrorCase(r.CaseID))
+		if hardOK {
 			resolveOK := r.Hard.ResolveSkipped || r.Hard.ResolveRate >= 0.85
 			if resolveOK || expectErrorCase(r.CaseID) {
 				hardPass++
@@ -131,9 +136,26 @@ func expectErrorCase(id string) bool {
 	return false
 }
 
-// CompareBaseline applies regression thresholds from the spec.
-func CompareBaseline(current, baseline SummaryMetrics) GateResult {
+// CompareBaseline applies regression thresholds from the spec and per-case hard checks.
+func CompareBaseline(current, baseline SummaryMetrics, results []CaseResult) GateResult {
 	var failures []string
+	for _, r := range results {
+		if expectErrorCase(r.CaseID) {
+			continue
+		}
+		if !r.Hard.SchemaOK {
+			failures = append(failures, fmt.Sprintf("case %s: schema check failed", r.CaseID))
+		}
+		if !r.Hard.GroundingOK {
+			failures = append(failures, fmt.Sprintf("case %s: grounding check failed", r.CaseID))
+		}
+		if !r.Hard.ToolSequenceOK {
+			failures = append(failures, fmt.Sprintf("case %s: tool sequence check failed", r.CaseID))
+		}
+	}
+	if current.HardPassCount < baseline.HardPassCount {
+		failures = append(failures, fmt.Sprintf("hard pass count dropped %d -> %d", baseline.HardPassCount, current.HardPassCount))
+	}
 	if !current.ResolveRateNA && !baseline.ResolveRateNA && current.ResolveRateMean < baseline.ResolveRateMean-0.05 {
 		failures = append(failures, fmt.Sprintf("resolve rate dropped %.3f -> %.3f (max -0.05)", baseline.ResolveRateMean, current.ResolveRateMean))
 	}
@@ -187,17 +209,41 @@ func WriteReports(dir string, summary SummaryMetrics, results []CaseResult, gate
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
+	safeResults := sanitizeCaseResults(results)
+	safeGate := sanitizeGateFailures(gate)
 	report := map[string]interface{}{
 		"summary": summary,
-		"gate":    gate,
-		"cases":   results,
+		"gate":    safeGate,
+		"cases":   safeResults,
 	}
 	raw, _ := json.MarshalIndent(report, "", "  ")
-	if err := os.WriteFile(filepath.Join(dir, "report.json"), raw, 0o644); err != nil {
+	safeJSON := gemini.RedactSecrets(string(raw))
+	if err := os.WriteFile(filepath.Join(dir, "report.json"), []byte(safeJSON), 0o644); err != nil {
 		return err
 	}
-	md := FormatMarkdownReport(summary, gate)
+	md := gemini.RedactSecrets(FormatMarkdownReport(summary, safeGate))
 	return os.WriteFile(filepath.Join(dir, "report.md"), []byte(md), 0o644)
+}
+
+func sanitizeCaseResults(results []CaseResult) []CaseResult {
+	out := make([]CaseResult, len(results))
+	for i, r := range results {
+		out[i] = r
+		out[i].Hard.ErrorMessage = gemini.RedactSecrets(r.Hard.ErrorMessage)
+	}
+	return out
+}
+
+func sanitizeGateFailures(gate GateResult) GateResult {
+	if len(gate.Failures) == 0 {
+		return gate
+	}
+	out := gate
+	out.Failures = make([]string, len(gate.Failures))
+	for i, f := range gate.Failures {
+		out.Failures[i] = gemini.RedactSecrets(f)
+	}
+	return out
 }
 
 func FormatMarkdownReport(summary SummaryMetrics, gate GateResult) string {

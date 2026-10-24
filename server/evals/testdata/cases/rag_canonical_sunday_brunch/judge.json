@@ -1,0 +1,22 @@
+[
+  [
+    {
+      "MoodFit": 4.3,
+      "CrowdFit": 4.4,
+      "Variety": 4.0,
+      "Coherence": 4.2
+    },
+    {
+      "MoodFit": 4.2,
+      "CrowdFit": 4.3,
+      "Variety": 4.1,
+      "Coherence": 4.1
+    },
+    {
+      "MoodFit": 4.4,
+      "CrowdFit": 4.2,
+      "Variety": 3.9,
+      "Coherence": 4.3
+    }
+  ]
+]

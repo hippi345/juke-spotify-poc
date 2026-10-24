@@ -13,6 +13,15 @@ jobs:
   vibesense-evals-mocked:
     name: VibeSense eval gate (mocked)
     runs-on: ubuntu-latest
+    services:
+      opensearch:
+        image: opensearchproject/opensearch:2.11.0
+        env:
+          discovery.type: single-node
+          plugins.security.disabled: "true"
+          OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+        ports:
+          - 9200:9200
     defaults:
       run:
         working-directory: server
@@ -25,9 +34,18 @@ jobs:
           cache-dependency-path: server/go.sum
 
       - name: Mocked eval subset vs baseline
+        env:
+          OPENSEARCH_URL: http://localhost:9200
         run: |
-          go test -short -count=1 ./evals/ -run TestVibeSenseEvalGateCI -write-reports
+          go test -short -count=1 ./evals/ -run 'TestVibeSenseEvalGateCI|TestKeyLeakGuard|TestVibeSenseVectorRegressionGate|TestCatalogVectorRetrievalIntegration' -write-reports
           cat evals/out/report.md || true
+
+      - name: Redact and scan mocked eval artifacts
+        if: always()
+        working-directory: .
+        run: |
+          chmod +x scripts/prepare-artifact-upload.sh
+          ./scripts/prepare-artifact-upload.sh server/evals/out/report.json server/evals/out/report.md
 
       - name: Upload eval report
         if: always()

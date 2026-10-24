@@ -36,6 +36,10 @@ npm-debug.log*
 *.test
 *.out
 server/evals/out/
+artifacts/live-evals/
+artifacts/leak-audit-report.txt
+.leak-audit-downloads/
+.artifact-upload-stage/
 
 # Downloaded scripts
 get-docker.sh

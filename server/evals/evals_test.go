@@ -67,7 +67,7 @@ func runGate(t *testing.T, short bool) {
 	if short {
 		ref = bl.CI
 	}
-	gate := CompareBaseline(summary, ref)
+	gate := CompareBaseline(summary, ref, results)
 	if *writeReports || os.Getenv("JUKE_EVALS_WRITE_REPORTS") == "1" {
 		_ = WriteReports(reportsDir(), summary, results, gate)
 	}
