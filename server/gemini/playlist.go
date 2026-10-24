@@ -25,6 +25,10 @@ const maxGeminiRetries = 4
 
 // GenerateTrackList asks Gemini for exactly `count` real songs matching the description and optional artist inspirations.
 func GenerateTrackList(apiKey, model string, description string, count int, similarArtists []string) ([]TrackSuggestion, error) {
+	return generateTrackListHTTP(apiKey, model, description, count, similarArtists, GenerateOptions{})
+}
+
+func generateTrackListHTTP(apiKey, model string, description string, count int, similarArtists []string, opts GenerateOptions) ([]TrackSuggestion, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("GEMINI_API_KEY is not set")
 	}
@@ -52,16 +56,30 @@ func GenerateTrackList(apiKey, model string, description string, count int, simi
 		}
 	}
 
+	var candidatesBlock string
+	if len(opts.PreferredCandidates) > 0 {
+		var lines []string
+		for _, c := range opts.PreferredCandidates {
+			if strings.TrimSpace(c.Title) == "" {
+				continue
+			}
+			lines = append(lines, fmt.Sprintf("- %s — %s", c.Title, c.Artist))
+		}
+		if len(lines) > 0 {
+			candidatesBlock = "\nPreferred tracks from this venue's history (use roughly 50–70% from this list when they fit the mood; add 30–50% of your own picks):\n" + strings.Join(lines, "\n") + "\n"
+		}
+	}
+
 	prompt := fmt.Sprintf(`You are a music curator. Suggest exactly %d distinct songs that fit the playlist description.
 
 Playlist description:
 %s
-%s
+%s%s
 Rules:
 - Return ONLY a JSON array (no markdown fences, no commentary). Each element must be: {"title":"Song Title","artist":"Primary Artist Name"}.
 - Use well-known tracks that are likely on Spotify. Vary artists; avoid duplicate songs.
 - "artist" is the main credited performer or band name as commonly shown on Spotify.
-`, count, strings.TrimSpace(description), artistsLine)
+`, count, strings.TrimSpace(description), artistsLine, candidatesBlock)
 
 	body := map[string]interface{}{
 		"contents": []map[string]interface{}{

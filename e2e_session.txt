@@ -1,0 +1,30 @@
+VibeSense evals PR1 — end-to-end session log
+Date: 2026-10-24
+Branch: cursor/vibesense-evals-027c
+Base: 65e937c
+
+## Automated verification (this environment)
+
+cd server && go test -race -count=1 ./...
+  -> PASS (all packages including ./evals)
+
+cd server && go test -short -count=1 ./evals/ -run TestVibeSenseEvalGateCI
+  -> PASS (mocked CI subset vs baseline.json)
+
+cd server && go test -count=1 ./evals/ -run TestVibeSenseEvalGate
+  -> PASS (full mocked matrix vs baseline.json)
+
+## Compose / smoke / voting / paid-skip / VibeSense (manual stack)
+
+docker compose up -d --build --wait
+  -> NOT RUN: Docker CLI unavailable on Cloud Agent VM (bash: docker: command not found)
+
+./scripts/smoke-stack.sh
+  -> NOT RUN (depends on Compose stack)
+
+./scripts/compose-session-walk.sh
+  -> NOT RUN (depends on Compose stack)
+
+## Notes
+
+Full stack e2e (voting, paid-skip, live VibeSense with GEMINI_API_KEY) should be run locally or in GitHub Actions compose-session-walk / compose-smoke jobs before merge. This PR adds mocked eval coverage in CI so VibeSense quality is gated without secrets.

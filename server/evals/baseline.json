@@ -1,0 +1,38 @@
+{
+  "ci": {
+    "generated_at": "2026-10-24T16:13:57Z",
+    "mode": "mocked",
+    "vector_on": false,
+    "case_count": 8,
+    "resolve_rate_mean": 0.75,
+    "mood_fit_mean": 3.15,
+    "crowd_fit_mean": 3.0750000000000006,
+    "variety_mean": 3,
+    "coherence_mean": 3.15,
+    "p50_latency_ms": 0,
+    "p95_latency_ms": 0,
+    "hard_pass_count": 8,
+    "venue_history_share_mean": 0,
+    "json_ok": true,
+    "count_ok": true,
+    "no_duplicates": true
+  },
+  "full": {
+    "generated_at": "2026-10-24T16:13:56Z",
+    "mode": "mocked",
+    "vector_on": false,
+    "case_count": 24,
+    "resolve_rate_mean": 0.9166666666666666,
+    "mood_fit_mean": 3.8500000000000014,
+    "crowd_fit_mean": 3.7583333333333324,
+    "variety_mean": 3.6666666666666665,
+    "coherence_mean": 3.8500000000000014,
+    "p50_latency_ms": 0,
+    "p95_latency_ms": 0,
+    "hard_pass_count": 24,
+    "venue_history_share_mean": 0,
+    "json_ok": true,
+    "count_ok": true,
+    "no_duplicates": true
+  }
+}
