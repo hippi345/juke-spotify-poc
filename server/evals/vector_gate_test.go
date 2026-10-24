@@ -4,29 +4,27 @@ import (
 	"testing"
 )
 
-// TestVibeSenseVectorGate compares mocked evals with fixture venue index on vs off.
+// TestVibeSenseVectorGate compares vector-on vs vector-off on venue-history eval cases only.
 func TestVibeSenseVectorGate(t *testing.T) {
-	offCfg := mockRunConfig(true)
-	offCfg.VectorOn = false
-	offResults, err := RunSuite(offCfg)
+	offResults, err := RunSuite(vectorEvalConfig(false))
 	if err != nil {
 		t.Fatal(err)
 	}
 	offSum := Summarize(offResults, "mocked", false)
 
-	onCfg := mockRunConfig(true)
-	onCfg.VectorOn = true
-	onCfg.VenueKeys = loadVenueHistoryKeys()
-	onResults, err := RunSuite(onCfg)
+	onResults, err := RunSuite(vectorEvalConfig(true))
 	if err != nil {
 		t.Fatal(err)
 	}
 	onSum := Summarize(onResults, "mocked", true)
 
 	gate := CompareVectorGate(offSum, onSum)
-	t.Logf("vector gate lift=%.3f off_venue=%.3f on_venue=%.3f resolve_off=%.3f resolve_on=%.3f",
-		gate.Lift, offSum.VenueHistoryShare, onSum.VenueHistoryShare, offSum.ResolveRateMean, onSum.ResolveRateMean)
+	t.Logf("vector gate: mood off=%.3f on=%.3f | crowd off=%.3f on=%.3f | resolve off=%.3f on=%.3f | venue off=%.3f on=%.3f",
+		offSum.MoodFitMean, onSum.MoodFitMean,
+		offSum.CrowdFitMean, onSum.CrowdFitMean,
+		offSum.ResolveRateMean, onSum.ResolveRateMean,
+		offSum.VenueHistoryShare, onSum.VenueHistoryShare)
 	if !gate.Passed {
-		t.Fatalf("vector gate failed (PR should not merge): %v", gate.Failures)
+		t.Fatalf("vector gate failed (no measurable quality gain): %v", gate.Failures)
 	}
 }

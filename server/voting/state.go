@@ -354,6 +354,27 @@ func (m *Manager) EndSession() {
 	m.sessionStartAt = time.Time{}
 }
 
+// TrackMetadata returns title and primary artist for a track on the current round or playlist.
+func (m *Manager) TrackMetadata(trackID string) (title, artist string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Round != nil {
+		for _, t := range m.Round.Candidates {
+			if t.ID == trackID {
+				return t.Name, primaryArtistName(t)
+			}
+		}
+	}
+	return "", ""
+}
+
+func primaryArtistName(t spotify.Track) string {
+	if len(t.Artists) > 0 {
+		return t.Artists[0].Name
+	}
+	return ""
+}
+
 // Vote records a vote for a track from one joined patron (one vote per patron per round).
 func (m *Manager) Vote(patronUserID uint, trackID string) error {
 	m.mu.Lock()

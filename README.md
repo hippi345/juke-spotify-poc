@@ -179,7 +179,7 @@ When `VIBESENSE_VECTOR_ENABLED=true` and `venue_id` is supplied on `POST /api/ai
 
 **What this is not:** full RAG over lyrics, audio, or the open web; no automatic verification that output tracks appeared in the index; refill/voting paths are unchanged unless vector ingest runs.
 
-`TestVibeSenseVectorGate` in `server/evals` compares mocked runs with vector **on vs off** (fixture venue history). It must show lift in venue-history share without regressing judge scores, resolve rate, or latency — otherwise the vector PR should not merge.
+`TestVibeSenseVectorGate` in `server/evals` runs **venue-history** cases (`venue_crowd_lofi`, `venue_crowd_country`) with vector **on vs off**. The gate passes only if **mood fit, crowd fit, or resolve rate** improves by at least **0.05** with no regression on any of those three; venue-history share alone does not count. Latency must stay within +1s p50.
 
 ## Development
 

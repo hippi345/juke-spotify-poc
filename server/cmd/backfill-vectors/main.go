@@ -8,6 +8,7 @@ import (
 
 	"juke-spotify-poc/server/config"
 	"juke-spotify-poc/server/db"
+	"juke-spotify-poc/server/spotify"
 	"juke-spotify-poc/server/vector"
 )
 
@@ -25,9 +26,10 @@ func main() {
 	if err := vector.Init(enabled, cfg.OpenSearchURL, cfg.GeminiAPIKey, cfg.EmbedProvider); err != nil {
 		log.Fatalf("vector init: %v", err)
 	}
-	n, err := vector.BackfillVenue(context.Background(), uint(*venueID))
+	spotifyClient := spotify.NewClient(cfg)
+	n, err := vector.BackfillVenue(context.Background(), uint(*venueID), spotifyClient)
 	if err != nil {
 		log.Fatalf("backfill: %v", err)
 	}
-	log.Printf("backfill complete (%d sessions scanned)", n)
+	log.Printf("backfill complete (%d tracks indexed)", n)
 }

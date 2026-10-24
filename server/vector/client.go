@@ -3,6 +3,7 @@ package vector
 import (
 	"context"
 	"log"
+	"strings"
 	"sync"
 
 	"juke-spotify-poc/server/gemini"
@@ -10,9 +11,10 @@ import (
 
 // Service wraps venue track vector index + embedder for handlers and VibeSense.
 type Service struct {
-	Enabled  bool
-	Indexer  Indexer
-	Embedder Embedder
+	Enabled    bool // config flag (same on every API replica)
+	Indexer    Indexer
+	Embedder   Embedder
+	IndexReady bool
 }
 
 var (
@@ -25,18 +27,21 @@ var (
 func Init(enabled bool, opensearchURL string, geminiKey string, embedProvider string) error {
 	emb := NewEmbedderFromConfig(geminiKey, embedProvider)
 	idx := NewOpenSearchIndexer(opensearchURL, emb)
-	if enabled && opensearchURL != "" {
-		if err := idx.EnsureIndex(context.Background(), 768); err != nil {
-			log.Printf("vector: index init failed (continuing without vectors): %v", err)
-			idx = NopIndexer{}
-			enabled = false
-		}
-	} else {
-		enabled = false
+	indexReady := false
+	if !enabled {
 		idx = NopIndexer{}
+	} else if strings.TrimSpace(opensearchURL) == "" {
+		log.Printf("vector: enabled but OPENSEARCH_URL empty — searches will return no hits")
+		idx = NopIndexer{}
+	} else {
+		if err := idx.EnsureIndex(context.Background(), 768); err != nil {
+			log.Printf("vector: index ensure failed at startup (searches may retry): %v", err)
+		} else {
+			indexReady = true
+		}
 	}
 	defaultMu.Lock()
-	defaultSvc = Service{Enabled: enabled, Indexer: idx, Embedder: emb}
+	defaultSvc = Service{Enabled: enabled, Indexer: idx, Embedder: emb, IndexReady: indexReady}
 	defaultInited = true
 	defaultMu.Unlock()
 	return nil

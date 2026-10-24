@@ -21,6 +21,10 @@ type VotePayload struct {
 	SessionID uint   `json:"session_id"`
 	PatronID  uint   `json:"patron_id"`
 	TrackID   string `json:"track_id"`
+	VenueID   uint   `json:"venue_id,omitempty"`
+	Title     string `json:"title,omitempty"`
+	Artist    string `json:"artist,omitempty"`
+	Genres    string `json:"genres,omitempty"`
 }
 
 // PaymentPayload is published when a paid skip is marked paid.

@@ -14,6 +14,9 @@ import (
 
 const embedURL = "https://generativelanguage.googleapis.com/v1beta/models/%s:embedContent"
 
+// ErrEmbedUnavailable means embeddings cannot run (e.g. missing API key).
+var ErrEmbedUnavailable = fmt.Errorf("embeddings unavailable")
+
 // Embedder produces dense vectors for venue track text.
 type Embedder interface {
 	Embed(text string) ([]float32, error)
@@ -39,11 +42,38 @@ func NewEmbedderFromConfig(apiKey, provider string) Embedder {
 	if model == "" {
 		model = "text-embedding-004"
 	}
+	if strings.TrimSpace(apiKey) == "" {
+		return HashEmbedder{Dim: 768}
+	}
 	return GeminiEmbedder{
 		APIKey: apiKey,
 		Model:  model,
 		Client: &http.Client{Timeout: 60 * time.Second},
 	}
+}
+
+// HashEmbedder builds a deterministic local vector (dev/backfill when GEMINI_API_KEY is unset).
+type HashEmbedder struct {
+	Dim int
+}
+
+func (h HashEmbedder) Embed(text string) ([]float32, error) {
+	dim := h.Dim
+	if dim <= 0 {
+		dim = 768
+	}
+	vec := make([]float32, dim)
+	var seed uint64
+	for _, b := range []byte(text) {
+		seed = seed*131 + uint64(b)
+	}
+	for i := 0; i < dim; i++ {
+		seed ^= seed << 13
+		seed ^= seed >> 7
+		seed ^= seed << 17
+		vec[i] = float32(int(seed%1000)) / 1000
+	}
+	return vec, nil
 }
 
 func (g GeminiEmbedder) Embed(text string) ([]float32, error) {

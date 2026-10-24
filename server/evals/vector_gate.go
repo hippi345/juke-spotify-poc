@@ -9,28 +9,38 @@ import (
 
 // VectorGateResult compares vector-on vs vector-off eval runs.
 type VectorGateResult struct {
-	Passed   bool     `json:"passed"`
-	Failures []string `json:"failures,omitempty"`
+	Passed   bool           `json:"passed"`
+	Failures []string       `json:"failures,omitempty"`
 	Off      SummaryMetrics `json:"off"`
 	On       SummaryMetrics `json:"on"`
 	Lift     float64        `json:"venue_history_lift"`
 }
 
-// CompareVectorGate decides whether vector grounding helps enough to ship.
+const vectorMinGain = 0.05
+
+// CompareVectorGate requires a real gain in mood, crowd, or resolve; venue share alone is not enough.
 func CompareVectorGate(off, on SummaryMetrics) VectorGateResult {
 	var failures []string
+	lift := on.VenueHistoryShare - off.VenueHistoryShare
+
+	moodGain := on.MoodFitMean - off.MoodFitMean
+	crowdGain := on.CrowdFitMean - off.CrowdFitMean
+	resolveGain := on.ResolveRateMean - off.ResolveRateMean
+
+	gain := moodGain >= vectorMinGain || crowdGain >= vectorMinGain || resolveGain >= vectorMinGain
+	if !gain {
+		failures = append(failures, fmt.Sprintf(
+			"no gain >= %.2f in mood (%.3f), crowd (%.3f), or resolve (%.3f); venue share lift %.3f ignored for pass",
+			vectorMinGain, moodGain, crowdGain, resolveGain, lift))
+	}
 	if on.MoodFitMean < off.MoodFitMean-0.01 {
-		failures = append(failures, fmt.Sprintf("mood_fit dropped with vector: %.3f -> %.3f", off.MoodFitMean, on.MoodFitMean))
+		failures = append(failures, fmt.Sprintf("mood_fit regressed: %.3f -> %.3f", off.MoodFitMean, on.MoodFitMean))
 	}
 	if on.CrowdFitMean < off.CrowdFitMean-0.01 {
-		failures = append(failures, fmt.Sprintf("crowd_fit dropped with vector: %.3f -> %.3f", off.CrowdFitMean, on.CrowdFitMean))
+		failures = append(failures, fmt.Sprintf("crowd_fit regressed: %.3f -> %.3f", off.CrowdFitMean, on.CrowdFitMean))
 	}
 	if on.ResolveRateMean < off.ResolveRateMean-0.001 {
-		failures = append(failures, fmt.Sprintf("resolve rate dropped with vector: %.3f -> %.3f", off.ResolveRateMean, on.ResolveRateMean))
-	}
-	lift := on.VenueHistoryShare - off.VenueHistoryShare
-	if lift < 0.05 {
-		failures = append(failures, fmt.Sprintf("venue history share lift %.3f below 0.05 threshold", lift))
+		failures = append(failures, fmt.Sprintf("resolve rate regressed: %.3f -> %.3f", off.ResolveRateMean, on.ResolveRateMean))
 	}
 	if on.P50LatencyMs > off.P50LatencyMs+1000 {
 		failures = append(failures, fmt.Sprintf("p50 latency rose %dms -> %dms", off.P50LatencyMs, on.P50LatencyMs))
@@ -59,4 +69,18 @@ func loadVenueHistoryKeys() map[string]bool {
 		out[k] = true
 	}
 	return out
+}
+
+func vectorEvalConfig(vectorOn bool) RunConfig {
+	store := DefaultFixtureStore()
+	keys := loadVenueHistoryKeys()
+	return RunConfig{
+		VectorOnly:   true,
+		VectorOn:     vectorOn,
+		Generator:    FixtureGenerator{Store: store, VectorOn: vectorOn},
+		Searcher:     FixtureSearcher{Store: store},
+		Judge:        &perCaseFixtureJudge{Store: store, vectorOn: vectorOn},
+		VenueKeys:    keys,
+		FixtureStore: store,
+	}
 }

@@ -267,10 +267,18 @@ func (h *Handlers) Vote(c *gin.Context) {
 		),
 	)
 	defer span.End()
+	title, artist := h.Manager.TrackMetadata(body.TrackID)
+	var venueID uint
+	if session.VenueID != nil {
+		venueID = *session.VenueID
+	}
 	_ = events.Default.PublishVote(voteCtx, events.VotePayload{
 		SessionID: session.ID,
 		PatronID:  patronID,
 		TrackID:   body.TrackID,
+		VenueID:   venueID,
+		Title:     title,
+		Artist:    artist,
 	})
 	c.JSON(http.StatusOK, gin.H{"status": "voted"})
 }

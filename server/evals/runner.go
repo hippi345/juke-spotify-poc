@@ -1,7 +1,6 @@
 package evals
 
 import (
-	"strings"
 	"time"
 
 	"juke-spotify-poc/server/gemini"
@@ -29,6 +28,7 @@ type JudgeSpread struct {
 // RunConfig controls one eval suite execution.
 type RunConfig struct {
 	Short       bool
+	VectorOnly  bool
 	VectorOn    bool
 	Generator   gemini.PlaylistGenerator
 	Searcher    TrackSearcher
@@ -40,6 +40,9 @@ type RunConfig struct {
 // RunSuite executes all cases and returns aggregated results.
 func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 	cases := FilterCases(cfg.Short)
+	if cfg.VectorOnly {
+		cases = FilterVectorCases()
+	}
 	var out []CaseResult
 	for _, c := range cases {
 		SetRunCaseID(c.ID)
@@ -56,11 +59,7 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 			fs.CaseID = c.ID
 			searcher = fs
 		}
-		venueKeys := cfg.VenueKeys
-		if cfg.VectorOn && len(suggestions) > 0 {
-			venueKeys = venueKeysForVectorOn(suggestions, venueKeys)
-		}
-		hard := RunHardChecks(c, suggestions, searcher, venueKeys, start, genErr)
+		hard := RunHardChecks(c, suggestions, searcher, cfg.VenueKeys, start, genErr)
 
 		var judgeRuns []JudgeScores
 		if !c.ExpectError && len(suggestions) > 0 && cfg.Judge != nil {
@@ -87,24 +86,6 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 		})
 	}
 	return out, nil
-}
-
-func venueKeysForVectorOn(suggestions []gemini.TrackSuggestion, base map[string]bool) map[string]bool {
-	out := make(map[string]bool)
-	for k, v := range base {
-		if v {
-			out[k] = true
-		}
-	}
-	n := len(suggestions) * 2 / 5
-	if n < 1 {
-		n = 1
-	}
-	for i := 0; i < n && i < len(suggestions); i++ {
-		s := suggestions[i]
-		out[strings.ToLower(strings.TrimSpace(s.Title)+"|"+strings.TrimSpace(s.Artist))] = true
-	}
-	return out
 }
 
 func judgeSpread(runs []JudgeScores) JudgeSpread {

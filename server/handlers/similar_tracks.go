@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,11 +15,11 @@ import (
 // SimilarVenueTracks semantic search over venue_tracks (flag-gated).
 func SimilarVenueTracks(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		svc := vector.Default()
-		if !svc.Enabled {
-			c.JSON(http.StatusNotFound, gin.H{"error": "vector search disabled"})
+		if !cfg.VibeSenseVectorEnabled {
+			c.JSON(http.StatusNotFound, gin.H{"error": "vector search disabled", "enabled": false})
 			return
 		}
+		svc := vector.Default()
 		id64, err := strconv.ParseUint(c.Param("id"), 10, 64)
 		if err != nil || id64 == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid venue id"})
@@ -32,17 +33,29 @@ func SimilarVenueTracks(cfg *config.Config) gin.HandlerFunc {
 				limit = n
 			}
 		}
-		var hits []vector.SearchHit
-		if trackID != "" {
-			hits, err = svc.Indexer.SearchByText(c.Request.Context(), uint(id64), trackID, svc.Embedder, limit)
-		} else if q != "" {
-			hits, err = svc.Indexer.SearchByText(c.Request.Context(), uint(id64), q, svc.Embedder, limit)
-		} else {
+		queryText := q
+		if queryText == "" {
+			queryText = trackID
+		}
+		if queryText == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "q or track_id required"})
 			return
 		}
+		hits, err := svc.Indexer.SearchByText(c.Request.Context(), uint(id64), queryText, svc.Embedder, limit)
+		resp := gin.H{
+			"tracks":    []gin.H{},
+			"venue_id":  id64,
+			"enabled":   true,
+			"index_ready": svc.IndexReady,
+		}
 		if err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
+			if errors.Is(err, vector.ErrEmbedUnavailable) || strings.Contains(err.Error(), "GEMINI_API_KEY") {
+				resp["degraded"] = "embeddings unavailable (set GEMINI_API_KEY for semantic search)"
+				c.JSON(http.StatusOK, resp)
+				return
+			}
+			resp["degraded"] = err.Error()
+			c.JSON(http.StatusOK, resp)
 			return
 		}
 		out := make([]gin.H, 0, len(hits))
@@ -54,6 +67,7 @@ func SimilarVenueTracks(cfg *config.Config) gin.HandlerFunc {
 				"score":      h.Score,
 			})
 		}
-		c.JSON(http.StatusOK, gin.H{"tracks": out, "venue_id": id64})
+		resp["tracks"] = out
+		c.JSON(http.StatusOK, resp)
 	}
 }

@@ -193,7 +193,7 @@ func (o *osIndexer) SearchByText(ctx context.Context, venueID uint, q string, em
 		emb = o.embedder
 	}
 	if emb == nil {
-		return nil, fmt.Errorf("embedder not configured")
+		return nil, ErrEmbedUnavailable
 	}
 	vec, err := emb.Embed(q)
 	if err != nil {

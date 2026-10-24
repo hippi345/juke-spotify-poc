@@ -252,6 +252,7 @@ func handleKafkaMessage(ctx context.Context, topic string, value []byte, mgr *vo
 			attribute.String("track.id", p.TrackID),
 		)
 		log.Printf("kafka vote: session=%d patron=%d track=%s", p.SessionID, p.PatronID, p.TrackID)
+		vector.HandleVoteEvent(ctx, p)
 	}
 	return nil
 }
