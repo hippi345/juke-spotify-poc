@@ -24,15 +24,20 @@ OUT_DIR = REPO / "server/evals/testdata/vector"
 MANIFEST = OUT_DIR / "catalog_embedding_manifest.json"
 VECTORS = OUT_DIR / "catalog_track_embeddings.f32"
 
+# Keep in sync with evals/catalog_eval_queries.go
 EVAL_QUERIES = [
-    "golden hour drive with friends",
-    "dusk commute after work",
-    "warm open-air lounge at twilight",
-    "late shift wind-down on the terrace",
-    "orange sky and good company with a playlist",
-    "unwind after work with mellow crowd-pleasing tracks",
-    "sunset singalong favorites the crowd loved",
-    "patio chill nu-disco warmup set",
+    "crepuscule highway outing with companions",
+    "amber sky relaxed social drive",
+    "post-shift decompression on the veranda",
+    "gentle unwinding after overtime ends",
+    "breezy open-air gathering at dayfade",
+    "convivial horizon cruise among companions",
+    "homeward inbound commute calm-down playlist",
+    "leisurely al fresco atmosphere at dayend",
+    "coral radiance social ride with mates",
+    "vesper veranda decompression interlude",
+    "crimson sky companionable road trip",
+    "soft glowing commute unwind with crew",
 ]
 
 STORED_DIM = 768
