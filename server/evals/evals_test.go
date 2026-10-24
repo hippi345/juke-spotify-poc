@@ -4,8 +4,6 @@ import (
 	"flag"
 	"os"
 	"testing"
-
-	"juke-spotify-poc/server/gemini"
 )
 
 var (
@@ -22,34 +20,11 @@ func mockRunConfig(short bool) RunConfig {
 	store := DefaultFixtureStore()
 	return RunConfig{
 		Short:        short,
-		Generator:    FixtureGenerator{Store: store},
+		Generator:    FixtureGenerator{Store: store, VectorOn: false},
 		Searcher:     FixtureSearcher{Store: store},
 		Judge:        &perCaseFixtureJudge{Store: store},
 		FixtureStore: store,
 	}
-}
-
-type perCaseFixtureJudge struct {
-	Store   FixtureStore
-	callMap map[string]int
-}
-
-func (j *perCaseFixtureJudge) Score(description string, suggestions []gemini.TrackSuggestion) (JudgeScores, error) {
-	id := currentCaseID
-	runs := LoadJudgeFixture(j.Store, id)
-	if len(runs) == 0 {
-		return JudgeScores{MoodFit: 4.2, CrowdFit: 4.1, Variety: 4.0, Coherence: 4.3, MoodReason: "default mock judge"}, nil
-	}
-	if j.callMap == nil {
-		j.callMap = make(map[string]int)
-	}
-	call := j.callMap[id]
-	j.callMap[id] = call + 1
-	run := runs[0]
-	if len(run) == 0 {
-		return JudgeScores{MoodFit: 4, CrowdFit: 4, Variety: 4, Coherence: 4}, nil
-	}
-	return run[call%len(run)], nil
 }
 
 // TestVibeSenseEvalGateCI is the required CI subset (-short).

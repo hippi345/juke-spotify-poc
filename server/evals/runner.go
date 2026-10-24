@@ -28,6 +28,7 @@ type JudgeSpread struct {
 // RunConfig controls one eval suite execution.
 type RunConfig struct {
 	Short       bool
+	VectorOnly  bool
 	VectorOn    bool
 	Generator   gemini.PlaylistGenerator
 	Searcher    TrackSearcher
@@ -39,6 +40,9 @@ type RunConfig struct {
 // RunSuite executes all cases and returns aggregated results.
 func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 	cases := FilterCases(cfg.Short)
+	if cfg.VectorOnly {
+		cases = FilterVectorCases()
+	}
 	var out []CaseResult
 	for _, c := range cases {
 		SetRunCaseID(c.ID)

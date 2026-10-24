@@ -301,7 +301,11 @@ function HostApp() {
           </div>
 
           {spotify?.connected && (
-            <AiPlaylistPanel onPlaylistReady={onAiPlaylistReady} onPlaylistFailed={onAiPlaylistFailed} />
+            <AiPlaylistPanel
+              venueId={staffAuth.selectedVenueId ?? undefined}
+              onPlaylistReady={onAiPlaylistReady}
+              onPlaylistFailed={onAiPlaylistFailed}
+            />
           )}
 
           {spotify?.connected && <StaffHostPanel auth={staffAuth} />}

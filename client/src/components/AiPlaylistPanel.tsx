@@ -17,12 +17,15 @@ type JobPoll =
   | { status: 'completed'; result: AiPlaylistResult }
   | { status: 'failed'; error: string }
 
+type SimilarTrack = { spotify_id: string; title: string; artist: string; score?: number }
+
 type AiPlaylistPanelProps = {
+  venueId?: number
   onPlaylistReady?: (result: AiPlaylistResult) => void
   onPlaylistFailed?: (message: string) => void
 }
 
-export function AiPlaylistPanel({ onPlaylistReady, onPlaylistFailed }: AiPlaylistPanelProps) {
+export function AiPlaylistPanel({ venueId, onPlaylistReady, onPlaylistFailed }: AiPlaylistPanelProps) {
   const [open, setOpen] = useState(false)
   const [playlistName, setPlaylistName] = useState('')
   const [trackCount, setTrackCount] = useState(15)
@@ -32,6 +35,9 @@ export function AiPlaylistPanel({ onPlaylistReady, onPlaylistFailed }: AiPlaylis
   const [submitting, setSubmitting] = useState(false)
   const [jobRunning, setJobRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [similarQuery, setSimilarQuery] = useState('')
+  const [similarTracks, setSimilarTracks] = useState<SimilarTrack[]>([])
+  const [similarLoading, setSimilarLoading] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const stopPoll = useCallback(() => {
@@ -149,6 +155,7 @@ export function AiPlaylistPanel({ onPlaylistReady, onPlaylistFailed }: AiPlaylis
           track_count: trackCount,
           description: desc,
           similar_artists: similarArtists,
+          ...(venueId ? { venue_id: venueId } : {}),
         }),
       })
       const data = (await res.json().catch(() => ({}))) as JobAccepted & { error?: string }
@@ -319,6 +326,57 @@ export function AiPlaylistPanel({ onPlaylistReady, onPlaylistFailed }: AiPlaylis
               VibeSense is creating your playlist in the background… This can take a minute. You can keep using the app;
               we’ll notify you when it’s ready.
             </p>
+          )}
+
+          {venueId != null && (
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+              <p className="mb-2 text-sm text-zinc-400">More like this (venue history)</p>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="text"
+                  value={similarQuery}
+                  onChange={(e) => setSimilarQuery(e.target.value)}
+                  placeholder="Describe a track vibe or paste a track name"
+                  className="min-w-[12rem] flex-1 rounded-lg border border-white/15 bg-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-zinc-600"
+                />
+                <button
+                  type="button"
+                  disabled={similarLoading || !similarQuery.trim()}
+                  onClick={async () => {
+                    setSimilarLoading(true)
+                    setSimilarTracks([])
+                    try {
+                      const q = encodeURIComponent(similarQuery.trim())
+                      const res = await fetch(
+                        `/api/venues/${venueId}/tracks/similar?q=${q}&limit=10`
+                      )
+                      const data = (await res.json()) as { tracks?: SimilarTrack[]; error?: string }
+                      if (!res.ok) {
+                        setError(data.error || 'Similar track search failed')
+                      } else {
+                        setSimilarTracks(data.tracks ?? [])
+                      }
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : 'Similar track search failed')
+                    } finally {
+                      setSimilarLoading(false)
+                    }
+                  }}
+                  className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-sm text-violet-200 hover:bg-violet-500/20 disabled:opacity-50"
+                >
+                  {similarLoading ? 'Searching…' : 'Find similar'}
+                </button>
+              </div>
+              {similarTracks.length > 0 && (
+                <ul className="mt-2 space-y-1 text-sm text-zinc-300">
+                  {similarTracks.map((t) => (
+                    <li key={t.spotify_id || `${t.artist}-${t.title}`}>
+                      {t.title} — {t.artist}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
 
           <div className="flex flex-wrap items-center gap-3">

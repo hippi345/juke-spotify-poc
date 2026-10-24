@@ -157,9 +157,11 @@ func (m *Manager) StartSession(playlistID, playlistName string, refillThreshold,
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.Session != nil && m.Session.Status == "active" {
-		return nil, fmt.Errorf("session already active")
+	if m.Session != nil && m.Session.Status == "active" && venueIDsMatch(m.Session.VenueID, venueID) {
+		log.Printf("voting: ending in-memory active session %d for venue %v before new start", m.Session.ID, venueID)
+		m.endActiveSessionLocked()
 	}
+	endStaleDBActiveSessionsForVenue(m, venueID)
 
 	// Invalidate now-playing cache so next poll fetches fresh data (avoids showing previous session's track)
 	m.invalidateCurrentlyPlayingCache()
@@ -324,7 +326,47 @@ func (m *Manager) RecoverRound() error {
 func (m *Manager) EndSession() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.endActiveSessionLocked()
+}
 
+func venueIDsMatch(a, b *uint) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+func endStaleDBActiveSessionsForVenue(m *Manager, venueID *uint) {
+	q := db.DB.Where("status = ?", "active")
+	if venueID != nil {
+		q = q.Where("venue_id = ?", *venueID)
+	} else {
+		q = q.Where("venue_id IS NULL")
+	}
+	var stale []models.VotingSession
+	if err := q.Find(&stale).Error; err != nil {
+		log.Printf("voting: list active sessions for venue: %v", err)
+		return
+	}
+	for i := range stale {
+		s := stale[i]
+		log.Printf("voting: ending stale DB-active session %d (venue_id=%v playlist %s)", s.ID, s.VenueID, s.PlaylistID)
+		if err := removeRefillTracksForSession(m.playlistRemover(), &s); err != nil {
+			log.Printf("voting: stale session %d refill cleanup: %v", s.ID, err)
+		}
+		s.Status = "ended"
+		if err := db.DB.Save(&s).Error; err != nil {
+			log.Printf("voting: mark session %d ended: %v", s.ID, err)
+		}
+		_ = db.DB.Model(&models.User{}).Where("joined_voting_session_id = ?", s.ID).
+			Update("joined_voting_session_id", nil).Error
+	}
+}
+
+func (m *Manager) endActiveSessionLocked() {
 	if m.Session != nil && m.Session.Status == "active" {
 		keepRefill := m.Session.KeepRefillTracks
 		endedSessionID := m.Session.ID
@@ -352,6 +394,27 @@ func (m *Manager) EndSession() {
 	m.pendingWinnerID = ""
 	m.kickoffTrack = nil
 	m.sessionStartAt = time.Time{}
+}
+
+// TrackMetadata returns title and primary artist for a track on the current round or playlist.
+func (m *Manager) TrackMetadata(trackID string) (title, artist string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Round != nil {
+		for _, t := range m.Round.Candidates {
+			if t.ID == trackID {
+				return t.Name, primaryArtistName(t)
+			}
+		}
+	}
+	return "", ""
+}
+
+func primaryArtistName(t spotify.Track) string {
+	if len(t.Artists) > 0 {
+		return t.Artists[0].Name
+	}
+	return ""
 }
 
 // Vote records a vote for a track from one joined patron (one vote per patron per round).
