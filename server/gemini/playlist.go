@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -101,7 +100,7 @@ Rules:
 		return nil, err
 	}
 
-	u := fmt.Sprintf(generateURL+"?key=%s", model, url.QueryEscape(apiKey))
+	u := fmt.Sprintf(generateURL, model)
 	client := &http.Client{Timeout: 120 * time.Second}
 
 	var respBody []byte
@@ -112,6 +111,7 @@ Rules:
 			return nil, err
 		}
 		req.Header.Set("Content-Type", "application/json")
+		SetAPIKeyHeader(req, apiKey)
 
 		resp, err := client.Do(req)
 		if err != nil {

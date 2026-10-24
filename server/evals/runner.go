@@ -1,9 +1,12 @@
 package evals
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"juke-spotify-poc/server/gemini"
+	"juke-spotify-poc/server/vector"
 )
 
 const judgeRunsPerCase = 3
@@ -30,6 +33,7 @@ type RunConfig struct {
 	Short       bool
 	VectorOnly  bool
 	VectorOn    bool
+	InjectVenueCandidates bool // vector index ON: inject venue history candidates like AI playlist handler
 	Generator   gemini.PlaylistGenerator
 	Searcher    TrackSearcher
 	Judge       Judge
@@ -49,10 +53,14 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 		start := time.Now()
 		var suggestions []gemini.TrackSuggestion
 		var genErr error
+		genOpts := gemini.GenerateOptions{}
+		if cfg.InjectVenueCandidates && c.VenueID > 0 {
+			genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 30)
+		}
 		if c.ExpectError {
-			_, genErr = cfg.Generator.GenerateTrackList(c.Description, c.TrackCount, c.SimilarArtists, gemini.GenerateOptions{})
+			_, genErr = cfg.Generator.GenerateTrackList(c.Description, c.TrackCount, c.SimilarArtists, genOpts)
 		} else {
-			suggestions, genErr = cfg.Generator.GenerateTrackList(c.Description, c.TrackCount, c.SimilarArtists, gemini.GenerateOptions{})
+			suggestions, genErr = cfg.Generator.GenerateTrackList(c.Description, c.TrackCount, c.SimilarArtists, genOpts)
 		}
 		searcher := cfg.Searcher
 		if fs, ok := searcher.(FixtureSearcher); ok {
@@ -66,7 +74,7 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 			for i := 0; i < judgeRunsPerCase; i++ {
 				sc, err := cfg.Judge.Score(c.Description, suggestions)
 				if err != nil {
-					sc = JudgeScores{MoodFit: 3, CrowdFit: 3, Variety: 3, Coherence: 3}
+					return nil, fmt.Errorf("case %s judge run %d: %w", c.ID, i+1, err)
 				}
 				judgeRuns = append(judgeRuns, sc)
 			}

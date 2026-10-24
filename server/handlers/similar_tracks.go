@@ -43,18 +43,22 @@ func SimilarVenueTracks(cfg *config.Config) gin.HandlerFunc {
 		}
 		hits, err := svc.Indexer.SearchByText(c.Request.Context(), uint(id64), queryText, svc.Embedder, limit)
 		resp := gin.H{
-			"tracks":    []gin.H{},
-			"venue_id":  id64,
-			"enabled":   true,
+			"tracks":      []gin.H{},
+			"venue_id":    id64,
+			"enabled":     true,
 			"index_ready": svc.IndexReady,
 		}
 		if err != nil {
-			if errors.Is(err, vector.ErrEmbedUnavailable) || strings.Contains(err.Error(), "GEMINI_API_KEY") {
-				resp["degraded"] = "embeddings unavailable (set GEMINI_API_KEY for semantic search)"
-				c.JSON(http.StatusOK, resp)
-				return
+			apiKey := ""
+			if ge, ok := svc.Embedder.(vector.GeminiEmbedder); ok {
+				apiKey = ge.APIKey
 			}
-			resp["degraded"] = err.Error()
+			vector.LogEmbedError("similar tracks embed/search", err, apiKey)
+			if errors.Is(err, vector.ErrEmbedUnavailable) || strings.Contains(strings.ToLower(err.Error()), "gemini_api_key") {
+				resp["degraded"] = "embeddings unavailable (set GEMINI_API_KEY for semantic search)"
+			} else {
+				resp["degraded"] = vector.DegradedSemanticSearch
+			}
 			c.JSON(http.StatusOK, resp)
 			return
 		}

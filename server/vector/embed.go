@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
+
+	"juke-spotify-poc/server/gemini"
 	"strings"
 	"time"
 )
@@ -40,10 +41,10 @@ func NewEmbedderFromConfig(apiKey, provider string) Embedder {
 	}
 	model := strings.TrimSpace(os.Getenv("GEMINI_EMBED_MODEL"))
 	if model == "" {
-		model = "text-embedding-004"
+		model = DefaultGeminiEmbedModel
 	}
 	if strings.TrimSpace(apiKey) == "" {
-		return HashEmbedder{Dim: 768}
+		return HashEmbedder{Dim: IndexEmbeddingDim}
 	}
 	return GeminiEmbedder{
 		APIKey: apiKey,
@@ -60,7 +61,7 @@ type HashEmbedder struct {
 func (h HashEmbedder) Embed(text string) ([]float32, error) {
 	dim := h.Dim
 	if dim <= 0 {
-		dim = 768
+		dim = IndexEmbeddingDim
 	}
 	vec := make([]float32, dim)
 	var seed uint64
@@ -85,14 +86,16 @@ func (g GeminiEmbedder) Embed(text string) ([]float32, error) {
 		"content": map[string]interface{}{
 			"parts": []map[string]string{{"text": text}},
 		},
+		"outputDimensionality": IndexEmbeddingDim,
 	}
 	raw, _ := json.Marshal(body)
-	u := fmt.Sprintf(embedURL+"?key=%s", g.Model, url.QueryEscape(g.APIKey))
+	u := fmt.Sprintf(embedURL, g.Model)
 	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(raw))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	gemini.SetAPIKeyHeader(req, g.APIKey)
 	resp, err := g.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -100,7 +103,7 @@ func (g GeminiEmbedder) Embed(text string) ([]float32, error) {
 	defer func() { _ = resp.Body.Close() }()
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("embed HTTP %d: %s", resp.StatusCode, truncate(respBody, 300))
+		return nil, fmt.Errorf("embed HTTP %d: %s", resp.StatusCode, gemini.RedactSecrets(truncate(respBody, 300), g.APIKey))
 	}
 	var parsed struct {
 		Embedding struct {
@@ -112,6 +115,9 @@ func (g GeminiEmbedder) Embed(text string) ([]float32, error) {
 	}
 	if len(parsed.Embedding.Values) == 0 {
 		return nil, fmt.Errorf("empty embedding")
+	}
+	if err := ValidateEmbedVector(parsed.Embedding.Values); err != nil {
+		return nil, err
 	}
 	return parsed.Embedding.Values, nil
 }
