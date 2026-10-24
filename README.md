@@ -187,6 +187,8 @@ When `VIBESENSE_VECTOR_ENABLED=true` and `venue_id` is supplied on `POST /api/ai
 
 VibeSense output quality is measured in `server/evals/` (Go, table-driven). Each case exercises the same shape as production: Gemini produces a JSON track list, then Spotify search resolves suggestions.
 
+See **[server/evals/README.md](server/evals/README.md)** for the case matrix, CI/live commands, and **[Example eval tests](server/evals/README.md#example-eval-tests)** (annotated grounding, judge, adversarial, vector ON/OFF, and key-leak examples with copy-paste `go test` invocations).
+
 ```mermaid
 flowchart LR
   cases[Eval cases] --> gen[Gemini or fixtures]

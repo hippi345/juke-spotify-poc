@@ -48,6 +48,11 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 	if cfg.VectorOnly {
 		cases = FilterVectorCases()
 	}
+	return RunSuiteCases(cfg, cases)
+}
+
+// RunSuiteCases runs an explicit case list (used by example/doc tests).
+func RunSuiteCases(cfg RunConfig, cases []Case) ([]CaseResult, error) {
 	var out []CaseResult
 	for _, c := range cases {
 		SetRunCaseID(c.ID)
