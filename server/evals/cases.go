@@ -9,6 +9,7 @@ type Case struct {
 	ExpectError     bool
 	CI              bool // included in -short / CI gate subset
 	VenueID         uint // optional; used for vector-grounding evals (PR2)
+	VectorEval      bool // on/off comparison cases (venue history should change picks)
 }
 
 // AllCases returns the full eval matrix (~20 moods + edge cases).
@@ -38,7 +39,20 @@ func AllCases() []Case {
 		{ID: "obscure_tuvan", Description: "Tuvan throat-singing and experimental folk", TrackCount: 8},
 		{ID: "nonsense_input", Description: "asdf qwerty zxcv", TrackCount: 5, ExpectError: true, CI: true},
 		{ID: "empty_description", Description: "   ", TrackCount: 5, ExpectError: true, CI: true},
+		{ID: "venue_crowd_lofi", Description: "late-night study session — calm lofi focus (venue crowd keeps upvoting lofi)", TrackCount: 10, VenueID: 1, VectorEval: true},
+		{ID: "venue_crowd_country", Description: "Friday happy hour — rowdy singalong (venue crowd upvotes modern country)", TrackCount: 10, VenueID: 1, VectorEval: true},
 	}
+}
+
+// FilterVectorCases returns scenarios where venue history should change VibeSense picks.
+func FilterVectorCases() []Case {
+	var out []Case
+	for _, c := range AllCases() {
+		if c.VectorEval {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 // FilterCases returns cases for the current run (CI subset when short).
