@@ -121,7 +121,7 @@ Score each dimension 1-5 (integers). Return ONLY JSON:
 	if err != nil {
 		return JudgeScores{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return JudgeScores{}, fmt.Errorf("judge gemini HTTP %d: %s", resp.StatusCode, truncate(respBody, 200))

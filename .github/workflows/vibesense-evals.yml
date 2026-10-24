@@ -13,8 +13,6 @@ jobs:
   vibesense-evals-mocked:
     name: VibeSense eval gate (mocked)
     runs-on: ubuntu-latest
-    env:
-      GOFLAGS: -mod=mod
     defaults:
       run:
         working-directory: server

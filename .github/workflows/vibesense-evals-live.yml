@@ -9,8 +9,6 @@ jobs:
   vibesense-evals-live:
     name: VibeSense eval gate (live)
     runs-on: ubuntu-latest
-    env:
-      GOFLAGS: -mod=mod
     defaults:
       run:
         working-directory: server

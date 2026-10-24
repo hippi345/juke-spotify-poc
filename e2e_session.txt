@@ -5,13 +5,13 @@ Base: 65e937c
 
 ## Automated verification (this environment)
 
-cd server && GOFLAGS=-mod=mod go test -race -count=1 ./...
+cd server && go test -race -count=1 ./...
   -> PASS (all packages including ./evals)
 
-cd server && GOFLAGS=-mod=mod go test -short -count=1 ./evals/ -run TestVibeSenseEvalGateCI
+cd server && go test -short -count=1 ./evals/ -run TestVibeSenseEvalGateCI
   -> PASS (mocked CI subset vs baseline.json)
 
-cd server && GOFLAGS=-mod=mod go test -count=1 ./evals/ -run TestVibeSenseEvalGate
+cd server && go test -count=1 ./evals/ -run TestVibeSenseEvalGate
   -> PASS (full mocked matrix vs baseline.json)
 
 ## Compose / smoke / voting / paid-skip / VibeSense (manual stack)

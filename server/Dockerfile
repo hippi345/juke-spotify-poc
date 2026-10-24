@@ -1,9 +1,8 @@
 FROM golang:1.22-alpine AS build
 WORKDIR /app/server
-COPY server/go.mod server/go.sum ./
-RUN go mod download
+COPY server/go.mod server/go.sum server/vendor ./vendor
 COPY server/ ./
-RUN CGO_ENABLED=0 go build -mod=mod -o /juke-api .
+RUN CGO_ENABLED=0 go build -mod=vendor -o /juke-api .
 
 FROM alpine:3.20
 RUN apk add --no-cache ca-certificates wget
