@@ -9,7 +9,7 @@ A proof-of-concept **collaborative jukebox**: a Go API connects to Spotify, runs
 
 ## VibeSense in action
 
-Describe a vibe in the web UI and VibeSense builds a real playlist on your connected Spotify account.
+The prompt “Rooftop bar at sunset, warm summer evening, chill house and nu-disco that slowly builds energy as the night starts” produced a 15-track Spotify playlist in about 25s.
 
 ![VibeSense prompt next to the Spotify playlist it created](docs/images/vibesense-to-spotify.png)
 
