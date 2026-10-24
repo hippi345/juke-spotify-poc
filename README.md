@@ -127,6 +127,28 @@ Secrets are **never** committed. Use environment variables or gitignored `.env` 
 
 ## Development
 
+### VibeSense eval suite
+
+Quality gates for AI playlist generation live in `server/evals/`. Mocked fixtures run in CI (no API keys).
+
+```bash
+cd server
+# CI subset (same as GitHub Actions "VibeSense eval gate (mocked)")
+go test -short -count=1 ./evals/ -run TestVibeSenseEvalGateCI
+
+# Full mocked matrix
+go test -count=1 ./evals/ -run TestVibeSenseEvalGate
+
+# Live run (requires GEMINI_API_KEY; optional Spotify for resolve checks)
+JUKE_EVALS_LIVE=1 go test -tags evals_live -count=1 ./evals/ -run TestVibeSenseEvalLive -write-reports
+
+# Refresh committed baseline after an intentional change
+go test -short ./evals/ -run TestVibeSenseEvalGateCI -update-baseline
+go test ./evals/ -run TestVibeSenseEvalGate -update-baseline
+```
+
+Reports are written to `server/evals/out/` when `-write-reports` is set. Compare against `server/evals/baseline.json`.
+
 ### Tests
 
 **Server** (SQLite in-memory; no Spotify or MySQL):
@@ -150,6 +172,7 @@ On push and pull requests to `main`, [`.github/workflows/ci.yml`](.github/workfl
 | Job | What it does |
 |-----|----------------|
 | Go server | `go mod verify`, vet, golangci-lint, `go test -race` |
+| VibeSense eval gate (mocked) | `go test -short ./evals/` vs `baseline.json` ([workflow](.github/workflows/vibesense-evals.yml)) |
 | React client | `npm ci`, lint, test, production build |
 | Android mobile client | `./gradlew testDebugUnitTest assembleDebug` in `mobile-client/` (JDK 21, Android SDK via Actions) |
 

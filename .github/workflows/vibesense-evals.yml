@@ -1,0 +1,41 @@
+name: VibeSense evals (mocked)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: vibesense-evals-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vibesense-evals-mocked:
+    name: VibeSense eval gate (mocked)
+    runs-on: ubuntu-latest
+    env:
+      GOFLAGS: -mod=mod
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Mocked eval subset vs baseline
+        run: |
+          go test -short -count=1 ./evals/ -run TestVibeSenseEvalGateCI -write-reports
+          cat evals/out/report.md || true
+
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vibesense-evals-mocked-report
+          path: |
+            server/evals/out/report.json
+            server/evals/out/report.md

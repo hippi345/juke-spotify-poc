@@ -1,0 +1,58 @@
+name: VibeSense evals (live)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  vibesense-evals-live:
+    name: VibeSense eval gate (live)
+    runs-on: ubuntu-latest
+    env:
+      GOFLAGS: -mod=mod
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Check secrets
+        id: secrets
+        run: |
+          if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "GEMINI_API_KEY not configured — skipping live evals"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Live eval suite
+        if: steps.secrets.outputs.skip != 'true'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          JUKE_EVALS_LIVE: "1"
+        run: |
+          go test -tags evals_live -count=1 ./evals/ -run TestVibeSenseEvalLive -write-reports
+          echo "## VibeSense live eval summary" >> "$GITHUB_STEP_SUMMARY"
+          cat evals/out/report.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload live eval report
+        if: always() && steps.secrets.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vibesense-evals-live-report
+          path: |
+            server/evals/out/report.json
+            server/evals/out/report.md
+
+      - name: Skipped summary
+        if: steps.secrets.outputs.skip == 'true'
+        run: |
+          echo "## VibeSense live evals skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "No GEMINI_API_KEY repository secret — live suite not run." >> "$GITHUB_STEP_SUMMARY"

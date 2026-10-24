@@ -1,0 +1,192 @@
+{
+  "artist folkcampfire 1 track 1": [
+    {
+      "id": "id-folk_campfire-0",
+      "name": "Track 1",
+      "uri": "spotify:track:id-folk_campfire-0",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist folkcampfire 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist folkcampfire 1 track 6": [
+    {
+      "id": "id-folk_campfire-5",
+      "name": "Track 6",
+      "uri": "spotify:track:id-folk_campfire-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist folkcampfire 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist folkcampfire 2 track 2": [
+    {
+      "id": "id-folk_campfire-1",
+      "name": "Track 2",
+      "uri": "spotify:track:id-folk_campfire-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist folkcampfire 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist folkcampfire 2 track 7": [
+    {
+      "id": "id-folk_campfire-6",
+      "name": "Track 7",
+      "uri": "spotify:track:id-folk_campfire-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist folkcampfire 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist folkcampfire 3 track 3": [
+    {
+      "id": "id-folk_campfire-2",
+      "name": "Track 3",
+      "uri": "spotify:track:id-folk_campfire-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist folkcampfire 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist folkcampfire 3 track 8": [
+    {
+      "id": "id-folk_campfire-7",
+      "name": "Track 8",
+      "uri": "spotify:track:id-folk_campfire-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist folkcampfire 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist folkcampfire 4 track 4": [
+    {
+      "id": "id-folk_campfire-3",
+      "name": "Track 4",
+      "uri": "spotify:track:id-folk_campfire-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist folkcampfire 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist folkcampfire 4 track 9": [
+    {
+      "id": "id-folk_campfire-8",
+      "name": "Track 9",
+      "uri": "spotify:track:id-folk_campfire-8",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist folkcampfire 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist folkcampfire 5 track 10": [
+    {
+      "id": "id-folk_campfire-9",
+      "name": "Track 10",
+      "uri": "spotify:track:id-folk_campfire-9",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist folkcampfire 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist folkcampfire 5 track 5": [
+    {
+      "id": "id-folk_campfire-4",
+      "name": "Track 5",
+      "uri": "spotify:track:id-folk_campfire-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist folkcampfire 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ]
+}
