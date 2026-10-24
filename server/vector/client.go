@@ -30,6 +30,9 @@ var (
 // Init configures the global vector service (safe when disabled).
 func Init(enabled bool, opensearchURL string, geminiKey string, embedProvider string) error {
 	emb := NewEmbedderFromConfig(geminiKey, embedProvider)
+	if enabled && strings.TrimSpace(geminiKey) == "" && strings.ToLower(strings.TrimSpace(embedProvider)) != "ollama" {
+		log.Printf("vector: enabled but GEMINI_API_KEY is unset — using deterministic HashEmbedder for indexing/search (not production gemini-embedding-001 quality)")
+	}
 	idx := NewOpenSearchIndexer(opensearchURL, emb)
 	indexReady := false
 	if !enabled {

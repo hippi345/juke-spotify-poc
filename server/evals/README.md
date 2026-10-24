@@ -4,6 +4,17 @@ Table-driven quality gates for playlist generation, venue-history RAG grounding,
 
 **SAMPLE shared catalog:** `testdata/vector/venue_catalog.json.gz` (~4k tracks, 50 planted sunset crowd favorites). Regenerate with `python3 scripts/generate-venue-catalog.py` from the repo root. Local OpenSearch demos: `make seed-vector` / `make reset-vector` (see root [README](../../README.md#sample-demo-venue-history-local-dev)).
 
+**Catalog retrieval embeddings (CI, no API key):** `testdata/vector/catalog_track_embeddings.f32` + `catalog_embedding_manifest.json` are precomputed offline. Default generator: `sentence-transformers/all-MiniLM-L6-v2` (384-d) zero-padded to **768-d** to match the OpenSearch index size used by production **`gemini-embedding-001`**. Regenerate after catalog changes:
+
+```bash
+pip install sentence-transformers
+python3 scripts/generate-catalog-embeddings.py          # local open model (committed default)
+# After rotating GEMINI_API_KEY:
+# GEMINI_API_KEY=... python3 scripts/generate-catalog-embeddings.py --provider gemini
+```
+
+Eval paraphrase queries use committed query vectors only (no query hints). `TestCatalogVectorRetrievalIntegration` logs honest vector vs keyword recall@20 / nDCG@20; it does not inject rooftop/patio hint text.
+
 ## Case matrix by feature
 
 | Feature | Cases | Check type | Mode |

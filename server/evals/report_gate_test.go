@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -63,4 +64,34 @@ func TestCompareBaseline_failsOnInventedRAGTracks(t *testing.T) {
 	if gate.Passed {
 		t.Fatal("expected gate to fail when RAG grounding fails")
 	}
+	if !gateFailureContains(gate.Failures, "grounding check failed") {
+		t.Fatalf("expected grounding check failed in gate failures: %v", gate.Failures)
+	}
+}
+
+func TestCompareBaseline_groundingFailureMessage(t *testing.T) {
+	c := Case{ID: "rag_lofi_retrieval", Description: "RAG", TrackCount: 10, VenueID: 1, VectorEval: true}
+	keys := loadVenueHistoryKeys()
+	suggestions := []gemini.TrackSuggestion{{Title: "Only Phantom", Artist: "Nobody"}}
+	for len(suggestions) < 10 {
+		suggestions = append(suggestions, gemini.TrackSuggestion{Title: "Phantom", Artist: "Nobody"})
+	}
+	hard := RunHardChecksWithVector(c, suggestions, nil, keys, time.Now(), nil, true, true)
+	results := []CaseResult{{CaseID: c.ID, Hard: hard}}
+	gate := CompareBaseline(Summarize(results, "mocked", true), SummaryMetrics{HardPassCount: 1, ResolveRateNA: true}, results)
+	if gate.Passed {
+		t.Fatal("expected failure")
+	}
+	if !gateFailureContains(gate.Failures, "case rag_lofi_retrieval: grounding check failed") {
+		t.Fatalf("missing report grounding line: %v", gate.Failures)
+	}
+}
+
+func gateFailureContains(failures []string, substr string) bool {
+	for _, f := range failures {
+		if strings.Contains(f, substr) {
+			return true
+		}
+	}
+	return false
 }

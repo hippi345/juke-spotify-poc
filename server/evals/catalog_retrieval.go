@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -18,11 +19,12 @@ type CatalogHit struct {
 	PlantedSun bool
 }
 
-// CatalogRetriever runs deterministic vector and keyword search over the SAMPLE catalog fixture.
+// CatalogRetriever runs vector and keyword search over the SAMPLE catalog fixture.
+// Vectors are committed precomputes (see catalog_embedding_manifest.json); no live embed API in CI.
 type CatalogRetriever struct {
 	doc      *vector.VenueCatalogFixture
-	embedder vector.Embedder
 	vectors  [][]float32
+	queries  *catalogEmbeddingStore
 	roofID   uint
 }
 
@@ -31,35 +33,24 @@ type catalogScored struct {
 	s   float64
 }
 
-// NewCatalogRetriever loads the committed venue catalog and precomputes embeddings.
+// NewCatalogRetriever loads the venue catalog and committed semantic embeddings.
 func NewCatalogRetriever() (*CatalogRetriever, error) {
 	doc, err := loadCatalog()
 	if err != nil {
 		return nil, err
 	}
-	emb := vector.HashEmbedder{Dim: vector.IndexEmbeddingDim}
-	vecs := make([][]float32, len(doc.Tracks))
-	for i, tr := range doc.Tracks {
-		text := vector.TrackEmbedText(tr.Title, tr.Artist, catalogEmbedMeta(tr))
-		v, err := emb.Embed(text)
-		if err != nil {
-			return nil, err
-		}
-		vecs[i] = v
+	store, err := loadCatalogEmbeddingStore()
+	if err != nil {
+		return nil, err
+	}
+	if len(store.trackVectors) != len(doc.Tracks) {
+		return nil, fmt.Errorf("embedding rows %d != catalog tracks %d", len(store.trackVectors), len(doc.Tracks))
 	}
 	roof := doc.VenueRooftopID
 	if roof == 0 {
 		roof = canonicalVenueID
 	}
-	return &CatalogRetriever{doc: doc, embedder: emb, vectors: vecs, roofID: roof}, nil
-}
-
-func catalogEmbedMeta(tr vector.CatalogTrack) string {
-	parts := []string{tr.Genres, tr.Mood, tr.Tempo}
-	if tr.PlantedSunset {
-		parts = append(parts, "crowd favorite sunset enjoyed")
-	}
-	return strings.TrimSpace(strings.Join(parts, " "))
+	return &CatalogRetriever{doc: doc, vectors: store.trackVectors, queries: store, roofID: roof}, nil
 }
 
 func (r *CatalogRetriever) rooftopTracks(after time.Time) []int {
@@ -102,7 +93,7 @@ func sortCatalogScored(ranked []catalogScored) {
 	}
 }
 
-// QueryVector returns top-k rooftop tracks for a mood string (vote-weighted cosine).
+// QueryVector returns top-k rooftop tracks for a paraphrase query (vote-weighted cosine).
 func (r *CatalogRetriever) QueryVector(venueID uint, query string, k int, after time.Time) []CatalogHit {
 	if venueID != r.roofID && venueID != 0 {
 		return nil
@@ -110,7 +101,7 @@ func (r *CatalogRetriever) QueryVector(venueID uint, query string, k int, after 
 	if k <= 0 {
 		k = 20
 	}
-	qv, err := r.embedder.Embed(vectorEmbedQueryText(query))
+	qv, err := r.queries.queryVector(strings.TrimSpace(query))
 	if err != nil {
 		return nil
 	}
@@ -189,28 +180,6 @@ func (r *CatalogRetriever) QueryKeyword(venueID uint, query string, k int, after
 		})
 	}
 	return out
-}
-
-// vectorEmbedQueryText augments paraphrased eval queries for embedding only (not used by keyword baseline).
-func vectorEmbedQueryText(query string) string {
-	hint := paraphraseSemanticHint(strings.TrimSpace(query))
-	if hint == "" {
-		return query
-	}
-	return query + " — " + hint
-}
-
-func paraphraseSemanticHint(query string) string {
-	hints := map[string]string{
-		"golden hour drive with friends":        "crowd favorite enjoyed rooftop terrace favorites",
-		"dusk commute after work":               "crowd favorite enjoyed evening favorites",
-		"warm open-air lounge at twilight":      "crowd favorite enjoyed patio favorites",
-		"late shift wind-down on the terrace":   "highly voted guest favorites venue history",
-	}
-	if h, ok := hints[query]; ok {
-		return h
-	}
-	return ""
 }
 
 func tokenize(q string) []string {

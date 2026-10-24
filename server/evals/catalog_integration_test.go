@@ -61,8 +61,8 @@ func TestCatalogVectorRetrievalIntegration(t *testing.T) {
 		if vRec < catalogRecallMin || vPrec < catalogPrecisionMin {
 			t.Fatalf("query %q: vector recall@20=%.3f precision@20=%.3f", query, vRec, vPrec)
 		}
-		if vRec-kRec < catalogRecallMargin && vNDCG-kNDCG < catalogNDCGMargin {
-			t.Fatalf("query %q: vector must beat keyword (recall Δ=%.3f need %.2f, nDCG Δ=%.3f need %.2f)",
+		if vRec-kRec < catalogRecallMargin || vNDCG-kNDCG < catalogNDCGMargin {
+			t.Fatalf("query %q: vector must beat keyword on recall and nDCG (recall Δ=%.3f need %.2f, nDCG Δ=%.3f need %.2f)",
 				query, vRec-kRec, catalogRecallMargin, vNDCG-kNDCG, catalogNDCGMargin)
 		}
 
@@ -102,10 +102,11 @@ func assertNoTagLexicalOverlap(t *testing.T, query string) {
 
 func testCatalogVoteWeighting(t *testing.T, ret *CatalogRetriever) {
 	query := "golden hour drive with friends"
+	truth := loadPlantedSunsetKeys()
 	hits := ret.QueryVector(canonicalVenueID, query, 20, time.Time{})
 	var planted []CatalogHit
 	for _, h := range hits {
-		if h.PlantedSun {
+		if truth[h.Key] {
 			planted = append(planted, h)
 		}
 	}
@@ -137,23 +138,23 @@ func testCatalogOpenSearchRetrieval(t *testing.T, query string, truth map[string
 	if err != nil {
 		t.Fatal(err)
 	}
+	embStore, err := loadCatalogEmbeddingStore()
+	if err != nil {
+		t.Fatal(err)
+	}
 	roof := doc.VenueRooftopID
 	if roof == 0 {
 		roof = canonicalVenueID
 	}
 	indexed := 0
-	for _, tr := range doc.Tracks {
+	for i, tr := range doc.Tracks {
 		if tr.VenueID != roof {
 			continue
 		}
 		if !tr.PlantedSunset && tr.VoteCount < 200 {
 			continue
 		}
-		text := vector.TrackEmbedText(tr.Title, tr.Artist, catalogEmbedMeta(tr))
-		vec, err := svc.Embedder.Embed(text)
-		if err != nil {
-			t.Fatal(err)
-		}
+		vec := embStore.trackVectors[i]
 		docID := "eval-" + tr.SpotifyID
 		lastSeen := tr.LastSeen
 		if lastSeen == "" {
@@ -178,8 +179,11 @@ func testCatalogOpenSearchRetrieval(t *testing.T, query string, truth map[string
 		t.Fatalf("indexed only %d docs", indexed)
 	}
 	refreshVenueTracksIndex(t, ctx)
-	embedQ := vectorEmbedQueryText(query)
-	hits, err := svc.Indexer.SearchByText(ctx, roof, embedQ, svc.Embedder, 20)
+	qv, err := embStore.queryVector(query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hits, err := svc.Indexer.SearchSimilar(ctx, roof, qv, 20)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}
