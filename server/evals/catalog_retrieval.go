@@ -228,18 +228,6 @@ func tokenize(q string) []string {
 	return out
 }
 
-// RecallPrecisionAtK measures overlap with a ground-truth key set.
-func avgVoteCount(hits []CatalogHit) float64 {
-	if len(hits) == 0 {
-		return 0
-	}
-	var sum int
-	for _, h := range hits {
-		sum += h.VoteCount
-	}
-	return float64(sum) / float64(len(hits))
-}
-
 // NDCGAtK with binary relevance from truth set.
 func NDCGAtK(hits []CatalogHit, truth map[string]bool, k int) float64 {
 	if k <= 0 || len(truth) == 0 {

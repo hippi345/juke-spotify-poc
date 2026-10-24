@@ -2,6 +2,8 @@ package evals
 
 import (
 	"context"
+	"io"
+	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -147,7 +149,7 @@ func testCatalogOpenSearchRetrieval(t *testing.T, query string, truth map[string
 		if !tr.PlantedSunset && tr.VoteCount < 200 {
 			continue
 		}
-		text := vector.TrackEmbedText(tr.Title, tr.Artist, tr.Genres+" "+tr.Mood)
+		text := vector.TrackEmbedText(tr.Title, tr.Artist, catalogEmbedMeta(tr))
 		vec, err := svc.Embedder.Embed(text)
 		if err != nil {
 			t.Fatal(err)
@@ -175,6 +177,7 @@ func testCatalogOpenSearchRetrieval(t *testing.T, query string, truth map[string
 	if indexed < 50 {
 		t.Fatalf("indexed only %d docs", indexed)
 	}
+	refreshVenueTracksIndex(t, ctx)
 	embedQ := vectorEmbedQueryText(query)
 	hits, err := svc.Indexer.SearchByText(ctx, roof, embedQ, svc.Embedder, 20)
 	if err != nil {
@@ -190,4 +193,24 @@ func testCatalogOpenSearchRetrieval(t *testing.T, query string, truth map[string
 		t.Fatalf("opensearch path: only %d planted hits in top 20", found)
 	}
 	t.Logf("opensearch retrieval: %d planted in top 20 (indexed %d docs)", found, indexed)
+}
+
+func refreshVenueTracksIndex(t *testing.T, ctx context.Context) {
+	base := strings.TrimRight(os.Getenv("OPENSEARCH_URL"), "/")
+	if base == "" {
+		return
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/venue_tracks/_refresh", nil)
+	if err != nil {
+		t.Fatalf("refresh request: %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("refresh status %d: %s", resp.StatusCode, string(b))
+	}
 }
