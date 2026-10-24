@@ -22,7 +22,7 @@ func mockRunConfig(short bool) RunConfig {
 	store := DefaultFixtureStore()
 	return RunConfig{
 		Short:        short,
-		Generator:    FixtureGenerator{Store: store},
+		Generator:    FixtureGenerator{Store: store, VectorOn: false},
 		Searcher:     FixtureSearcher{Store: store},
 		Judge:        &perCaseFixtureJudge{Store: store},
 		FixtureStore: store,
@@ -30,13 +30,14 @@ func mockRunConfig(short bool) RunConfig {
 }
 
 type perCaseFixtureJudge struct {
-	Store   FixtureStore
-	callMap map[string]int
+	Store     FixtureStore
+	vectorOn  bool
+	callMap   map[string]int
 }
 
 func (j *perCaseFixtureJudge) Score(description string, suggestions []gemini.TrackSuggestion) (JudgeScores, error) {
 	id := currentCaseID
-	runs := LoadJudgeFixture(j.Store, id)
+	runs := LoadJudgeFixture(j.Store, id, j.vectorOn)
 	if len(runs) == 0 {
 		return JudgeScores{MoodFit: 4.2, CrowdFit: 4.1, Variety: 4.0, Coherence: 4.3, MoodReason: "default mock judge"}, nil
 	}

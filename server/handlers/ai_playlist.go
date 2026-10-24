@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"juke-spotify-poc/server/config"
 	"juke-spotify-poc/server/gemini"
 	"juke-spotify-poc/server/spotify"
+	"juke-spotify-poc/server/vector"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -56,6 +58,7 @@ type aiPlaylistRequest struct {
 	TrackCount     int      `json:"track_count"`
 	Description    string   `json:"description"`
 	SimilarArtists []string `json:"similar_artists"`
+	VenueID        uint     `json:"venue_id"`
 }
 
 // StartAIPlaylistJob validates input, enqueues background work, returns 202 + job_id.
@@ -166,7 +169,12 @@ func runAIPlaylistJob(id string, cfg *config.Config, client *spotify.Client, bod
 		return
 	}
 
-	suggestions, err := gemini.GenerateTrackList(cfg.GeminiAPIKey, cfg.GeminiModel, desc, n, artists)
+	var opts gemini.GenerateOptions
+	if cfg.VibeSenseVectorEnabled && body.VenueID > 0 {
+		opts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), body.VenueID, desc, 30)
+	}
+	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
+	suggestions, err := gen.GenerateTrackList(desc, n, artists, opts)
 	if err != nil {
 		failJob(id, err.Error())
 		return

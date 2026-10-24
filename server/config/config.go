@@ -24,6 +24,10 @@ type Config struct {
 	GeminiAPIKey  string
 	GeminiModel   string
 
+	// VibeSense venue vector grounding (OpenSearch k-NN); off by default.
+	VibeSenseVectorEnabled bool
+	EmbedProvider          string
+
 	// HMAC secret for email login tokens (set AUTH_SECRET in production).
 	AuthSecret string
 
@@ -61,6 +65,9 @@ func Load() *Config {
 		GeminiAPIKey: loadGeminiAPIKey(),
 		GeminiModel:  getEnv("GEMINI_MODEL", "gemini-2.5-flash"),
 
+		VibeSenseVectorEnabled: envBool("VIBESENSE_VECTOR_ENABLED", false),
+		EmbedProvider:          strings.TrimSpace(getEnv("EMBED_PROVIDER", "gemini")),
+
 		AuthSecret: loadAuthSecret(),
 
 		StripeTestSecretKey: strings.TrimSpace(getEnv("STRIPE_TEST_SECRET_KEY", "")),
@@ -89,6 +96,14 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func envBool(key string, fallback bool) bool {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	return v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")
 }
 
 // loadGeminiAPIKey prefers the process environment (GEMINI_API_KEY) so you can export

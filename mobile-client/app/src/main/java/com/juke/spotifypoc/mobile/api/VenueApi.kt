@@ -19,4 +19,11 @@ interface VenueApi {
         @Path("id") venueId: Long,
         @Body body: JoinRequest,
     ): JoinResponse
+
+    @GET("api/venues/{id}/tracks/similar")
+    suspend fun similarTracks(
+        @Path("id") venueId: Long,
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 10,
+    ): SimilarTracksResponse
 }

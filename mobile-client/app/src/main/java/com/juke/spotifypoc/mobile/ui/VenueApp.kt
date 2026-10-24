@@ -53,6 +53,7 @@ import coil.compose.AsyncImage
 import com.juke.spotifypoc.mobile.R
 import com.juke.spotifypoc.mobile.VenueViewModel
 import com.juke.spotifypoc.mobile.api.NearbySession
+import com.juke.spotifypoc.mobile.api.SimilarTrackHit
 import com.juke.spotifypoc.mobile.api.NowPlayingBlock
 import com.juke.spotifypoc.mobile.api.Track
 import com.juke.spotifypoc.mobile.api.TrackWithMeta
@@ -182,6 +183,13 @@ fun VenueApp(
                         paidSkipLoadingTrackId = ui.paidSkipTrackId,
                         onPaidSkip = { vm.startPaidSkip(it) },
                     )
+                    if (ui.joinedVenueId != null) {
+                        SimilarTracksSection(
+                            similarTracks = ui.similarTracks,
+                            error = ui.similarTracksError,
+                            onSearch = { vm.findSimilarTracks(it) },
+                        )
+                    }
                 }
             }
                 }
@@ -784,6 +792,45 @@ private fun PlaylistTile(
                 } else {
                     Text("Skip $paidSkipPriceUsd", style = MaterialTheme.typography.labelSmall)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SimilarTracksSection(
+    similarTracks: List<SimilarTrackHit>,
+    error: String?,
+    onSearch: (String) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    GlassPanel(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "More like this",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.95f),
+            )
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                label = { Text("Track vibe or name") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(
+                onClick = { onSearch(query) },
+                enabled = query.isNotBlank(),
+            ) { Text("Find similar in venue") }
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            similarTracks.forEach { t ->
+                Text(
+                    "${t.title} — ${t.artist}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.85f),
+                )
             }
         }
     }

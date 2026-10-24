@@ -118,3 +118,15 @@ data class JoinResponse(
     val venue: VenueInfo? = null,
     @SerializedName("session_id") val sessionId: Long = 0,
 )
+
+data class SimilarTrackHit(
+    @SerializedName("spotify_id") val spotifyId: String = "",
+    val title: String = "",
+    val artist: String = "",
+    val score: Double = 0.0,
+)
+
+data class SimilarTracksResponse(
+    val tracks: List<SimilarTrackHit>? = null,
+    @SerializedName("venue_id") val venueId: Long = 0,
+)
