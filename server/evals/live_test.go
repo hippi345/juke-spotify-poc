@@ -11,7 +11,6 @@ import (
 	"juke-spotify-poc/server/config"
 	"juke-spotify-poc/server/gemini"
 	"juke-spotify-poc/server/spotify"
-	"juke-spotify-poc/server/vector"
 )
 
 func TestVibeSenseEvalLive(t *testing.T) {
