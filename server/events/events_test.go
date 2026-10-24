@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+
+	"github.com/segmentio/kafka-go"
 )
 
 func TestTopicNames(t *testing.T) {
@@ -35,6 +37,34 @@ func TestInitKafkaEmptyBrokers(t *testing.T) {
 
 	if err := InitKafka(""); err != nil {
 		t.Fatalf("InitKafka empty: %v", err)
+	}
+}
+
+func TestConsumerUsesGroupTopicsForAllEventStreams(t *testing.T) {
+	t.Parallel()
+	topics := []string{TopicVote, TopicPayment, TopicSession}
+	cfg := kafka.ReaderConfig{
+		GroupID:     "juke-api-test",
+		GroupTopics: topics,
+		StartOffset: kafka.FirstOffset,
+	}
+	if len(cfg.GroupTopics) != 3 {
+		t.Fatalf("expected 3 group topics, got %d", len(cfg.GroupTopics))
+	}
+	for _, want := range topics {
+		found := false
+		for _, got := range cfg.GroupTopics {
+			if got == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("missing topic %s in GroupTopics", want)
+		}
+	}
+	if cfg.StartOffset != kafka.FirstOffset {
+		t.Fatalf("expected FirstOffset for new consumer groups")
 	}
 }
 

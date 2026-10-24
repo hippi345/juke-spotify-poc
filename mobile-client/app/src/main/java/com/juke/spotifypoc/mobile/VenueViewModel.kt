@@ -11,6 +11,7 @@ import com.juke.spotifypoc.mobile.api.JoinRequest
 import com.juke.spotifypoc.mobile.api.LoginRequest
 import com.juke.spotifypoc.mobile.api.NearbySession
 import com.juke.spotifypoc.mobile.api.RegisterRequest
+import com.juke.spotifypoc.mobile.api.SimilarTrackHit
 import com.juke.spotifypoc.mobile.api.TrackWithMeta
 import com.juke.spotifypoc.mobile.api.VoteRequest
 import com.juke.spotifypoc.mobile.api.VotingStateResponse
@@ -40,6 +41,9 @@ data class VenueUiState(
     val discoverError: String? = null,
     val discoverLoading: Boolean = false,
     val joinedVenueName: String? = null,
+    val joinedVenueId: Long? = null,
+    val similarTracks: List<SimilarTrackHit> = emptyList(),
+    val similarTracksError: String? = null,
     val joinPassword: String = "",
     val joinVenueId: Long? = null,
     val hasJoinedSession: Boolean = false,
@@ -200,6 +204,7 @@ class VenueViewModel(application: Application) : AndroidViewModel(application) {
                     it.copy(
                         hasJoinedSession = true,
                         joinedVenueName = res.venue?.name,
+                        joinedVenueId = venueId,
                         joinVenueId = null,
                         discoverLoading = false,
                     )
@@ -304,6 +309,28 @@ class VenueViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearPaidSkipCheckoutUrl() {
         _ui.update { it.copy(paidSkipCheckoutUrl = null, paidSkipTrackId = null) }
+    }
+
+    fun findSimilarTracks(query: String) {
+        val venueId = _ui.value.joinedVenueId ?: return
+        viewModelScope.launch {
+            try {
+                val res = api.venue.similarTracks(venueId, query.trim(), 10)
+                _ui.update {
+                    it.copy(
+                        similarTracks = res.tracks.orEmpty(),
+                        similarTracksError = null,
+                    )
+                }
+            } catch (e: Exception) {
+                _ui.update {
+                    it.copy(
+                        similarTracksError = e.message ?: "Similar search failed",
+                        similarTracks = emptyList(),
+                    )
+                }
+            }
+        }
     }
 
     fun vote(trackId: String) {

@@ -92,6 +92,8 @@ Secrets are **never** committed. Use environment variables or gitignored `.env` 
 | `APP_BASE_URL` | `http://localhost:5173` | Post-auth redirect base |
 | `GEMINI_API_KEY` | — | Google AI key for VibeSense / AI playlists |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Optional model override |
+| `VIBESENSE_VECTOR_ENABLED` | `false` | OpenSearch k-NN venue track grounding + similar search |
+| `EMBED_PROVIDER` | `gemini` | `gemini` or `ollama` for venue track embeddings |
 | `AUTH_SECRET` | — | HMAC secret for staff/patron login tokens (required for email auth) |
 | `STRIPE_TEST_SECRET_KEY` | — | Stripe **test** secret key for paid-skip checkout (set in your environment only; never commit) |
 | `STRIPE_WEBHOOK_SECRET` | — | Stripe webhook signing secret for `POST /api/stripe/webhook` (environment only) |
@@ -123,7 +125,61 @@ Secrets are **never** committed. Use environment variables or gitignored `.env` 
 - `GET /api/paid-skip/config` — paid-skip price and whether Stripe is configured
 - `POST /api/paid-skip/checkout` — patron starts Stripe Checkout for a playlist `track_id` (must have joined the session)
 - `POST /api/stripe/webhook` — Stripe webhook (forward test events with the Stripe CLI)
-- `POST /api/ai-playlist/create` — start AI playlist job (requires Gemini)
+- `POST /api/ai-playlist/create` — start AI playlist job (requires Gemini); optional `venue_id` when vector grounding is enabled
+- `GET /api/venues/{id}/tracks/similar?q=…` — semantic “more like this” search over venue play history (vector flag)
+
+## VibeSense architecture (vector + evals)
+
+```mermaid
+flowchart TB
+  subgraph ingest [Index refresh]
+    kafka[Kafka vote/session events]
+    backfill[backfill-vectors CLI]
+    kafka --> osUpsert[OpenSearch venue_tracks upsert]
+    backfill --> osUpsert
+  end
+  subgraph query [Playlist job]
+    mood[Mood prompt]
+    mood --> knn[k-NN retrieve top-N]
+    knn --> candidates[Preferred candidates]
+    candidates --> gemini[Gemini playlist JSON]
+    gemini --> spotify[Spotify search resolve]
+  end
+  osUpsert --> knn
+  subgraph quality [Evals]
+    gemini -.-> evals[server/evals mocked/live]
+    spotify -.-> evals
+  end
+```
+
+## Vector search
+
+Optional **venue track** semantic search backs VibeSense grounding and the “more like this” API. It is **off by default**.
+
+| Topic | Detail |
+|-------|--------|
+| **Index** | OpenSearch index `venue_tracks` (k-NN enabled) |
+| **Documents** | `venue_id`, `spotify_id`, `title`, `artist`, `genres`, play/vote/queue counts, `last_seen`, `embedding` (`knn_vector`) |
+| **Embedding model** | Default **Gemini** `text-embedding-004` via `net/http` (`GEMINI_API_KEY`). Optional **Ollama** `nomic-embed-text` when `EMBED_PROVIDER=ollama`. |
+| **Embedding text** | `title — artist — genres` |
+| **Storage** | OpenSearch **2.17** (Compose service); cosine HNSW on `embedding` |
+| **Flag** | `VIBESENSE_VECTOR_ENABLED=false` by default. If OpenSearch/embeddings are missing, the API logs and falls back to non-vector VibeSense. |
+| **Refresh** | Kafka consumers bump counts on vote/session activity; one-shot `go run ./cmd/backfill-vectors -venue-id=<id>` replays DB session history (best-effort). |
+| **Privacy** | Vectors are derived from **track metadata already visible in the venue** (titles/artists/genres), scoped per `venue_id`. Embeddings are sent to Google (or local Ollama) only when the flag is on and a key is configured. No patron PII is indexed. |
+
+## RAG (venue-history grounding)
+
+When `VIBESENSE_VECTOR_ENABLED=true` and `venue_id` is supplied on `POST /api/ai-playlist/create`:
+
+1. The mood **description is embedded** and used for k-NN search over that venue’s `venue_tracks`.
+2. Top matches (count-boosted in the index) are passed to Gemini as **preferred candidates** in the prompt.
+3. The prompt asks for roughly **50–70%** from those candidates and **30–50%** fresh picks.
+
+**What this is:** retrieval-augmented **generation** in the narrow sense — retrieved track titles/artists are extra context for a single Gemini call. There is **no** multi-step agent, tool loop, or citation layer.
+
+**What this is not:** full RAG over lyrics, audio, or the open web; no automatic verification that output tracks appeared in the index; refill/voting paths are unchanged unless vector ingest runs.
+
+`TestVibeSenseVectorRegressionGate` in `server/evals` runs **venue-history** cases (`venue_crowd_lofi`, `venue_crowd_country`) with vector **on vs off**. This is a **mocked regression check only** — it does not claim LLM merit. The gate compares **deterministic overlap** between generated picks and committed `venue_history_keys.json` fixtures (must improve by ≥ **0.25** with vector on). Resolve rate, mood/crowd (same fixture judge for both arms), and p50 latency must not regress.
 
 ## Development
 
