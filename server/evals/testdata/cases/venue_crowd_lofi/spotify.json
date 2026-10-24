@@ -1,242 +1,382 @@
 {
-  "dj pulse 1 club hit 1": [
+  "artist venuecrowdlofi 1 track 1": [
     {
-      "id": "id-venue_crowd_lofi-Club Hit 1",
-      "name": "Club Hit 1",
+      "id": "id-venue_crowd_lofi-0",
+      "name": "Track 1",
+      "uri": "spotify:track:id-venue_crowd_lofi-0",
       "artists": [
         {
-          "name": "DJ Pulse 1"
+          "id": "",
+          "name": "Artist venuecrowdlofi 1"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
-  "dj pulse 2 club hit 2": [
+  "artist venuecrowdlofi 1 track 6": [
     {
-      "id": "id-venue_crowd_lofi-Club Hit 2",
-      "name": "Club Hit 2",
+      "id": "id-venue_crowd_lofi-5",
+      "name": "Track 6",
+      "uri": "spotify:track:id-venue_crowd_lofi-5",
       "artists": [
         {
-          "name": "DJ Pulse 2"
+          "id": "",
+          "name": "Artist venuecrowdlofi 1"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
-  "dj pulse 3 club hit 3": [
+  "artist venuecrowdlofi 2 track 2": [
     {
-      "id": "id-venue_crowd_lofi-Club Hit 3",
-      "name": "Club Hit 3",
+      "id": "id-venue_crowd_lofi-1",
+      "name": "Track 2",
+      "uri": "spotify:track:id-venue_crowd_lofi-1",
       "artists": [
         {
-          "name": "DJ Pulse 3"
+          "id": "",
+          "name": "Artist venuecrowdlofi 2"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
-  "dj pulse 4 club hit 4": [
+  "artist venuecrowdlofi 2 track 7": [
     {
-      "id": "id-venue_crowd_lofi-Club Hit 4",
-      "name": "Club Hit 4",
+      "id": "id-venue_crowd_lofi-6",
+      "name": "Track 7",
+      "uri": "spotify:track:id-venue_crowd_lofi-6",
       "artists": [
         {
-          "name": "DJ Pulse 4"
+          "id": "",
+          "name": "Artist venuecrowdlofi 2"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
-  "dj pulse 5 club hit 5": [
+  "artist venuecrowdlofi 3 track 3": [
     {
-      "id": "id-venue_crowd_lofi-Club Hit 5",
-      "name": "Club Hit 5",
+      "id": "id-venue_crowd_lofi-2",
+      "name": "Track 3",
+      "uri": "spotify:track:id-venue_crowd_lofi-2",
       "artists": [
         {
-          "name": "DJ Pulse 5"
+          "id": "",
+          "name": "Artist venuecrowdlofi 3"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
-  "dj pulse 6 club hit 6": [
+  "artist venuecrowdlofi 3 track 8": [
     {
-      "id": "id-venue_crowd_lofi-Club Hit 6",
-      "name": "Club Hit 6",
+      "id": "id-venue_crowd_lofi-7",
+      "name": "Track 8",
+      "uri": "spotify:track:id-venue_crowd_lofi-7",
       "artists": [
         {
-          "name": "DJ Pulse 6"
+          "id": "",
+          "name": "Artist venuecrowdlofi 3"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
-  "dj pulse 7 club hit 7": [
+  "artist venuecrowdlofi 4 track 4": [
     {
-      "id": "id-venue_crowd_lofi-Club Hit 7",
-      "name": "Club Hit 7",
+      "id": "id-venue_crowd_lofi-3",
+      "name": "Track 4",
+      "uri": "spotify:track:id-venue_crowd_lofi-3",
       "artists": [
         {
-          "name": "DJ Pulse 7"
+          "id": "",
+          "name": "Artist venuecrowdlofi 4"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
-  "dj pulse 8 club hit 8": [
+  "artist venuecrowdlofi 4 track 9": [
     {
-      "id": "id-venue_crowd_lofi-Club Hit 8",
-      "name": "Club Hit 8",
+      "id": "id-venue_crowd_lofi-8",
+      "name": "Track 9",
+      "uri": "spotify:track:id-venue_crowd_lofi-8",
       "artists": [
         {
-          "name": "DJ Pulse 8"
+          "id": "",
+          "name": "Artist venuecrowdlofi 4"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
-  "dj pulse 9 club hit 9": [
+  "artist venuecrowdlofi 5 track 10": [
     {
-      "id": "id-venue_crowd_lofi-Club Hit 9",
-      "name": "Club Hit 9",
+      "id": "id-venue_crowd_lofi-9",
+      "name": "Track 10",
+      "uri": "spotify:track:id-venue_crowd_lofi-9",
       "artists": [
         {
-          "name": "DJ Pulse 9"
+          "id": "",
+          "name": "Artist venuecrowdlofi 5"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
-  "dj pulse 10 club hit 10": [
+  "artist venuecrowdlofi 5 track 5": [
     {
-      "id": "id-venue_crowd_lofi-Club Hit 10",
-      "name": "Club Hit 10",
+      "id": "id-venue_crowd_lofi-4",
+      "name": "Track 5",
+      "uri": "spotify:track:id-venue_crowd_lofi-4",
       "artists": [
         {
-          "name": "DJ Pulse 10"
+          "id": "",
+          "name": "Artist venuecrowdlofi 5"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
   "venue regular lofi study 1": [
     {
-      "id": "id-venue_crowd_lofi-Lofi Study 1",
+      "id": "vec-venue_crowd_lofi-0",
       "name": "Lofi Study 1",
+      "uri": "spotify:track:vec-venue_crowd_lofi-0",
       "artists": [
         {
+          "id": "",
           "name": "Venue Regular"
         }
       ],
-      "uri": "spotify:track:x"
-    }
-  ],
-  "venue regular lofi study 2": [
-    {
-      "id": "id-venue_crowd_lofi-Lofi Study 2",
-      "name": "Lofi Study 2",
-      "artists": [
-        {
-          "name": "Venue Regular"
-        }
-      ],
-      "uri": "spotify:track:x"
-    }
-  ],
-  "venue regular lofi study 3": [
-    {
-      "id": "id-venue_crowd_lofi-Lofi Study 3",
-      "name": "Lofi Study 3",
-      "artists": [
-        {
-          "name": "Venue Regular"
-        }
-      ],
-      "uri": "spotify:track:x"
-    }
-  ],
-  "venue regular lofi study 4": [
-    {
-      "id": "id-venue_crowd_lofi-Lofi Study 4",
-      "name": "Lofi Study 4",
-      "artists": [
-        {
-          "name": "Venue Regular"
-        }
-      ],
-      "uri": "spotify:track:x"
-    }
-  ],
-  "venue regular lofi study 5": [
-    {
-      "id": "id-venue_crowd_lofi-Lofi Study 5",
-      "name": "Lofi Study 5",
-      "artists": [
-        {
-          "name": "Venue Regular"
-        }
-      ],
-      "uri": "spotify:track:x"
-    }
-  ],
-  "venue regular lofi study 6": [
-    {
-      "id": "id-venue_crowd_lofi-Lofi Study 6",
-      "name": "Lofi Study 6",
-      "artists": [
-        {
-          "name": "Venue Regular"
-        }
-      ],
-      "uri": "spotify:track:x"
-    }
-  ],
-  "venue regular lofi study 7": [
-    {
-      "id": "id-venue_crowd_lofi-Lofi Study 7",
-      "name": "Lofi Study 7",
-      "artists": [
-        {
-          "name": "Venue Regular"
-        }
-      ],
-      "uri": "spotify:track:x"
-    }
-  ],
-  "venue regular lofi study 8": [
-    {
-      "id": "id-venue_crowd_lofi-Lofi Study 8",
-      "name": "Lofi Study 8",
-      "artists": [
-        {
-          "name": "Venue Regular"
-        }
-      ],
-      "uri": "spotify:track:x"
-    }
-  ],
-  "venue regular lofi study 9": [
-    {
-      "id": "id-venue_crowd_lofi-Lofi Study 9",
-      "name": "Lofi Study 9",
-      "artists": [
-        {
-          "name": "Venue Regular"
-        }
-      ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ],
   "venue regular lofi study 10": [
     {
-      "id": "id-venue_crowd_lofi-Lofi Study 10",
+      "id": "vec-venue_crowd_lofi-9",
       "name": "Lofi Study 10",
+      "uri": "spotify:track:vec-venue_crowd_lofi-9",
       "artists": [
         {
+          "id": "",
           "name": "Venue Regular"
         }
       ],
-      "uri": "spotify:track:x"
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 2": [
+    {
+      "id": "vec-venue_crowd_lofi-1",
+      "name": "Lofi Study 2",
+      "uri": "spotify:track:vec-venue_crowd_lofi-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 3": [
+    {
+      "id": "vec-venue_crowd_lofi-2",
+      "name": "Lofi Study 3",
+      "uri": "spotify:track:vec-venue_crowd_lofi-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 4": [
+    {
+      "id": "vec-venue_crowd_lofi-3",
+      "name": "Lofi Study 4",
+      "uri": "spotify:track:vec-venue_crowd_lofi-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 5": [
+    {
+      "id": "vec-venue_crowd_lofi-4",
+      "name": "Lofi Study 5",
+      "uri": "spotify:track:vec-venue_crowd_lofi-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 6": [
+    {
+      "id": "vec-venue_crowd_lofi-5",
+      "name": "Lofi Study 6",
+      "uri": "spotify:track:vec-venue_crowd_lofi-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 7": [
+    {
+      "id": "vec-venue_crowd_lofi-6",
+      "name": "Lofi Study 7",
+      "uri": "spotify:track:vec-venue_crowd_lofi-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 8": [
+    {
+      "id": "vec-venue_crowd_lofi-7",
+      "name": "Lofi Study 8",
+      "uri": "spotify:track:vec-venue_crowd_lofi-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "venue regular lofi study 9": [
+    {
+      "id": "vec-venue_crowd_lofi-8",
+      "name": "Lofi Study 9",
+      "uri": "spotify:track:vec-venue_crowd_lofi-8",
+      "artists": [
+        {
+          "id": "",
+          "name": "Venue Regular"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
     }
   ]
 }

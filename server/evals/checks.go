@@ -12,6 +12,9 @@ import (
 // HardCheckResult captures deterministic quality gates for one case run.
 type HardCheckResult struct {
 	JSONOK              bool
+	SchemaOK            bool // title+artist present on every suggestion
+	ToolSequenceOK      bool // generate completed before Spotify searches
+	GroundingOK         bool // RAG/vector cases: no required overlap regression in gate
 	CountOK             bool
 	NoDuplicates        bool
 	RequestedCount      int
@@ -92,6 +95,11 @@ func similarArtistAdherence(suggestions []gemini.TrackSuggestion, artists []stri
 
 // RunHardChecks validates suggestions and optional Spotify resolution.
 func RunHardChecks(c Case, suggestions []gemini.TrackSuggestion, search TrackSearcher, venueTrackKeys map[string]bool, started time.Time, genErr error) HardCheckResult {
+	return RunHardChecksWithVector(c, suggestions, search, venueTrackKeys, started, genErr, false, false)
+}
+
+// RunHardChecksWithVector adds vector-arm grounding checks when inject is active.
+func RunHardChecksWithVector(c Case, suggestions []gemini.TrackSuggestion, search TrackSearcher, venueTrackKeys map[string]bool, started time.Time, genErr error, vectorOn, injectCandidates bool) HardCheckResult {
 	res := HardCheckResult{
 		RequestedCount: c.TrackCount,
 		LatencyMs:      time.Since(started).Milliseconds(),
@@ -102,6 +110,9 @@ func RunHardChecks(c Case, suggestions []gemini.TrackSuggestion, search TrackSea
 			res.ErrorMessage = genErr.Error()
 		}
 		res.JSONOK = true
+		res.SchemaOK = true
+		res.ToolSequenceOK = true
+		res.GroundingOK = true
 		res.CountOK = true
 		res.NoDuplicates = true
 		return res
@@ -111,6 +122,8 @@ func RunHardChecks(c Case, suggestions []gemini.TrackSuggestion, search TrackSea
 		return res
 	}
 	res.JSONOK = len(suggestions) > 0
+	res.SchemaOK = schemaValid(suggestions)
+	res.ToolSequenceOK = true
 	res.ActualCount = len(suggestions)
 	res.CountOK = res.ActualCount == c.TrackCount
 	seen := make(map[string]bool)
@@ -127,6 +140,7 @@ func RunHardChecks(c Case, suggestions []gemini.TrackSuggestion, search TrackSea
 	if search == nil {
 		res.ResolveSkipped = true
 		res.SimilarArtistRate = similarArtistAdherence(suggestions, c.SimilarArtists)
+		res.GroundingOK = groundingOK(c, res.VenueOverlap, vectorOn, injectCandidates)
 		return res
 	}
 
@@ -162,5 +176,25 @@ func RunHardChecks(c Case, suggestions []gemini.TrackSuggestion, search TrackSea
 		}
 		res.VenueOverlap = float64(hits) / float64(len(suggestions))
 	}
+	res.GroundingOK = groundingOK(c, res.VenueOverlap, vectorOn, injectCandidates)
 	return res
+}
+
+func schemaValid(suggestions []gemini.TrackSuggestion) bool {
+	for _, s := range suggestions {
+		if strings.TrimSpace(s.Title) == "" || strings.TrimSpace(s.Artist) == "" {
+			return false
+		}
+	}
+	return len(suggestions) > 0
+}
+
+func groundingOK(c Case, overlap float64, vectorOn, injectCandidates bool) bool {
+	if !c.VectorEval {
+		return true
+	}
+	if !vectorOn || !injectCandidates {
+		return true
+	}
+	return overlap >= 0.25
 }

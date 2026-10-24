@@ -1,0 +1,230 @@
+{
+  "artist bluesclubnight 1 track 1": [
+    {
+      "id": "id-blues_club_night-0",
+      "name": "Track 1",
+      "uri": "spotify:track:id-blues_club_night-0",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 1 track 11": [
+    {
+      "id": "id-blues_club_night-10",
+      "name": "Track 11",
+      "uri": "spotify:track:id-blues_club_night-10",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 1 track 6": [
+    {
+      "id": "id-blues_club_night-5",
+      "name": "Track 6",
+      "uri": "spotify:track:id-blues_club_night-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 2 track 12": [
+    {
+      "id": "id-blues_club_night-11",
+      "name": "Track 12",
+      "uri": "spotify:track:id-blues_club_night-11",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 2 track 2": [
+    {
+      "id": "id-blues_club_night-1",
+      "name": "Track 2",
+      "uri": "spotify:track:id-blues_club_night-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 2 track 7": [
+    {
+      "id": "id-blues_club_night-6",
+      "name": "Track 7",
+      "uri": "spotify:track:id-blues_club_night-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 3 track 3": [
+    {
+      "id": "id-blues_club_night-2",
+      "name": "Track 3",
+      "uri": "spotify:track:id-blues_club_night-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 3 track 8": [
+    {
+      "id": "id-blues_club_night-7",
+      "name": "Track 8",
+      "uri": "spotify:track:id-blues_club_night-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 4 track 4": [
+    {
+      "id": "id-blues_club_night-3",
+      "name": "Track 4",
+      "uri": "spotify:track:id-blues_club_night-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 4 track 9": [
+    {
+      "id": "id-blues_club_night-8",
+      "name": "Track 9",
+      "uri": "spotify:track:id-blues_club_night-8",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 5 track 10": [
+    {
+      "id": "id-blues_club_night-9",
+      "name": "Track 10",
+      "uri": "spotify:track:id-blues_club_night-9",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist bluesclubnight 5 track 5": [
+    {
+      "id": "id-blues_club_night-4",
+      "name": "Track 5",
+      "uri": "spotify:track:id-blues_club_night-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist bluesclubnight 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ]
+}

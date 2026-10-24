@@ -1,0 +1,192 @@
+{
+  "artist injecttrackjson 1 track 1": [
+    {
+      "id": "id-inject_track_json-0",
+      "name": "Track 1",
+      "uri": "spotify:track:id-inject_track_json-0",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injecttrackjson 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injecttrackjson 1 track 6": [
+    {
+      "id": "id-inject_track_json-5",
+      "name": "Track 6",
+      "uri": "spotify:track:id-inject_track_json-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injecttrackjson 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injecttrackjson 2 track 2": [
+    {
+      "id": "id-inject_track_json-1",
+      "name": "Track 2",
+      "uri": "spotify:track:id-inject_track_json-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injecttrackjson 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injecttrackjson 2 track 7": [
+    {
+      "id": "id-inject_track_json-6",
+      "name": "Track 7",
+      "uri": "spotify:track:id-inject_track_json-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injecttrackjson 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injecttrackjson 3 track 3": [
+    {
+      "id": "id-inject_track_json-2",
+      "name": "Track 3",
+      "uri": "spotify:track:id-inject_track_json-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injecttrackjson 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injecttrackjson 3 track 8": [
+    {
+      "id": "id-inject_track_json-7",
+      "name": "Track 8",
+      "uri": "spotify:track:id-inject_track_json-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injecttrackjson 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injecttrackjson 4 track 4": [
+    {
+      "id": "id-inject_track_json-3",
+      "name": "Track 4",
+      "uri": "spotify:track:id-inject_track_json-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injecttrackjson 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injecttrackjson 4 track 9": [
+    {
+      "id": "id-inject_track_json-8",
+      "name": "Track 9",
+      "uri": "spotify:track:id-inject_track_json-8",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injecttrackjson 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injecttrackjson 5 track 10": [
+    {
+      "id": "id-inject_track_json-9",
+      "name": "Track 10",
+      "uri": "spotify:track:id-inject_track_json-9",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injecttrackjson 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injecttrackjson 5 track 5": [
+    {
+      "id": "id-inject_track_json-4",
+      "name": "Track 5",
+      "uri": "spotify:track:id-inject_track_json-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injecttrackjson 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ]
+}

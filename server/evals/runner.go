@@ -34,6 +34,7 @@ type RunConfig struct {
 	VectorOnly  bool
 	VectorOn    bool
 	InjectVenueCandidates bool // vector index ON: inject venue history candidates like AI playlist handler
+	MockVenueCandidates   []gemini.TrackSuggestion // mocked vector inject (eval fixtures)
 	Generator   gemini.PlaylistGenerator
 	Searcher    TrackSearcher
 	Judge       Judge
@@ -55,7 +56,11 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 		var genErr error
 		genOpts := gemini.GenerateOptions{}
 		if cfg.InjectVenueCandidates && c.VenueID > 0 {
-			genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 30)
+			if len(cfg.MockVenueCandidates) > 0 {
+				genOpts.PreferredCandidates = cfg.MockVenueCandidates
+			} else {
+				genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 30)
+			}
 		}
 		if c.ExpectError {
 			_, genErr = cfg.Generator.GenerateTrackList(c.Description, c.TrackCount, c.SimilarArtists, genOpts)
@@ -63,11 +68,14 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 			suggestions, genErr = cfg.Generator.GenerateTrackList(c.Description, c.TrackCount, c.SimilarArtists, genOpts)
 		}
 		searcher := cfg.Searcher
+		if c.ForceResolveNA {
+			searcher = nil
+		}
 		if fs, ok := searcher.(FixtureSearcher); ok {
 			fs.CaseID = c.ID
 			searcher = fs
 		}
-		hard := RunHardChecks(c, suggestions, searcher, cfg.VenueKeys, start, genErr)
+		hard := RunHardChecksWithVector(c, suggestions, searcher, cfg.VenueKeys, start, genErr, cfg.VectorOn, cfg.InjectVenueCandidates)
 
 		var judgeRuns []JudgeScores
 		if !c.ExpectError && len(suggestions) > 0 && cfg.Judge != nil {

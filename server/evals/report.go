@@ -63,7 +63,9 @@ func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics 
 		varietySum += r.Judge.Variety
 		coherenceSum += r.Judge.Coherence
 		latencies = append(latencies, r.Hard.LatencyMs)
-		if r.Hard.JSONOK && r.Hard.CountOK && r.Hard.NoDuplicates && (r.Hard.ErrorClean || !expectErrorCase(r.CaseID)) {
+		hardOK := r.Hard.JSONOK && r.Hard.SchemaOK && r.Hard.ToolSequenceOK && r.Hard.GroundingOK &&
+			r.Hard.CountOK && r.Hard.NoDuplicates && (r.Hard.ErrorClean || !expectErrorCase(r.CaseID))
+		if hardOK {
 			resolveOK := r.Hard.ResolveSkipped || r.Hard.ResolveRate >= 0.85
 			if resolveOK || expectErrorCase(r.CaseID) {
 				hardPass++

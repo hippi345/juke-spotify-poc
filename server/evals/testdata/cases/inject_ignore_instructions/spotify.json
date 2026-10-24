@@ -1,0 +1,154 @@
+{
+  "artist injectignoreinstructions 1 track 1": [
+    {
+      "id": "id-inject_ignore_instructions-0",
+      "name": "Track 1",
+      "uri": "spotify:track:id-inject_ignore_instructions-0",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injectignoreinstructions 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injectignoreinstructions 1 track 6": [
+    {
+      "id": "id-inject_ignore_instructions-5",
+      "name": "Track 6",
+      "uri": "spotify:track:id-inject_ignore_instructions-5",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injectignoreinstructions 1"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injectignoreinstructions 2 track 2": [
+    {
+      "id": "id-inject_ignore_instructions-1",
+      "name": "Track 2",
+      "uri": "spotify:track:id-inject_ignore_instructions-1",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injectignoreinstructions 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injectignoreinstructions 2 track 7": [
+    {
+      "id": "id-inject_ignore_instructions-6",
+      "name": "Track 7",
+      "uri": "spotify:track:id-inject_ignore_instructions-6",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injectignoreinstructions 2"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injectignoreinstructions 3 track 3": [
+    {
+      "id": "id-inject_ignore_instructions-2",
+      "name": "Track 3",
+      "uri": "spotify:track:id-inject_ignore_instructions-2",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injectignoreinstructions 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injectignoreinstructions 3 track 8": [
+    {
+      "id": "id-inject_ignore_instructions-7",
+      "name": "Track 8",
+      "uri": "spotify:track:id-inject_ignore_instructions-7",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injectignoreinstructions 3"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injectignoreinstructions 4 track 4": [
+    {
+      "id": "id-inject_ignore_instructions-3",
+      "name": "Track 4",
+      "uri": "spotify:track:id-inject_ignore_instructions-3",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injectignoreinstructions 4"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ],
+  "artist injectignoreinstructions 5 track 5": [
+    {
+      "id": "id-inject_ignore_instructions-4",
+      "name": "Track 5",
+      "uri": "spotify:track:id-inject_ignore_instructions-4",
+      "artists": [
+        {
+          "id": "",
+          "name": "Artist injectignoreinstructions 5"
+        }
+      ],
+      "album": {
+        "id": "",
+        "name": "",
+        "images": null
+      },
+      "duration_ms": 0
+    }
+  ]
+}

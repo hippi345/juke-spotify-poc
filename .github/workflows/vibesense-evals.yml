@@ -26,7 +26,7 @@ jobs:
 
       - name: Mocked eval subset vs baseline
         run: |
-          go test -short -count=1 ./evals/ -run TestVibeSenseEvalGateCI -write-reports
+          go test -short -count=1 ./evals/ -run 'TestVibeSenseEvalGateCI|TestKeyLeakGuard|TestVibeSenseVectorRegressionGate' -write-reports
           cat evals/out/report.md || true
 
       - name: Upload eval report
