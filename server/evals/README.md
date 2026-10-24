@@ -13,7 +13,7 @@ python3 scripts/generate-catalog-embeddings.py          # local open model (comm
 # GEMINI_API_KEY=... python3 scripts/generate-catalog-embeddings.py --provider gemini
 ```
 
-Eval paraphrase queries use committed query vectors only (no query hints). `TestCatalogVectorRetrievalIntegration` logs honest vector vs keyword recall@20 / nDCG@20; it does not inject rooftop/patio hint text.
+Eval paraphrase queries use committed query vectors only (no query hints). The keyword arm is **Okapi BM25** with **Porter stemming** over the same index text as embeddings (`title`, `artist`, `genres`, `mood`, `tempo` — no album column in the SAMPLE fixture). `TestCatalogVectorRetrievalIntegration` logs per-query and average vector vs BM25 recall@20 / nDCG@20. Planted sunset keys come from `scripts/generate-venue-catalog.py` only (not MiniLM retrieval).
 
 ## Case matrix by feature
 

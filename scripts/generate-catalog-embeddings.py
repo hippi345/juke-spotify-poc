@@ -29,6 +29,10 @@ EVAL_QUERIES = [
     "dusk commute after work",
     "warm open-air lounge at twilight",
     "late shift wind-down on the terrace",
+    "orange sky and good company with a playlist",
+    "unwind after work with mellow crowd-pleasing tracks",
+    "sunset singalong favorites the crowd loved",
+    "patio chill nu-disco warmup set",
 ]
 
 STORED_DIM = 768
@@ -37,7 +41,7 @@ PRODUCTION_MODEL = "gemini-embedding-001"
 
 def track_embed_text(title: str, artist: str, genres: str, mood: str, tempo: str) -> str:
     meta = " ".join(x for x in (genres, mood, tempo) if x).strip()
-    return f"{title} — {artist} — {meta}".strip()
+    return f"{title} — {artist} — {meta}".strip()  # matches evals.CatalogTrackIndexText / vector.TrackEmbedText
 
 
 def pad_to_768(vec: list[float], native_dim: int) -> list[float]:

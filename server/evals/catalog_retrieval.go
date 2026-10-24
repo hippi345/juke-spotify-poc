@@ -25,6 +25,7 @@ type CatalogRetriever struct {
 	doc      *vector.VenueCatalogFixture
 	vectors  [][]float32
 	queries  *catalogEmbeddingStore
+	bm25     *catalogBM25
 	roofID   uint
 }
 
@@ -50,7 +51,14 @@ func NewCatalogRetriever() (*CatalogRetriever, error) {
 	if roof == 0 {
 		roof = canonicalVenueID
 	}
-	return &CatalogRetriever{doc: doc, vectors: store.trackVectors, queries: store, roofID: roof}, nil
+	docs := make([]string, len(doc.Tracks))
+	for i, tr := range doc.Tracks {
+		docs[i] = CatalogTrackIndexText(tr)
+	}
+	return &CatalogRetriever{
+		doc: doc, vectors: store.trackVectors, queries: store,
+		bm25: newCatalogBM25(docs), roofID: roof,
+	}, nil
 }
 
 func (r *CatalogRetriever) rooftopTracks(after time.Time) []int {
@@ -135,7 +143,7 @@ func (r *CatalogRetriever) QueryVector(venueID uint, query string, k int, after 
 	return out
 }
 
-// QueryKeyword is a simple token-overlap baseline (no embeddings).
+// QueryKeyword is BM25 over the same index text as vector embeddings (stemmed).
 func (r *CatalogRetriever) QueryKeyword(venueID uint, query string, k int, after time.Time) []CatalogHit {
 	if venueID != r.roofID && venueID != 0 {
 		return nil
@@ -143,25 +151,14 @@ func (r *CatalogRetriever) QueryKeyword(venueID uint, query string, k int, after
 	if k <= 0 {
 		k = 20
 	}
-	q := strings.ToLower(strings.TrimSpace(query))
 	pool := r.rooftopTracks(after)
 	var ranked []catalogScored
 	for _, i := range pool {
-		tr := r.doc.Tracks[i]
-		// Keyword baseline: literal substring in title/artist only (no mood tags, no token expansion).
-		blob := strings.ToLower(tr.Title + " " + tr.Artist)
-		if !strings.Contains(blob, q) {
-			var tokHits int
-			for _, t := range tokenize(query) {
-				if len(t) >= 5 && strings.Contains(blob, t) {
-					tokHits++
-				}
-			}
-			if tokHits < 2 {
-				continue
-			}
+		s := r.bm25.scoreQuery(query, i)
+		if s <= 0 {
+			continue
 		}
-		ranked = append(ranked, catalogScored{idx: i, s: 1})
+		ranked = append(ranked, catalogScored{idx: i, s: s})
 	}
 	sortCatalogScored(ranked)
 	out := make([]CatalogHit, 0, k)
@@ -178,21 +175,6 @@ func (r *CatalogRetriever) QueryKeyword(venueID uint, query string, k int, after
 			VoteCount:  tr.VoteCount,
 			PlantedSun: tr.PlantedSunset,
 		})
-	}
-	return out
-}
-
-func tokenize(q string) []string {
-	q = strings.ToLower(q)
-	for _, r := range []string{",", ".", "—", "-", "'", "\"", "?", "!"} {
-		q = strings.ReplaceAll(q, r, " ")
-	}
-	var out []string
-	for _, w := range strings.Fields(q) {
-		if len(w) < 3 && w != "sun" {
-			continue
-		}
-		out = append(out, w)
 	}
 	return out
 }
