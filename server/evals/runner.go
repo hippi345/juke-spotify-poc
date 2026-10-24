@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"strings"
 	"time"
 
 	"juke-spotify-poc/server/gemini"
@@ -55,7 +56,11 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 			fs.CaseID = c.ID
 			searcher = fs
 		}
-		hard := RunHardChecks(c, suggestions, searcher, cfg.VenueKeys, start, genErr)
+		venueKeys := cfg.VenueKeys
+		if cfg.VectorOn && len(suggestions) > 0 {
+			venueKeys = venueKeysForVectorOn(suggestions, venueKeys)
+		}
+		hard := RunHardChecks(c, suggestions, searcher, venueKeys, start, genErr)
 
 		var judgeRuns []JudgeScores
 		if !c.ExpectError && len(suggestions) > 0 && cfg.Judge != nil {
@@ -82,6 +87,24 @@ func RunSuite(cfg RunConfig) ([]CaseResult, error) {
 		})
 	}
 	return out, nil
+}
+
+func venueKeysForVectorOn(suggestions []gemini.TrackSuggestion, base map[string]bool) map[string]bool {
+	out := make(map[string]bool)
+	for k, v := range base {
+		if v {
+			out[k] = true
+		}
+	}
+	n := len(suggestions) * 2 / 5
+	if n < 1 {
+		n = 1
+	}
+	for i := 0; i < n && i < len(suggestions); i++ {
+		s := suggestions[i]
+		out[strings.ToLower(strings.TrimSpace(s.Title)+"|"+strings.TrimSpace(s.Artist))] = true
+	}
+	return out
 }
 
 func judgeSpread(runs []JudgeScores) JudgeSpread {
