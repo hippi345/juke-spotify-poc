@@ -57,15 +57,6 @@ func tokenizeAndStem(text string) []string {
 	return out
 }
 
-func tokenSetStemmed(text string) map[string]bool {
-	toks := tokenizeAndStem(text)
-	set := make(map[string]bool, len(toks))
-	for _, t := range toks {
-		set[t] = true
-	}
-	return set
-}
-
 func stemToken(tok string) string {
 	tok = strings.TrimSpace(strings.ToLower(tok))
 	if tok == "" {
