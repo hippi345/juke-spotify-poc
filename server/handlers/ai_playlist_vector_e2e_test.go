@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"juke-spotify-poc/server/config"
@@ -139,7 +140,7 @@ func (m *e2eMemIndexer) Upsert(_ context.Context, docID string, doc vector.Venue
 	return nil
 }
 func (m *e2eMemIndexer) DeleteByVenueID(context.Context, uint) (int, error) { return 0, nil }
-func (m *e2eMemIndexer) SearchSimilar(_ context.Context, venueID uint, queryVec []float32, limit int) ([]vector.SearchHit, error) {
+func (m *e2eMemIndexer) SearchSimilar(_ context.Context, venueID uint, queryVec []float32, limit int, _ time.Time) ([]vector.SearchHit, error) {
 	var hits []vector.SearchHit
 	for _, d := range m.docs {
 		if d.VenueID != venueID {
@@ -152,12 +153,12 @@ func (m *e2eMemIndexer) SearchSimilar(_ context.Context, venueID uint, queryVec 
 	}
 	return hits, nil
 }
-func (m *e2eMemIndexer) SearchByText(ctx context.Context, venueID uint, q string, embedder vector.Embedder, limit int) ([]vector.SearchHit, error) {
+func (m *e2eMemIndexer) SearchByText(ctx context.Context, venueID uint, q string, embedder vector.Embedder, limit int, after time.Time) ([]vector.SearchHit, error) {
 	vec, err := embedder.Embed(q)
 	if err != nil {
 		return nil, err
 	}
-	return m.SearchSimilar(ctx, venueID, vec, limit)
+	return m.SearchSimilar(ctx, venueID, vec, limit, after)
 }
 
 type e2eSpotifyClient interface {
@@ -172,7 +173,7 @@ func runAIPlaylistJobWithDeps(id string, cfg *config.Config, gen gemini.Playlist
 	updateJob(id, func(j *aiPlaylistJob) { j.Status = "running" })
 	var opts gemini.GenerateOptions
 	if cfg.VibeSenseVectorEnabled && body.VenueID > 0 {
-		opts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), body.VenueID, body.Description, 0)
+		opts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), body.VenueID, body.Description, 0, time.Time{})
 	}
 	suggestions, err := gen.GenerateTrackList(body.Description, body.TrackCount, body.SimilarArtists, opts)
 	if err != nil {

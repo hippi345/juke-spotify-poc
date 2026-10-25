@@ -22,6 +22,20 @@ const generateURL = "https://generativelanguage.googleapis.com/v1beta/models/%s:
 
 const maxGeminiRetries = 4
 
+func trackListResponseSchema() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "array",
+		"items": map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"title":  map[string]string{"type": "string"},
+				"artist": map[string]string{"type": "string"},
+			},
+			"required": []string{"title", "artist"},
+		},
+	}
+}
+
 // GenerateTrackList asks Gemini for exactly `count` real songs matching the description and optional artist inspirations.
 func GenerateTrackList(apiKey, model string, description string, count int, similarArtists []string) ([]TrackSuggestion, error) {
 	return generateTrackListHTTP(apiKey, model, description, count, similarArtists, GenerateOptions{})
@@ -92,6 +106,7 @@ Rules:
 		"generationConfig": map[string]interface{}{
 			"temperature":      0.9,
 			"responseMimeType": "application/json",
+			"responseSchema":   trackListResponseSchema(),
 			"maxOutputTokens":  4096,
 		},
 	}
@@ -125,7 +140,15 @@ Rules:
 		status = resp.StatusCode
 
 		if status == http.StatusOK {
-			return decodeGenerateResponse(respBody)
+			tracks, decErr := decodeGenerateResponse(respBody)
+			if decErr == nil {
+				return tracks, nil
+			}
+			if attempt == 0 {
+				log.Printf("gemini: invalid JSON playlist response, retrying once: %v", decErr)
+				continue
+			}
+			return nil, decErr
 		}
 
 		if status == http.StatusTooManyRequests && attempt < maxGeminiRetries-1 {

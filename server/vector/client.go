@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"juke-spotify-poc/server/gemini"
 )
@@ -83,7 +84,7 @@ func SetDefaultService(s Service) {
 
 // CandidatesForMood retrieves top-N venue tracks for Gemini grounding.
 // limit <= 0 uses RetrievalLimit (default 8, below typical seeded index size).
-func (s Service) CandidatesForMood(ctx context.Context, venueID uint, mood string, limit int) []gemini.TrackSuggestion {
+func (s Service) CandidatesForMood(ctx context.Context, venueID uint, mood string, limit int, after time.Time) []gemini.TrackSuggestion {
 	if !s.Enabled || venueID == 0 || s.Indexer == nil {
 		return nil
 	}
@@ -94,7 +95,7 @@ func (s Service) CandidatesForMood(ctx context.Context, venueID uint, mood strin
 	if eff <= 0 {
 		eff = 8
 	}
-	hits, err := s.Indexer.SearchByText(ctx, venueID, mood, s.Embedder, eff)
+	hits, err := s.Indexer.SearchByText(ctx, venueID, mood, s.Embedder, eff, after)
 	if err != nil {
 		log.Printf("vector: mood retrieval failed: %v", err)
 		return nil

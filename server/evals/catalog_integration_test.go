@@ -204,7 +204,7 @@ func testCatalogOpenSearchRetrieval(t *testing.T, query string, truth map[string
 	if err != nil {
 		t.Fatal(err)
 	}
-	hits, err := svc.Indexer.SearchSimilar(ctx, roof, qv, 20)
+	hits, err := svc.Indexer.SearchSimilar(ctx, roof, qv, 20, time.Time{})
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}

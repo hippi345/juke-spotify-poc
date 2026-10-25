@@ -25,6 +25,7 @@ type HardCheckResult struct {
 	ActualCount         int
 	ResolveRate         float64
 	ResolveSkipped      bool // true when Spotify resolve was not run (no creds / searcher)
+	ResolveMissingCreds bool // live eval: Spotify creds absent (must not count as pass)
 	SimilarArtistRate   float64
 	LatencyMs           int64
 	ErrorClean          bool
@@ -144,6 +145,9 @@ func RunHardChecksWithVector(c Case, suggestions []gemini.TrackSuggestion, searc
 
 	if search == nil {
 		res.ResolveSkipped = true
+		if !c.ForceResolveNA {
+			res.ResolveMissingCreds = true
+		}
 		res.SimilarArtistRate = similarArtistAdherence(suggestions, c.SimilarArtists)
 		res.GroundingOK = groundingOK(c, res.VenueOverlap, res.HighlyVotedShare, vectorOn, injectCandidates)
 		return res

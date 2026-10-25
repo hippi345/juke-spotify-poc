@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"juke-spotify-poc/server/config"
 	"juke-spotify-poc/server/vector"
@@ -41,7 +42,7 @@ func SimilarVenueTracks(cfg *config.Config) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "q or track_id required"})
 			return
 		}
-		hits, err := svc.Indexer.SearchByText(c.Request.Context(), uint(id64), queryText, svc.Embedder, limit)
+		hits, err := svc.Indexer.SearchByText(c.Request.Context(), uint(id64), queryText, svc.Embedder, limit, time.Time{})
 		resp := gin.H{
 			"tracks":      []gin.H{},
 			"venue_id":    id64,

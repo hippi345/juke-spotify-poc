@@ -15,13 +15,43 @@ type LiveCallBudget struct {
 	mu    sync.Mutex
 }
 
-// DefaultLiveCallCap is above a full-suite live run (~212 calls/arm) with headroom.
-const DefaultLiveCallCap = 250
+// liveCallCapHeadroom is extra calls above the per-case formula (generator + searches + judge runs).
+const liveCallCapHeadroom = 50
+
+// liveCallCapFloor is the minimum cap when the computed budget is small (e.g. short CI subsets).
+const liveCallCapFloor = 400
+
+// DefaultLiveCallCap is derived from the full eval matrix at init (see computeLiveCallCap).
+var DefaultLiveCallCap = computeLiveCallCap(FilterCases(false), judgeRunsPerCase)
+
+// computeLiveCallCap estimates outbound Gemini/Spotify calls for one live suite arm:
+// per case: 1 generator + TrackCount searches (unless resolve N/A) + judgeRuns judge calls.
+func computeLiveCallCap(cases []Case, judgeRuns int) int {
+	if judgeRuns <= 0 {
+		judgeRuns = judgeRunsPerCase
+	}
+	total := 0
+	for _, c := range cases {
+		total++ // generator
+		if c.ExpectError {
+			continue
+		}
+		if !c.ForceResolveNA {
+			total += c.TrackCount
+		}
+		total += judgeRuns
+	}
+	total += liveCallCapHeadroom
+	if total < liveCallCapFloor {
+		return liveCallCapFloor
+	}
+	return total
+}
 
 var liveBudget *LiveCallBudget
 
 func resetLiveCallBudget() {
-	cap := DefaultLiveCallCap
+	cap := computeLiveCallCap(FilterCases(false), judgeRunsForSuite())
 	if v := strings.TrimSpace(os.Getenv("JUKE_EVALS_LIVE_CALL_CAP")); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
 			cap = n

@@ -67,9 +67,10 @@ func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics 
 		coherenceSum += r.Judge.Coherence
 		latencies = append(latencies, r.Hard.LatencyMs)
 		hardOK := r.Hard.JSONOK && r.Hard.SchemaOK && r.Hard.ToolSequenceOK && r.Hard.GroundingOK &&
-			r.Hard.CountOK && r.Hard.NoDuplicates && (r.Hard.ErrorClean || !expectErrorCase(r.CaseID))
+			r.Hard.CountOK && r.Hard.NoDuplicates && (r.Hard.ErrorClean || !expectErrorCase(r.CaseID)) &&
+			!r.Hard.ResolveMissingCreds
 		if hardOK {
-			resolveOK := r.Hard.ResolveSkipped || r.Hard.ResolveRate >= 0.85
+			resolveOK := (r.Hard.ResolveSkipped && !r.Hard.ResolveMissingCreds) || r.Hard.ResolveRate >= 0.85
 			if resolveOK || expectErrorCase(r.CaseID) {
 				hardPass++
 			}
@@ -142,6 +143,9 @@ func CompareBaseline(current, baseline SummaryMetrics, results []CaseResult) Gat
 	for _, r := range results {
 		if expectErrorCase(r.CaseID) {
 			continue
+		}
+		if r.Hard.ResolveMissingCreds {
+			failures = append(failures, fmt.Sprintf("case %s: Spotify resolve skipped (missing SPOTIFY_CLIENT_ID/SECRET)", r.CaseID))
 		}
 		if !r.Hard.SchemaOK {
 			failures = append(failures, fmt.Sprintf("case %s: schema check failed", r.CaseID))

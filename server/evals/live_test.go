@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"juke-spotify-poc/server/config"
+	"juke-spotify-poc/server/db"
 	"juke-spotify-poc/server/gemini"
 	"juke-spotify-poc/server/spotify"
 )
@@ -25,11 +26,13 @@ func TestVibeSenseEvalLive(t *testing.T) {
 	if cfg.GeminiAPIKey == "" {
 		t.Skip("GEMINI_API_KEY not set")
 	}
-	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
-	var searcher TrackSearcher
-	if spotifyResolveAvailable(cfg) {
-		searcher = SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
+	cfg.OpenSearchURL = LiveEvalOpenSearchURL(cfg)
+	if !spotifyResolveAvailable(cfg) {
+		t.Fatal("live evals require SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET (resolve check must not be silently skipped)")
 	}
+	requireLiveEvalDatabase(t, cfg)
+	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
+	searcher := SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
 	runCfg := wrapLiveBudget(RunConfig{
 		Short:     false,
 		VectorOn:  false,
@@ -78,18 +81,24 @@ func TestVibeSenseEvalLiveVectorOn(t *testing.T) {
 	if cfg.GeminiAPIKey == "" {
 		t.Skip("GEMINI_API_KEY not set")
 	}
+	cfg.OpenSearchURL = LiveEvalOpenSearchURL(cfg)
+	if err := RequireLiveVectorOpenSearch(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if !spotifyResolveAvailable(cfg) {
+		t.Fatal("live evals require SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET (resolve check must not be silently skipped)")
+	}
+	requireLiveEvalDatabase(t, cfg)
 	if err := SeedLiveEvalVenueIndex(cfg); err != nil {
-		t.Logf("live venue index seed warning (continuing): %v", err)
+		t.Fatalf("live venue index seed failed: %v", err)
 	}
 	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
-	var searcher TrackSearcher
-	if spotifyResolveAvailable(cfg) {
-		searcher = SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
-	}
+	searcher := SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
 	runCfg := wrapLiveBudget(RunConfig{
-		Short:                 false,
-		VectorOn:              true,
-		InjectVenueCandidates: true,
+		Short:                    false,
+		VectorOn:                 true,
+		InjectVenueCandidates:    true,
+		LiveOpenSearchCandidates: true,
 		Generator:             gen,
 		Searcher:              searcher,
 		Judge:                 NewGeminiJudgeFromEnv(),
@@ -130,4 +139,17 @@ func scanLiveReportsForLeaks(t *testing.T) {
 
 func spotifyResolveAvailable(cfg *config.Config) bool {
 	return strings.TrimSpace(cfg.SpotifyClientID) != "" && strings.TrimSpace(cfg.SpotifyClientSecret) != ""
+}
+
+func requireLiveEvalDatabase(t *testing.T, cfg *config.Config) {
+	t.Helper()
+	if db.DB != nil {
+		return
+	}
+	if err := db.Connect(cfg); err != nil {
+		t.Fatalf("live evals require MySQL (Spotify account storage): %v", err)
+	}
+	if db.DB == nil {
+		t.Fatal("live evals require MySQL (Spotify account storage): database not initialized")
+	}
 }

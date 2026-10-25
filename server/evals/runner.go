@@ -54,6 +54,7 @@ type RunConfig struct {
 	VectorOnly  bool
 	VectorOn    bool
 	InjectVenueCandidates bool // vector index ON: inject venue history candidates like AI playlist handler
+	LiveOpenSearchCandidates bool // live vector arm: retrieve from OpenSearch (not offline catalog retriever)
 	MockVenueCandidates   []gemini.TrackSuggestion // mocked vector inject (eval fixtures)
 	Generator   gemini.PlaylistGenerator
 	Searcher    TrackSearcher
@@ -81,12 +82,18 @@ func RunSuiteCases(cfg RunConfig, cases []Case) ([]CaseResult, error) {
 		var genErr error
 		genOpts := gemini.GenerateOptions{}
 		if cfg.InjectVenueCandidates && c.VenueID > 0 {
-			if c.CanonicalRAG {
+			if cfg.LiveOpenSearchCandidates {
+				var after time.Time
+				if c.HistoryAfter != "" {
+					after, _ = time.Parse(time.RFC3339, c.HistoryAfter)
+				}
+				genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 0, after)
+			} else if c.CanonicalRAG {
 				genOpts.PreferredCandidates = CandidatesForCanonicalCase(c, 0)
 			} else if len(cfg.MockVenueCandidates) > 0 {
 				genOpts.PreferredCandidates = cfg.MockVenueCandidates
 			} else {
-				genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 0)
+				genOpts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), c.VenueID, c.Description, 0, time.Time{})
 			}
 		}
 		if c.ExpectError {

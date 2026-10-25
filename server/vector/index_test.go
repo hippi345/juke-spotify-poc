@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestNopIndexer(t *testing.T) {
@@ -12,7 +13,7 @@ func TestNopIndexer(t *testing.T) {
 	if err := idx.EnsureIndex(context.Background(), 768); err != nil {
 		t.Fatal(err)
 	}
-	hits, err := idx.SearchSimilar(context.Background(), 1, []float32{0.1, 0.2}, 5)
+	hits, err := idx.SearchSimilar(context.Background(), 1, []float32{0.1, 0.2}, 5, time.Time{})
 	if err != nil || len(hits) != 0 {
 		t.Fatalf("nop search: %v %d", err, len(hits))
 	}

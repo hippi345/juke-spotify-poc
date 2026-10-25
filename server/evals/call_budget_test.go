@@ -6,6 +6,23 @@ import (
 	"juke-spotify-poc/server/gemini"
 )
 
+func TestComputeLiveCallCap_fullSuiteExceedsOldCap(t *testing.T) {
+	cap := computeLiveCallCap(FilterCases(false), 2)
+	if cap <= 250 {
+		t.Fatalf("expected computed cap > 250 (was %d)", cap)
+	}
+	if cap < liveCallCapFloor {
+		t.Fatalf("expected cap >= floor %d, got %d", liveCallCapFloor, cap)
+	}
+}
+
+func TestComputeLiveCallCap_shortSubsetUsesFloor(t *testing.T) {
+	cap := computeLiveCallCap(FilterCases(true), 3)
+	if cap < liveCallCapFloor {
+		t.Fatalf("expected floor %d, got %d", liveCallCapFloor, cap)
+	}
+}
+
 func TestLiveCallBudget_enforcesCap(t *testing.T) {
 	t.Setenv("JUKE_EVALS_LIVE", "1")
 	t.Setenv("JUKE_EVALS_LIVE_CALL_CAP", "2")

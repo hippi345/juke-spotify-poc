@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 	"testing"
+	"time"
 )
 
 type memIndexer struct {
@@ -43,11 +44,11 @@ func (m *memIndexer) DeleteByVenueID(_ context.Context, venueID uint) (int, erro
 	return n, nil
 }
 
-func (m *memIndexer) SearchSimilar(context.Context, uint, []float32, int) ([]SearchHit, error) {
+func (m *memIndexer) SearchSimilar(context.Context, uint, []float32, int, time.Time) ([]SearchHit, error) {
 	return nil, nil
 }
 
-func (m *memIndexer) SearchByText(context.Context, uint, string, Embedder, int) ([]SearchHit, error) {
+func (m *memIndexer) SearchByText(context.Context, uint, string, Embedder, int, time.Time) ([]SearchHit, error) {
 	return nil, nil
 }
 
