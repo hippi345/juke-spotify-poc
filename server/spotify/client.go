@@ -28,6 +28,7 @@ const (
 	tokenRefreshBuf      = 5 * time.Minute
 	playlistsCacheTTL    = 60 * time.Second
 	refillCallDelayMs    = 100 // Delay between sequential calls (parallel artist fetches reduce total time)
+	spotifyRetryAfterCap = 15  // seconds; longer Retry-After aborts instead of sleeping
 )
 
 var (
@@ -83,6 +84,9 @@ func NewClient(cfg *config.Config) *Client {
 
 // GetDefaultAccount returns the first connected Spotify account (POC: single account)
 func (c *Client) GetDefaultAccount() (*models.SpotifyAccount, error) {
+	if db.DB == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
 	var acc models.SpotifyAccount
 	err := db.DB.Order("id ASC").First(&acc).Error
 	if err != nil {
@@ -133,7 +137,24 @@ func (c *Client) EnsureValidToken(acc *models.SpotifyAccount) error {
 
 	acc.AccessToken = result.AccessToken
 	acc.TokenExpiresAt = time.Now().Add(time.Duration(result.ExpiresIn) * time.Second)
+	if db.DB == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	return db.DB.Save(acc).Error
+}
+
+// spotify429FailFast returns a non-nil error when the 429 should not be retried (quota or long Retry-After).
+func spotify429FailFast(retryAfterHeader string, body []byte) error {
+	if bytes.Contains(body, []byte("QUOTA_EXCEEDED")) {
+		return fmt.Errorf("Spotify quota exhausted")
+	}
+	if v := strings.TrimSpace(retryAfterHeader); v != "" {
+		n, err := strconv.Atoi(v)
+		if err == nil && n > spotifyRetryAfterCap {
+			return fmt.Errorf("Spotify rate limited (429): Retry-After %ds exceeds %ds cap", n, spotifyRetryAfterCap)
+		}
+	}
+	return nil
 }
 
 // Do performs an authenticated request to the Spotify API.
@@ -153,10 +174,20 @@ func (c *Client) GetNoRetry(path string) (*http.Response, error) {
 }
 
 // DoWithRetry performs Do with configurable retry count. maxRetries=0 means no retry on 429.
-func (c *Client) DoWithRetry(method, path string, body io.Reader, maxRetries int) (*http.Response, error) {
-	acc, err := c.GetDefaultAccount()
-	if err != nil || acc == nil {
+func spotifyAccountOrErr(acc *models.SpotifyAccount, err error) (*models.SpotifyAccount, error) {
+	if err != nil {
+		return nil, err
+	}
+	if acc == nil {
 		return nil, fmt.Errorf("no spotify account connected")
+	}
+	return acc, nil
+}
+
+func (c *Client) DoWithRetry(method, path string, body io.Reader, maxRetries int) (*http.Response, error) {
+	acc, err := spotifyAccountOrErr(c.GetDefaultAccount())
+	if err != nil {
+		return nil, err
 	}
 
 	if err := c.EnsureValidToken(acc); err != nil {
@@ -195,17 +226,16 @@ func (c *Client) DoWithRetry(method, path string, body io.Reader, maxRetries int
 			return resp, nil
 		}
 
-		// Log 429 details for debugging (Spotify may include error info in body)
 		body429, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
-		log.Printf("spotify: 429 on %s %s - Retry-After: %s - body: %s", method, fullURL, resp.Header.Get("Retry-After"), string(body429))
+		if err429 := spotify429FailFast(resp.Header.Get("Retry-After"), body429); err429 != nil {
+			return nil, err429
+		}
+		log.Printf("spotify: 429 on %s %s - Retry-After: %s", method, fullURL, resp.Header.Get("Retry-After"))
 
 		retryAfter := 5
 		if v := resp.Header.Get("Retry-After"); v != "" {
-			if n, parseErr := strconv.Atoi(v); parseErr == nil && n > 0 {
-				if n > 15 {
-					n = 15
-				}
+			if n, parseErr := strconv.Atoi(v); parseErr == nil && n > 0 && n <= spotifyRetryAfterCap {
 				retryAfter = n
 			}
 		}
@@ -221,9 +251,9 @@ func (c *Client) DoWithRetry(method, path string, body io.Reader, maxRetries int
 
 // DoWithQuery performs a request with query parameters (for POST with query params)
 func (c *Client) DoWithQuery(method, path string, query url.Values, body io.Reader) (*http.Response, error) {
-	acc, err := c.GetDefaultAccount()
-	if err != nil || acc == nil {
-		return nil, fmt.Errorf("no spotify account connected")
+	acc, err := spotifyAccountOrErr(c.GetDefaultAccount())
+	if err != nil {
+		return nil, err
 	}
 
 	if err := c.EnsureValidToken(acc); err != nil {
