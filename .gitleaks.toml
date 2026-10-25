@@ -1,3 +1,6 @@
+[extend]
+useDefault = true
+
 title = "juke-spotify-poc gitleaks"
 
 [allowlist]
@@ -8,4 +11,7 @@ paths = [
   '''server/evals/key_leak\.go$''',
   '''scripts/prepare-artifact-upload\.sh$''',
   '''scripts/check-artifact-secrets\.sh$''',
+  '''scripts/compose-session-walk\.sh$''',
+  '''scripts/smoke-stack\.sh$''',
+  '''server/vendor/''',
 ]
