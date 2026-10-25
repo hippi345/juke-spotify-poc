@@ -3,6 +3,7 @@ package vector
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 type scoreIndexer struct {
@@ -13,10 +14,10 @@ func (s scoreIndexer) EnsureIndex(context.Context, int) error              { ret
 func (s scoreIndexer) Get(context.Context, string) (*VenueTrackDoc, error) { return nil, nil }
 func (s scoreIndexer) Upsert(context.Context, string, VenueTrackDoc) error { return nil }
 func (s scoreIndexer) DeleteByVenueID(context.Context, uint) (int, error)  { return 0, nil }
-func (s scoreIndexer) SearchSimilar(context.Context, uint, []float32, int) ([]SearchHit, error) {
+func (s scoreIndexer) SearchSimilar(context.Context, uint, []float32, int, time.Time) ([]SearchHit, error) {
 	return s.hits, nil
 }
-func (s scoreIndexer) SearchByText(context.Context, uint, string, Embedder, int) ([]SearchHit, error) {
+func (s scoreIndexer) SearchByText(context.Context, uint, string, Embedder, int, time.Time) ([]SearchHit, error) {
 	return s.hits, nil
 }
 
@@ -34,7 +35,7 @@ func TestCandidatesForMood_respectsLimitAndSimilarity(t *testing.T) {
 		RetrievalLimit:     2,
 		MinSimilarityScore: 0.5,
 	})
-	out := Default().CandidatesForMood(context.Background(), 1, "lofi", 0)
+	out := Default().CandidatesForMood(context.Background(), 1, "lofi", 0, time.Time{})
 	if len(out) != 2 {
 		t.Fatalf("expected 2 candidates, got %d", len(out))
 	}

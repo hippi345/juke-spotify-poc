@@ -41,8 +41,8 @@ type Indexer interface {
 	Get(ctx context.Context, docID string) (*VenueTrackDoc, error)
 	Upsert(ctx context.Context, docID string, doc VenueTrackDoc) error
 	DeleteByVenueID(ctx context.Context, venueID uint) (int, error)
-	SearchSimilar(ctx context.Context, venueID uint, queryVec []float32, limit int) ([]SearchHit, error)
-	SearchByText(ctx context.Context, venueID uint, q string, embedder Embedder, limit int) ([]SearchHit, error)
+	SearchSimilar(ctx context.Context, venueID uint, queryVec []float32, limit int, after time.Time) ([]SearchHit, error)
+	SearchByText(ctx context.Context, venueID uint, q string, embedder Embedder, limit int, after time.Time) ([]SearchHit, error)
 }
 
 type osIndexer struct {
@@ -70,10 +70,10 @@ func (NopIndexer) EnsureIndex(context.Context, int) error              { return 
 func (NopIndexer) Get(context.Context, string) (*VenueTrackDoc, error) { return nil, nil }
 func (NopIndexer) Upsert(context.Context, string, VenueTrackDoc) error { return nil }
 func (NopIndexer) DeleteByVenueID(context.Context, uint) (int, error)  { return 0, nil }
-func (NopIndexer) SearchSimilar(context.Context, uint, []float32, int) ([]SearchHit, error) {
+func (NopIndexer) SearchSimilar(context.Context, uint, []float32, int, time.Time) ([]SearchHit, error) {
 	return nil, nil
 }
-func (NopIndexer) SearchByText(context.Context, uint, string, Embedder, int) ([]SearchHit, error) {
+func (NopIndexer) SearchByText(context.Context, uint, string, Embedder, int, time.Time) ([]SearchHit, error) {
 	return nil, nil
 }
 
@@ -222,9 +222,21 @@ func (o *osIndexer) Upsert(ctx context.Context, docID string, doc VenueTrackDoc)
 	return nil
 }
 
-func (o *osIndexer) SearchSimilar(ctx context.Context, venueID uint, queryVec []float32, limit int) ([]SearchHit, error) {
+func (o *osIndexer) SearchSimilar(ctx context.Context, venueID uint, queryVec []float32, limit int, after time.Time) ([]SearchHit, error) {
 	if limit <= 0 {
 		limit = 20
+	}
+	filters := []interface{}{
+		map[string]interface{}{
+			"term": map[string]interface{}{"venue_id": venueID},
+		},
+	}
+	if !after.IsZero() {
+		filters = append(filters, map[string]interface{}{
+			"range": map[string]interface{}{
+				"last_seen": map[string]interface{}{"gte": after.UTC().Format(time.RFC3339)},
+			},
+		})
 	}
 	payload := map[string]interface{}{
 		"size": limit,
@@ -240,18 +252,14 @@ func (o *osIndexer) SearchSimilar(ctx context.Context, venueID uint, queryVec []
 						},
 					},
 				},
-				"filter": []interface{}{
-					map[string]interface{}{
-						"term": map[string]interface{}{"venue_id": venueID},
-					},
-				},
+				"filter": filters,
 			},
 		},
 	}
 	return o.runSearch(ctx, payload)
 }
 
-func (o *osIndexer) SearchByText(ctx context.Context, venueID uint, q string, embedder Embedder, limit int) ([]SearchHit, error) {
+func (o *osIndexer) SearchByText(ctx context.Context, venueID uint, q string, embedder Embedder, limit int, after time.Time) ([]SearchHit, error) {
 	emb := embedder
 	if emb == nil {
 		emb = o.embedder
@@ -263,7 +271,7 @@ func (o *osIndexer) SearchByText(ctx context.Context, venueID uint, q string, em
 	if err != nil {
 		return nil, err
 	}
-	return o.SearchSimilar(ctx, venueID, vec, limit)
+	return o.SearchSimilar(ctx, venueID, vec, limit, after)
 }
 
 func (o *osIndexer) runSearch(ctx context.Context, payload map[string]interface{}) ([]SearchHit, error) {

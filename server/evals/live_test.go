@@ -25,11 +25,12 @@ func TestVibeSenseEvalLive(t *testing.T) {
 	if cfg.GeminiAPIKey == "" {
 		t.Skip("GEMINI_API_KEY not set")
 	}
-	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
-	var searcher TrackSearcher
-	if spotifyResolveAvailable(cfg) {
-		searcher = SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
+	cfg.OpenSearchURL = LiveEvalOpenSearchURL(cfg)
+	if !spotifyResolveAvailable(cfg) {
+		t.Fatal("live evals require SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET (resolve check must not be silently skipped)")
 	}
+	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
+	searcher := SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
 	runCfg := wrapLiveBudget(RunConfig{
 		Short:     false,
 		VectorOn:  false,
@@ -78,18 +79,23 @@ func TestVibeSenseEvalLiveVectorOn(t *testing.T) {
 	if cfg.GeminiAPIKey == "" {
 		t.Skip("GEMINI_API_KEY not set")
 	}
+	cfg.OpenSearchURL = LiveEvalOpenSearchURL(cfg)
+	if err := RequireLiveVectorOpenSearch(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if !spotifyResolveAvailable(cfg) {
+		t.Fatal("live evals require SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET (resolve check must not be silently skipped)")
+	}
 	if err := SeedLiveEvalVenueIndex(cfg); err != nil {
-		t.Logf("live venue index seed warning (continuing): %v", err)
+		t.Fatalf("live venue index seed failed: %v", err)
 	}
 	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
-	var searcher TrackSearcher
-	if spotifyResolveAvailable(cfg) {
-		searcher = SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
-	}
+	searcher := SpotifyClientAdapter{Client: spotify.NewClient(cfg)}
 	runCfg := wrapLiveBudget(RunConfig{
-		Short:                 false,
-		VectorOn:              true,
-		InjectVenueCandidates: true,
+		Short:                    false,
+		VectorOn:                 true,
+		InjectVenueCandidates:    true,
+		LiveOpenSearchCandidates: true,
 		Generator:             gen,
 		Searcher:              searcher,
 		Judge:                 NewGeminiJudgeFromEnv(),

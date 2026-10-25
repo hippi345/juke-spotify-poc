@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"juke-spotify-poc/server/config"
 	"juke-spotify-poc/server/vector"
@@ -34,10 +35,10 @@ func (s stubEmbedIndexer) Get(context.Context, string) (*vector.VenueTrackDoc, e
 }
 func (s stubEmbedIndexer) Upsert(context.Context, string, vector.VenueTrackDoc) error { return nil }
 func (s stubEmbedIndexer) DeleteByVenueID(context.Context, uint) (int, error)        { return 0, nil }
-func (s stubEmbedIndexer) SearchSimilar(context.Context, uint, []float32, int) ([]vector.SearchHit, error) {
+func (s stubEmbedIndexer) SearchSimilar(context.Context, uint, []float32, int, time.Time) ([]vector.SearchHit, error) {
 	return nil, nil
 }
-func (s stubEmbedIndexer) SearchByText(_ context.Context, _ uint, q string, embedder vector.Embedder, _ int) ([]vector.SearchHit, error) {
+func (s stubEmbedIndexer) SearchByText(_ context.Context, _ uint, q string, embedder vector.Embedder, _ int, _ time.Time) ([]vector.SearchHit, error) {
 	emb := embedder
 	if s.emb != nil {
 		emb = s.emb

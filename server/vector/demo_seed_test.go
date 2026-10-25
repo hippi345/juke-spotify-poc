@@ -3,6 +3,7 @@ package vector
 import (
 	"context"
 	"testing"
+	"time"
 
 	"juke-spotify-poc/server/db"
 	"juke-spotify-poc/server/models"
@@ -36,10 +37,10 @@ func (m *memVenueIndexer) DeleteByVenueID(_ context.Context, venueID uint) (int,
 	}
 	return n, nil
 }
-func (m *memVenueIndexer) SearchSimilar(context.Context, uint, []float32, int) ([]SearchHit, error) {
+func (m *memVenueIndexer) SearchSimilar(context.Context, uint, []float32, int, time.Time) ([]SearchHit, error) {
 	return nil, nil
 }
-func (m *memVenueIndexer) SearchByText(context.Context, uint, string, Embedder, int) ([]SearchHit, error) {
+func (m *memVenueIndexer) SearchByText(context.Context, uint, string, Embedder, int, time.Time) ([]SearchHit, error) {
 	return nil, nil
 }
 

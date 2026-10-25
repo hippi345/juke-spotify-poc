@@ -171,7 +171,7 @@ func runAIPlaylistJob(id string, cfg *config.Config, client *spotify.Client, bod
 
 	var opts gemini.GenerateOptions
 	if cfg.VibeSenseVectorEnabled && body.VenueID > 0 {
-		opts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), body.VenueID, desc, 0)
+		opts.PreferredCandidates = vector.Default().CandidatesForMood(context.Background(), body.VenueID, desc, 0, time.Time{})
 	}
 	gen := gemini.NewHTTPGenerator(cfg.GeminiAPIKey, cfg.GeminiModel)
 	suggestions, err := gen.GenerateTrackList(desc, n, artists, opts)
