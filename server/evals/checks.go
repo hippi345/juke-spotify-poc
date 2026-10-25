@@ -127,7 +127,7 @@ func RunHardChecksWithVector(c Case, suggestions []gemini.TrackSuggestion, searc
 		res.ErrorMessage = redactErrorDetail(genErr.Error())
 		res.JSONOK = false
 		res.SchemaOK = false
-		res.ToolSequenceOK = true
+		res.ToolSequenceOK = false
 		res.GroundingOK = groundingOK(c, 0, 0, vectorOn, injectCandidates)
 		res.CountOK = false
 		res.NoDuplicates = true

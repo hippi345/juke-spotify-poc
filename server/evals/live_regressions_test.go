@@ -2,6 +2,7 @@ package evals
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,17 +66,46 @@ func TestSummarize_excludesMoreLikeThisFromMoodMean(t *testing.T) {
 	}
 }
 
-func TestRunHardChecks_generationErrorMarksToolSequenceOK(t *testing.T) {
+func TestRunHardChecks_generationErrorFailsToolSequence(t *testing.T) {
 	c := Case{ID: "count_max", Description: "x", TrackCount: 100}
 	hard := RunHardChecks(c, nil, nil, nil, time.Now(), fmt.Errorf("parse tracks: not a valid JSON array"))
-	if !hard.ToolSequenceOK {
-		t.Fatal("expected tool sequence OK when generator was invoked")
+	if hard.ToolSequenceOK {
+		t.Fatal("generation error must fail tool sequence check")
 	}
 	if !hard.GroundingOK {
 		t.Fatal("non-vector case should not fail grounding on gen error")
 	}
 	if hard.ErrorMessage == "" {
 		t.Fatal("expected generation error message")
+	}
+}
+
+func TestPerCaseHardGate_generationErrorWithValidJSONFails(t *testing.T) {
+	c := Case{ID: "count_two", Description: "two songs", TrackCount: 2, Feature: FeatureMood, MoodRubric: true}
+	suggestions := []gemini.TrackSuggestion{
+		{Title: "Song A", Artist: "Artist A"},
+		{Title: "Song B", Artist: "Artist B"},
+	}
+	hard := RunHardChecks(c, suggestions, nil, nil, time.Now(), fmt.Errorf("gemini: partial response rejected"))
+	if hard.JSONOK {
+		t.Fatal("expected JSONOK false when generation returned error")
+	}
+	if hard.ToolSequenceOK {
+		t.Fatal("generation error must not pass tool sequence")
+	}
+	results := []CaseResult{{CaseID: c.ID, Hard: hard}}
+	gate := PerCaseHardGate(results)
+	if gate.Passed {
+		t.Fatalf("expected gate failure on gen error with parseable JSON, got none")
+	}
+	found := false
+	for _, f := range gate.Failures {
+		if strings.Contains(f, "generation failed") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected generation failed in gate failures: %v", gate.Failures)
 	}
 }
 

@@ -195,7 +195,7 @@ func PerCaseHardGate(results []CaseResult) GateResult {
 		if !r.Hard.ToolSequenceOK {
 			failures = append(failures, fmt.Sprintf("case %s: tool sequence check failed", r.CaseID))
 		}
-		if strings.TrimSpace(r.Hard.ErrorMessage) != "" && !r.Hard.JSONOK {
+		if strings.TrimSpace(r.Hard.ErrorMessage) != "" {
 			failures = append(failures, fmt.Sprintf("case %s: generation failed: %s", r.CaseID, r.Hard.ErrorMessage))
 		}
 	}
