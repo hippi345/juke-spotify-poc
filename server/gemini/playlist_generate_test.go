@@ -42,6 +42,23 @@ func TestGenerateTrackList_structuredJSONAndRetry(t *testing.T) {
 	_ = srv
 }
 
+func TestMaxOutputTokensForTrackCount_scalesForLargePlaylists(t *testing.T) {
+	if maxOutputTokensForTrackCount(100) < 6000 {
+		t.Fatalf("count_max should get scaled output tokens, got %d", maxOutputTokensForTrackCount(100))
+	}
+	if maxOutputTokensForTrackCount(10) != 4096 {
+		t.Fatalf("small playlists keep 4096 floor, got %d", maxOutputTokensForTrackCount(10))
+	}
+}
+
+func TestParseTrackJSONArray_acceptsWrappedObject(t *testing.T) {
+	text := `{"tracks":[{"title":"A","artist":"B"},{"title":"C","artist":"D"}]}`
+	out, err := parseTrackJSONArray(text)
+	if err != nil || len(out) != 2 {
+		t.Fatalf("wrapped tracks: %v len=%d", err, len(out))
+	}
+}
+
 func TestTrackListResponseSchema_presentInRequest(t *testing.T) {
 	s := trackListResponseSchema()
 	if s["type"] != "array" {

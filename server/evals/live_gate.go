@@ -2,11 +2,24 @@ package evals
 
 import "fmt"
 
-// LiveGateOff gates the default (vector OFF) arm: baseline, thresholds, and hard checks.
+const maxLiveJudgeErrors = 5
+
+// LiveGateOff gates the default (vector OFF) arm: live reference, thresholds, and hard checks.
 func LiveGateOff(summary SummaryMetrics, results []CaseResult, bl BaselineFile, th ThresholdsFile) GateResult {
-	base := CompareBaseline(summary, bl.Full, results)
-	thr := CompareThresholds(summary, results, bl.Full, th)
-	return MergeGateResults(base, thr)
+	liveRef := bl.LiveFull
+	if liveRef.Mode == "" {
+		liveRef = bl.Full
+	}
+	hard := PerCaseHardGate(results)
+	agg := CompareLiveAggregate(summary, bl.LiveFull)
+	thr := CompareThresholds(summary, results, liveRef, th)
+	var judge GateResult
+	if summary.JudgeErrorCount > maxLiveJudgeErrors {
+		judge = GateResult{Passed: false, Failures: []string{
+			fmt.Sprintf("judge errors %d exceed threshold %d", summary.JudgeErrorCount, maxLiveJudgeErrors),
+		}}
+	}
+	return MergeGateResults(hard, agg, thr, judge)
 }
 
 // LiveGateVectorOn gates the vector ON arm: hard checks only (schema, grounding, tool sequence).

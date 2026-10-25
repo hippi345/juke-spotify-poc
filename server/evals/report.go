@@ -14,8 +14,9 @@ import (
 
 // BaselineFile holds CI and full-suite reference metrics.
 type BaselineFile struct {
-	CI   SummaryMetrics `json:"ci"`
-	Full SummaryMetrics `json:"full"`
+	CI       SummaryMetrics `json:"ci"`
+	Full     SummaryMetrics `json:"full"`
+	LiveFull SummaryMetrics `json:"live_full"`
 }
 
 // SummaryMetrics are gate inputs compared against baseline.json.
@@ -49,22 +50,30 @@ type GateResult struct {
 
 func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics {
 	var resolveSum, moodSum, crowdSum, varietySum, coherenceSum, venueSum, overlapSum float64
-	var resolveN int
+	var resolveN, moodN, judgeN int
 	var latencies []int64
 	hardPass := 0
 	jsonOK := true
 	countOK := true
 	dupOK := true
+	judgeErrors := 0
 	var venueN int
 	for _, r := range results {
+		judgeErrors += r.JudgeErrorCount
 		if !r.Hard.ResolveSkipped {
 			resolveSum += r.Hard.ResolveRate
 			resolveN++
 		}
-		moodSum += r.Judge.MoodFit
-		crowdSum += r.Judge.CrowdFit
-		varietySum += r.Judge.Variety
-		coherenceSum += r.Judge.Coherence
+		if includeCaseInJudgeMeans(r) {
+			judgeN++
+			if caseUsesMoodRubric(r.CaseID) {
+				moodSum += r.Judge.MoodFit
+				moodN++
+			}
+			crowdSum += r.Judge.CrowdFit
+			varietySum += r.Judge.Variety
+			coherenceSum += r.Judge.Coherence
+		}
 		latencies = append(latencies, r.Hard.LatencyMs)
 		hardOK := r.Hard.JSONOK && r.Hard.SchemaOK && r.Hard.ToolSequenceOK && r.Hard.GroundingOK &&
 			r.Hard.CountOK && r.Hard.NoDuplicates && (r.Hard.ErrorClean || !expectErrorCase(r.CaseID)) &&
@@ -94,6 +103,14 @@ func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics 
 	if n == 0 {
 		n = 1
 	}
+	judgeDenom := float64(judgeN)
+	if judgeDenom == 0 {
+		judgeDenom = 1
+	}
+	moodDenom := float64(moodN)
+	if moodDenom == 0 {
+		moodDenom = 1
+	}
 	sort.Slice(latencies, func(i, j int) bool { return latencies[i] < latencies[j] })
 	p50 := latencies[len(latencies)/2]
 	p95 := latencies[len(latencies)*95/100]
@@ -113,10 +130,10 @@ func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics 
 			return resolveSum / float64(resolveN)
 		}(),
 		ResolveRateNA:     resolveN == 0,
-		MoodFitMean:       moodSum / n,
-		CrowdFitMean:      crowdSum / n,
-		VarietyMean:       varietySum / n,
-		CoherenceMean:     coherenceSum / n,
+		MoodFitMean:       moodSum / moodDenom,
+		CrowdFitMean:      crowdSum / judgeDenom,
+		VarietyMean:       varietySum / judgeDenom,
+		CoherenceMean:     coherenceSum / judgeDenom,
 		P50LatencyMs:      p50,
 		P95LatencyMs:      p95,
 		HardPassCount:     hardPass,
@@ -125,7 +142,29 @@ func Summarize(results []CaseResult, mode string, vectorOn bool) SummaryMetrics 
 		JSONOK:            jsonOK,
 		CountOK:           countOK,
 		NoDuplicates:      dupOK,
+		JudgeErrorCount:   judgeErrors,
 	}
+}
+
+func caseUsesMoodRubric(caseID string) bool {
+	c := caseByID(caseID)
+	if c == nil {
+		return true
+	}
+	return c.MoodRubric
+}
+
+func includeCaseInJudgeMeans(r CaseResult) bool {
+	if expectErrorCase(r.CaseID) {
+		return false
+	}
+	if r.JudgeErrorCount > 0 && r.Judge.CrowdFit == 0 && r.Judge.Variety == 0 && r.Judge.Coherence == 0 {
+		return false
+	}
+	if strings.TrimSpace(r.Hard.ErrorMessage) != "" {
+		return false
+	}
+	return true
 }
 
 func expectErrorCase(id string) bool {
@@ -137,8 +176,8 @@ func expectErrorCase(id string) bool {
 	return false
 }
 
-// CompareBaseline applies regression thresholds from the spec and per-case hard checks.
-func CompareBaseline(current, baseline SummaryMetrics, results []CaseResult) GateResult {
+// PerCaseHardGate fails on per-case schema, grounding, tool sequence, and missing Spotify creds.
+func PerCaseHardGate(results []CaseResult) GateResult {
 	var failures []string
 	for _, r := range results {
 		if expectErrorCase(r.CaseID) {
@@ -156,7 +195,37 @@ func CompareBaseline(current, baseline SummaryMetrics, results []CaseResult) Gat
 		if !r.Hard.ToolSequenceOK {
 			failures = append(failures, fmt.Sprintf("case %s: tool sequence check failed", r.CaseID))
 		}
+		if strings.TrimSpace(r.Hard.ErrorMessage) != "" && !r.Hard.JSONOK {
+			failures = append(failures, fmt.Sprintf("case %s: generation failed: %s", r.CaseID, r.Hard.ErrorMessage))
+		}
 	}
+	return GateResult{Passed: len(failures) == 0, Failures: failures}
+}
+
+// CompareLiveAggregate compares live OFF-arm summary metrics to a live reference (not mocked CI fixtures).
+func CompareLiveAggregate(current, liveRef SummaryMetrics) GateResult {
+	if liveRef.Mode == "" {
+		return GateResult{Passed: true}
+	}
+	var failures []string
+	if liveRef.HardPassCount > 0 && current.HardPassCount < liveRef.HardPassCount {
+		failures = append(failures, fmt.Sprintf("hard pass count dropped %d -> %d (live ref %d)", liveRef.HardPassCount, current.HardPassCount, liveRef.HardPassCount))
+	}
+	if !current.ResolveRateNA && !liveRef.ResolveRateNA && liveRef.ResolveRateMean > 0 &&
+		current.ResolveRateMean < liveRef.ResolveRateMean-0.05 {
+		failures = append(failures, fmt.Sprintf("resolve rate dropped %.3f -> %.3f (max -0.05 vs live ref)", liveRef.ResolveRateMean, current.ResolveRateMean))
+	}
+	if liveRef.P50LatencyMs > 0 && current.P50LatencyMs > liveRef.P50LatencyMs+1000 {
+		failures = append(failures, fmt.Sprintf("p50 latency rose %dms -> %dms (max +1000ms vs live ref)", liveRef.P50LatencyMs, current.P50LatencyMs))
+	}
+	return GateResult{Passed: len(failures) == 0, Failures: failures}
+}
+
+// CompareBaseline applies regression thresholds from the spec and per-case hard checks (mocked CI).
+func CompareBaseline(current, baseline SummaryMetrics, results []CaseResult) GateResult {
+	hard := PerCaseHardGate(results)
+	var failures []string
+	failures = append(failures, hard.Failures...)
 	if current.HardPassCount < baseline.HardPassCount {
 		failures = append(failures, fmt.Sprintf("hard pass count dropped %d -> %d", baseline.HardPassCount, current.HardPassCount))
 	}

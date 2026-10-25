@@ -33,11 +33,12 @@ func stringsTrimSpace(s string) string {
 
 // CaseResult is one case after generation, checks, and judging.
 type CaseResult struct {
-	CaseID       string
-	Hard         HardCheckResult
-	Judge        JudgeScores
-	JudgeSpread  JudgeSpread
-	VectorOn     bool
+	CaseID          string
+	Hard            HardCheckResult
+	Judge           JudgeScores
+	JudgeSpread     JudgeSpread
+	JudgeErrorCount int // failed judge HTTP calls for this case (live)
+	VectorOn        bool
 }
 
 // JudgeSpread captures min/max per dimension across judge runs.
@@ -116,27 +117,33 @@ func RunSuiteCases(cfg RunConfig, cases []Case) ([]CaseResult, error) {
 		hard := RunHardChecksWithVector(c, suggestions, searcher, venueKeys, start, genErr, cfg.VectorOn, cfg.InjectVenueCandidates)
 
 		var judgeRuns []JudgeScores
+		judgeErrs := 0
 		if !c.ExpectError && len(suggestions) > 0 && cfg.Judge != nil {
 			for i := 0; i < judgeRunsForSuite(); i++ {
 				sc, err := cfg.Judge.Score(c.Description, suggestions)
 				if err != nil {
+					judgeErrs++
+					if liveCallsEnabled() {
+						continue
+					}
 					return nil, fmt.Errorf("case %s judge run %d: %w", c.ID, i+1, err)
 				}
 				judgeRuns = append(judgeRuns, sc)
 			}
 		} else if c.ExpectError {
 			judgeRuns = []JudgeScores{{MoodFit: 0, CrowdFit: 0, Variety: 0, Coherence: 0}}
-		} else {
+		} else if genErr == nil && len(suggestions) > 0 {
 			judgeRuns = []JudgeScores{{MoodFit: 4, CrowdFit: 4, Variety: 4, Coherence: 4}}
 		}
 		agg := AggregateJudgeRuns(judgeRuns)
 		spread := judgeSpread(judgeRuns)
 		out = append(out, CaseResult{
-			CaseID:      c.ID,
-			Hard:        hard,
-			Judge:       agg,
-			JudgeSpread: spread,
-			VectorOn:    cfg.VectorOn,
+			CaseID:          c.ID,
+			Hard:            hard,
+			Judge:           agg,
+			JudgeSpread:     spread,
+			JudgeErrorCount: judgeErrs,
+			VectorOn:        cfg.VectorOn,
 		})
 	}
 	return out, nil

@@ -2,9 +2,12 @@ package evals
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -84,6 +87,43 @@ func (j *GeminiJudge) Score(description string, suggestions []gemini.TrackSugges
 	if j.APIKey == "" {
 		return JudgeScores{}, fmt.Errorf("GEMINI_API_KEY not set for judge")
 	}
+	const maxAttempts = 3
+	var lastErr error
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		sc, err := j.scoreOnce(description, suggestions)
+		if err == nil {
+			return sc, nil
+		}
+		lastErr = err
+		if !judgeErrRetriable(err) || attempt == maxAttempts-1 {
+			break
+		}
+		time.Sleep(time.Duration(1+attempt*2) * time.Second)
+	}
+	return JudgeScores{}, lastErr
+}
+
+func judgeErrRetriable(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var ne net.Error
+	if errors.As(err, &ne) && ne.Timeout() {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "timeout") ||
+		strings.Contains(msg, "connection reset") ||
+		strings.Contains(msg, "http 5") ||
+		strings.Contains(msg, "http 502") ||
+		strings.Contains(msg, "http 503") ||
+		strings.Contains(msg, "http 504")
+}
+
+func (j *GeminiJudge) scoreOnce(description string, suggestions []gemini.TrackSuggestion) (JudgeScores, error) {
 	var trackLines []string
 	for _, s := range suggestions {
 		trackLines = append(trackLines, fmt.Sprintf("- %s — %s", s.Title, s.Artist))
@@ -134,6 +174,9 @@ Tracks:
 	defer func() { _ = resp.Body.Close() }()
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode >= 500 || resp.StatusCode == http.StatusTooManyRequests {
+			return JudgeScores{}, fmt.Errorf("judge gemini HTTP %d: %s", resp.StatusCode, gemini.RedactSecrets(truncate(respBody, 200), j.APIKey))
+		}
 		return JudgeScores{}, fmt.Errorf("judge gemini HTTP %d: %s", resp.StatusCode, gemini.RedactSecrets(truncate(respBody, 200), j.APIKey))
 	}
 	text, err := extractGeminiText(respBody)

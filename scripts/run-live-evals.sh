@@ -45,8 +45,30 @@ set +e
 go test -tags evals_live -count=1 -timeout 120m ./evals/ -run TestVibeSenseEvalLiveVectorOn -write-reports -v 2>&1 | tee "$ROOT/artifacts/live-evals/on.log"
 ON_EC=${PIPESTATUS[0]}
 set -e
-cp evals/out/report.json "$ROOT/artifacts/live-evals/report-vector-on.json"
-cp evals/out/report.md "$ROOT/artifacts/live-evals/report-vector-on.md"
+if [[ "$ON_EC" -eq 0 ]]; then
+  cp evals/out/report.json "$ROOT/artifacts/live-evals/report-vector-on.json"
+  cp evals/out/report.md "$ROOT/artifacts/live-evals/report-vector-on.md"
+else
+  python3 - "$ROOT/artifacts/live-evals/report-vector-on.json" <<'PY'
+import json, sys
+path = sys.argv[1]
+doc = {
+  "summary": {
+    "mode": "live",
+    "vector_on": True,
+    "case_count": 0,
+    "aborted": True,
+    "abort_reason": "vector ON arm test failed before report was written",
+  },
+  "gate": {"passed": False, "failures": ["vector ON arm aborted"]},
+  "cases": [],
+}
+with open(path, "w", encoding="utf-8") as f:
+  json.dump(doc, f, indent=2)
+PY
+  echo "# Vector ON arm aborted" > "$ROOT/artifacts/live-evals/report-vector-on.md"
+  echo "The vector ON live eval did not complete; see on.log." >> "$ROOT/artifacts/live-evals/report-vector-on.md"
+fi
 
 python3 "$ROOT/scripts/summarize-live-eval-report.py" \
   "$ROOT/artifacts/live-evals/report-vector-off.json" \

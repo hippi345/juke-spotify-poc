@@ -102,7 +102,7 @@ func CompareThresholds(current SummaryMetrics, results []CaseResult, baseline Su
 		if expectErrorCase(r.CaseID) {
 			continue
 		}
-		if t.PerCaseFloors.MoodIntent > 0 && r.Judge.MoodFit < t.PerCaseFloors.MoodIntent {
+		if caseUsesMoodRubric(r.CaseID) && t.PerCaseFloors.MoodIntent > 0 && r.Judge.MoodFit < t.PerCaseFloors.MoodIntent {
 			failures = append(failures, fmt.Sprintf("case %s: mood/intent %.2f below floor %.2f", r.CaseID, r.Judge.MoodFit, t.PerCaseFloors.MoodIntent))
 		}
 		if t.PerCaseFloors.CrowdFit > 0 && r.Judge.CrowdFit < t.PerCaseFloors.CrowdFit {
