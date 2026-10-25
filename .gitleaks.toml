@@ -4,16 +4,28 @@ useDefault = true
 title = "juke-spotify-poc gitleaks"
 
 [allowlist]
-description = "Intentional fake keys in tests; shell ${ENV} placeholders in curl (not literal secrets)"
-paths = [
-  '''(^|/).*_test\.go$''',
-  '''server/evals/cases\.go$''',
-  '''server/evals/key_leak\.go$''',
-  '''scripts/prepare-artifact-upload\.sh$''',
-  '''scripts/check-artifact-secrets\.sh$''',
-]
+description = "Documented fake keys in evals/tests and leak-guard fixtures (not path-wide skips)"
+paths = []
 regexes = [
   '''\$\{[A-Z_]+\}''',
+  # server/gemini/http_api_test.go (committed literal in history)
+  '''AIzaSyTestSecretKey123''',
+  '''AIzaSyTestSecretKeyForRedactUnitTest1''',
+  # server/handlers/ai_playlist_error_test.go
+  '''AIzaSyTESTKEYFORLEAKGUARD1234567890''',
+  '''AIzaSyTESTKEYFORLEAKGUARD123456789''',
+  # server/handlers/similar_tracks_key_test.go
+  '''AIzaSyLeakedKeyForTestOnly1234567890''',
+  '''AIzaSyLeakedKeyForTestOnly''',
+  # server/evals/cases.go adversarial fixture copy
+  '''AIzaSyFAKEKEY1234567890''',
+  # historical eval / handler fakes in git history
+  '''AIzaSyDummyKeyForUnitTestOnly123456''',
+  # server/evals/key_leak_guard_test.go
+  '''sk-abcdefghijklmnopqrstuvwxyz''',
+]
+stopwords = [
+  "sk-test",
 ]
 
 [[rules]]
