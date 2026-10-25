@@ -4,16 +4,20 @@ useDefault = true
 title = "juke-spotify-poc gitleaks"
 
 [allowlist]
-description = "Intentional fake keys in tests; shell ${ENV} placeholders in curl (not literal secrets)"
-paths = [
-  '''(^|/).*_test\.go$''',
-  '''server/evals/cases\.go$''',
-  '''server/evals/key_leak\.go$''',
-  '''scripts/prepare-artifact-upload\.sh$''',
-  '''scripts/check-artifact-secrets\.sh$''',
-]
+description = "Exact documented fake keys in evals/tests (full-string secret match only)"
+paths = []
+regexTarget = "secret"
 regexes = [
   '''\$\{[A-Z_]+\}''',
+  '''^AIzaSyTestSecretKey123$''',
+  '''^AIzaSyTestSecretKeyForRedactUnitTest1$''',
+  '''^AIzaSyTESTKEYFORLEAKGUARD1234567890$''',
+  '''^AIzaSyTESTKEYFORLEAKGUARD123456789$''',
+  '''^AIzaSyLeakedKeyForTestOnly1234567890$''',
+  '''^AIzaSyFAKEKEY1234567890$''',
+  '''^AIzaSyDummyKeyForUnitTestOnly123456$''',
+  '''^sk-abcdefghijklmnopqrstuvwxyz$''',
+  '''^sk-test$''',
 ]
 
 [[rules]]
@@ -22,7 +26,7 @@ id = "curl-auth-user"
 [[rules.allowlists]]
 description = "Local Grafana default in compose smoke script"
 regexes = [
-  '''admin:admin''',
+  '''^admin:admin$''',
 ]
 
 [[rules]]
