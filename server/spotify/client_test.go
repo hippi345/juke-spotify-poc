@@ -30,14 +30,14 @@ func TestGetDefaultAccount_nilDB(t *testing.T) {
 
 func TestSpotify429FailFast_quotaExceeded(t *testing.T) {
 	err := spotify429FailFast("5", []byte(`{"error":{"reason":"QUOTA_EXCEEDED"}}`))
-	if err == nil || !strings.Contains(err.Error(), "Spotify quota exhausted") {
+	if err == nil || !strings.Contains(err.Error(), "spotify quota exhausted") {
 		t.Fatalf("expected quota error, got %v", err)
 	}
 }
 
 func TestSpotify429FailFast_longRetryAfter(t *testing.T) {
 	err := spotify429FailFast("60", []byte(`{"error":{"status":429}}`))
-	if err == nil || !strings.Contains(err.Error(), "Retry-After") {
+	if err == nil || !strings.Contains(err.Error(), "retry-after") {
 		t.Fatalf("expected Retry-After cap error, got %v", err)
 	}
 }
@@ -56,7 +56,7 @@ func TestDoWithRetry_quotaExceededNoRetry(t *testing.T) {
 	defer cleanup()
 
 	_, err := c.DoWithRetry(http.MethodGet, "/quota-test", nil, 3)
-	if err == nil || !strings.Contains(err.Error(), "Spotify quota exhausted") {
+	if err == nil || !strings.Contains(err.Error(), "spotify quota exhausted") {
 		t.Fatalf("expected quota exhausted, got %v (hits=%d)", err, hits)
 	}
 	if hits != 1 {

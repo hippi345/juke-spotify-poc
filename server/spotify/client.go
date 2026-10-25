@@ -146,12 +146,12 @@ func (c *Client) EnsureValidToken(acc *models.SpotifyAccount) error {
 // spotify429FailFast returns a non-nil error when the 429 should not be retried (quota or long Retry-After).
 func spotify429FailFast(retryAfterHeader string, body []byte) error {
 	if bytes.Contains(body, []byte("QUOTA_EXCEEDED")) {
-		return fmt.Errorf("Spotify quota exhausted")
+		return fmt.Errorf("spotify quota exhausted")
 	}
 	if v := strings.TrimSpace(retryAfterHeader); v != "" {
 		n, err := strconv.Atoi(v)
 		if err == nil && n > spotifyRetryAfterCap {
-			return fmt.Errorf("Spotify rate limited (429): Retry-After %ds exceeds %ds cap", n, spotifyRetryAfterCap)
+			return fmt.Errorf("spotify rate limited (429): retry-after %ds exceeds %ds cap", n, spotifyRetryAfterCap)
 		}
 	}
 	return nil
