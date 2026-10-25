@@ -4,14 +4,33 @@ useDefault = true
 title = "juke-spotify-poc gitleaks"
 
 [allowlist]
-description = "Intentional fake keys in tests and adversarial eval fixtures"
+description = "Intentional fake keys in tests; shell ${ENV} placeholders in curl (not literal secrets)"
 paths = [
   '''(^|/).*_test\.go$''',
   '''server/evals/cases\.go$''',
   '''server/evals/key_leak\.go$''',
   '''scripts/prepare-artifact-upload\.sh$''',
   '''scripts/check-artifact-secrets\.sh$''',
-  '''scripts/compose-session-walk\.sh$''',
-  '''scripts/smoke-stack\.sh$''',
-  '''server/vendor/''',
+]
+regexes = [
+  '''\$\{[A-Z_]+\}''',
+]
+
+[[rules]]
+id = "curl-auth-user"
+
+[[rules.allowlists]]
+description = "Local Grafana default in compose smoke script"
+regexes = [
+  '''admin:admin''',
+]
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Vendored Windows SQLite constant false positive"
+paths = [
+  '''server/vendor/modernc.org/sqlite/lib/sqlite_windows_amd64\.go$''',
+  '''server/vendor/modernc.org/sqlite/lib/sqlite_windows_arm64\.go$''',
 ]
