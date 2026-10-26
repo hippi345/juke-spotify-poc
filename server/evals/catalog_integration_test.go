@@ -113,7 +113,7 @@ func formatMetricsTable(rows []catalogQueryMetrics) string {
 	b.WriteString("\n| query | vec R@20 | bm25 R@20 | vec nDCG | bm25 nDCG |\n")
 	b.WriteString("|-------|----------|-----------|----------|----------|\n")
 	for _, r := range rows {
-		b.WriteString(fmt.Sprintf("| %s | %.3f | %.3f | %.3f | %.3f |\n", r.query, r.vecRec, r.kwRec, r.vecNDCG, r.kwNDCG))
+		fmt.Fprintf(&b, "| %s | %.3f | %.3f | %.3f | %.3f |\n", r.query, r.vecRec, r.kwRec, r.vecNDCG, r.kwNDCG)
 	}
 	return b.String()
 }
