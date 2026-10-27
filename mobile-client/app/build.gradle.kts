@@ -13,7 +13,8 @@ val jukeApiBase: String = run {
 
 android {
     namespace = "com.juke.spotifypoc.mobile"
-    compileSdk = 34
+    // splashscreen 1.2.0 requires API 35+. targetSdk stays 34 so runtime behavior is unchanged.
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.juke.spotifypoc.mobile"
