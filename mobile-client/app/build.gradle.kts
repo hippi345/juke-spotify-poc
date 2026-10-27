@@ -13,8 +13,9 @@ val jukeApiBase: String = run {
 
 android {
     namespace = "com.juke.spotifypoc.mobile"
-    // splashscreen 1.2.0 requires API 35+. core-ktx 1.19 requires compileSdk 37.
-    // targetSdk stays 34 so runtime behavior is unchanged.
+    // splashscreen 1.2.0 requires API 35+. core-ktx 1.19, Compose BOM 2026.09.00,
+    // and OkHttp 5.5.1 require compileSdk 37. targetSdk stays 34.
+
     compileSdk = 37
 
     defaultConfig {
@@ -57,7 +58,7 @@ kotlin {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.04.01")
+    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
@@ -74,7 +75,7 @@ dependencies {
 
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:5.5.1")
 
     implementation("io.coil-kt:coil-compose:2.7.0")
 
