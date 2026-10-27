@@ -18,7 +18,10 @@ export default tseslint.config(
       'react-refresh': reactRefresh,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      // v7's recommended preset adds React Compiler rules that fail existing
+      // data-fetch effects. Keep the two rules this project already enforced.
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },
