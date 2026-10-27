@@ -13,8 +13,9 @@ val jukeApiBase: String = run {
 
 android {
     namespace = "com.juke.spotifypoc.mobile"
-    // splashscreen 1.2.0 requires API 35+. targetSdk stays 34 so runtime behavior is unchanged.
-    compileSdk = 35
+    // splashscreen 1.2.0 requires API 35+. core-ktx 1.19 requires compileSdk 37.
+    // targetSdk stays 34 so runtime behavior is unchanged.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.juke.spotifypoc.mobile"
@@ -60,7 +61,7 @@ dependencies {
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.core:core-ktx:1.19.1")
     implementation("androidx.core:core-splashscreen:1.2.0")
     implementation("androidx.activity:activity-compose:1.9.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.0")
