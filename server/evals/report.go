@@ -253,19 +253,19 @@ func sanitizeGateFailures(gate GateResult) GateResult {
 func FormatMarkdownReport(summary SummaryMetrics, gate GateResult) string {
 	var b strings.Builder
 	b.WriteString("# VibeSense eval report\n\n")
-	b.WriteString(fmt.Sprintf("- Generated: %s\n", summary.GeneratedAt))
-	b.WriteString(fmt.Sprintf("- Mode: %s (vector=%v)\n", summary.Mode, summary.VectorOn))
-	b.WriteString(fmt.Sprintf("- Cases: %d\n", summary.CaseCount))
-	b.WriteString(fmt.Sprintf("- Resolve rate (mean): %.3f\n", summary.ResolveRateMean))
-	b.WriteString(fmt.Sprintf("- Judge mood/crowd/variety/coherence: %.2f / %.2f / %.2f / %.2f\n",
-		summary.MoodFitMean, summary.CrowdFitMean, summary.VarietyMean, summary.CoherenceMean))
-	b.WriteString(fmt.Sprintf("- Latency p50/p95: %dms / %dms\n", summary.P50LatencyMs, summary.P95LatencyMs))
+	fmt.Fprintf(&b, "- Generated: %s\n", summary.GeneratedAt)
+	fmt.Fprintf(&b, "- Mode: %s (vector=%v)\n", summary.Mode, summary.VectorOn)
+	fmt.Fprintf(&b, "- Cases: %d\n", summary.CaseCount)
+	fmt.Fprintf(&b, "- Resolve rate (mean): %.3f\n", summary.ResolveRateMean)
+	fmt.Fprintf(&b, "- Judge mood/crowd/variety/coherence: %.2f / %.2f / %.2f / %.2f\n",
+		summary.MoodFitMean, summary.CrowdFitMean, summary.VarietyMean, summary.CoherenceMean)
+	fmt.Fprintf(&b, "- Latency p50/p95: %dms / %dms\n", summary.P50LatencyMs, summary.P95LatencyMs)
 	if gate.Passed {
 		b.WriteString("\n**Gate: PASSED**\n")
 	} else {
 		b.WriteString("\n**Gate: FAILED**\n")
 		for _, f := range gate.Failures {
-			b.WriteString(fmt.Sprintf("- %s\n", f))
+			fmt.Fprintf(&b, "- %s\n", f)
 		}
 	}
 	return b.String()
