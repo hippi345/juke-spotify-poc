@@ -49,7 +49,6 @@ func TestVibeSenseEvalLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	summary := Summarize(results, "live", false)
-	summary.JudgeErrorCount = 0
 	bl, err := LoadBaseline(baselineFile())
 	if err != nil {
 		t.Fatalf("baseline: %v", err)
@@ -112,7 +111,6 @@ func TestVibeSenseEvalLiveVectorOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	summary := Summarize(results, "live", true)
-	summary.JudgeErrorCount = 0
 	gate := LiveGateVectorOn(results)
 	_ = WriteReports(reportsDir(), summary, results, gate)
 	if !gate.Passed {

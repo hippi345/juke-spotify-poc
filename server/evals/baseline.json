@@ -40,5 +40,26 @@
     "count_ok": true,
     "no_duplicates": true,
     "judge_error_count": 0
+  },
+  "live_full": {
+    "generated_at": "2026-10-24T00:00:00Z",
+    "mode": "live",
+    "vector_on": false,
+    "case_count": 58,
+    "resolve_rate_mean": 0.85,
+    "resolve_rate_na": false,
+    "mood_fit_mean": 3.0,
+    "crowd_fit_mean": 3.2,
+    "variety_mean": 3.3,
+    "coherence_mean": 3.4,
+    "p50_latency_ms": 6000,
+    "p95_latency_ms": 15000,
+    "hard_pass_count": 53,
+    "venue_history_share_mean": 0,
+    "venue_overlap_mean": 0,
+    "json_ok": true,
+    "count_ok": true,
+    "no_duplicates": true,
+    "judge_error_count": 0
   }
 }

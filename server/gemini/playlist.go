@@ -22,6 +22,20 @@ const generateURL = "https://generativelanguage.googleapis.com/v1beta/models/%s:
 
 const maxGeminiRetries = 4
 
+func maxOutputTokensForTrackCount(trackCount int) int {
+	if trackCount <= 0 {
+		return 4096
+	}
+	est := 256 + trackCount*64
+	if est < 4096 {
+		return 4096
+	}
+	if est > 16384 {
+		return 16384
+	}
+	return est
+}
+
 func trackListResponseSchema() map[string]interface{} {
 	return map[string]interface{}{
 		"type": "array",
@@ -107,7 +121,7 @@ Rules:
 			"temperature":      0.9,
 			"responseMimeType": "application/json",
 			"responseSchema":   trackListResponseSchema(),
-			"maxOutputTokens":  4096,
+			"maxOutputTokens":  maxOutputTokensForTrackCount(count),
 		},
 	}
 	raw, err := json.Marshal(body)
@@ -256,6 +270,18 @@ func parseTrackJSONArray(text string) ([]TrackSuggestion, error) {
 	var out []TrackSuggestion
 	if err := json.Unmarshal([]byte(text), &out); err == nil && len(out) > 0 {
 		return normalizeSuggestions(out), nil
+	}
+	var wrapped struct {
+		Tracks []TrackSuggestion `json:"tracks"`
+		Songs  []TrackSuggestion `json:"songs"`
+	}
+	if err := json.Unmarshal([]byte(text), &wrapped); err == nil {
+		if len(wrapped.Tracks) > 0 {
+			return normalizeSuggestions(wrapped.Tracks), nil
+		}
+		if len(wrapped.Songs) > 0 {
+			return normalizeSuggestions(wrapped.Songs), nil
+		}
 	}
 	re := regexp.MustCompile(`\[[\s\S]*\]`)
 	m := re.FindString(text)
