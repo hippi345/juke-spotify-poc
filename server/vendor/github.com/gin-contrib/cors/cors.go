@@ -151,7 +151,12 @@ func (c Config) Validate() error {
 	}
 	for _, origin := range c.AllowOrigins {
 		if !strings.Contains(origin, "*") && !c.validateAllowedSchemas(origin) {
-			return errors.New("bad origin: origins must contain '*' or include " + strings.Join(c.getAllowedSchemas(), ","))
+			return errors.New(
+				"bad origin: origins must contain '*' or include " + strings.Join(
+					c.getAllowedSchemas(),
+					",",
+				),
+			)
 		}
 	}
 	return nil
@@ -165,25 +170,25 @@ func (c Config) parseWildcardRules() [][]string {
 	}
 
 	for _, o := range c.AllowOrigins {
-		if !strings.Contains(o, "*") {
+		prefix, suffix, found := strings.Cut(o, "*")
+		if !found {
 			continue
 		}
 
-		if c := strings.Count(o, "*"); c > 1 {
+		if n := strings.Count(o, "*"); n > 1 {
 			panic(errors.New("only one * is allowed").Error())
 		}
 
-		i := strings.Index(o, "*")
-		if i == 0 {
-			wRules = append(wRules, []string{"*", o[1:]})
+		if prefix == "" {
+			wRules = append(wRules, []string{"*", suffix})
 			continue
 		}
-		if i == (len(o) - 1) {
-			wRules = append(wRules, []string{o[:i], "*"})
+		if suffix == "" {
+			wRules = append(wRules, []string{prefix, "*"})
 			continue
 		}
 
-		wRules = append(wRules, []string{o[:i], o[i+1:]})
+		wRules = append(wRules, []string{prefix, suffix})
 	}
 
 	return wRules
